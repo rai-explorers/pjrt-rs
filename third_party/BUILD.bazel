@@ -1,0 +1,51 @@
+load("@xla//xla/tsl:tsl.bzl", "transitive_hdrs")
+
+transitive_hdrs(
+  name = "pjrt_c_api_hdrs",
+  deps = [
+    "@xla//xla/pjrt/c:pjrt_c_api_hdrs",
+  ]
+)
+
+genrule(
+  name = "pjrt_headers",
+  srcs = [
+    ":pjrt_c_api_hdrs",
+  ],
+  outs = ["include"],
+  cmd = """
+    mkdir $@
+    for f in $(SRCS); do
+      d="$${f%/*}"
+      if [[ $${d} == external* ]]; then
+        extname="$${d#*external/}"
+        extname="$${extname%%/*}"
+        d="$${d#*external/$${extname}/}"
+      fi      
+      mkdir -p "$@/$${d}"
+      cp "$${f}" "$@/$${d}/"
+    done
+    """,
+)
+
+genrule(
+  name = "pjrt_protos",
+  srcs = [
+    "@xla//xla/pjrt:compile_options_proto_proto_srcs",
+  ],
+  outs = ["protos"],
+  cmd = """
+    mkdir $@
+    for f in $(SRCS); do
+      d="$${f%/*}"
+      if [[ $${d} == external* ]]; then
+        extname="$${d#*external/}"
+        extname="$${extname%%/*}"
+        d="$${d#*external/$${extname}/}"
+      fi      
+      mkdir -p "$@/$${d}"
+      cp "$${f}" "$@/$${d}/"
+    done
+  """
+)
+

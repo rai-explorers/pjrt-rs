@@ -1,0 +1,13 @@
+[package]
+name = "pjrt-sys"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+bytes = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+
+[build-dependencies]
+bindgen = { workspace = true }
+prost-build = { workspace = true }

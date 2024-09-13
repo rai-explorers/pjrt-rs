@@ -1,0 +1,2 @@
+build --nocheck_visibility
+common --experimental_repo_remote_exec

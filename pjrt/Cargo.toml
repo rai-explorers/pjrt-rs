@@ -1,0 +1,11 @@
+[package]
+name = "pjrt"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+pjrt-sys = { workspace = true }
+prost = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+libloading = { workspace = true }
