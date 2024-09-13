@@ -8,6 +8,9 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+categories = ["science"]
 
 [workspace.dependencies]
 pjrt-sys = { path = "./pjrt-sys" }
