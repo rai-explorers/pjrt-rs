@@ -1,6 +1,9 @@
 [package]
 name = "pjrt-sys"
 version = "0.54.0"
+authors = ["cksac <cs.cksac@gmail.com>"]
+description = "A PJRT C API bindings for Rust"
+keywords = ["deep-learning", "machine-learning", "ai"]
 edition.workspace = true
 license.workspace = true
 categories.workspace = true
