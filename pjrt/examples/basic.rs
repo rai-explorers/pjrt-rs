@@ -1,22 +1,17 @@
 use pjrt::ProgramFormat::MLIR;
 use pjrt::{self, HostBuffer, Result};
 
-const MLIR_STR: &str = r#"
-module {
-func.func @main(%arg0: tensor<f32>) -> tensor<f32> {
-  %0 = "mhlo.copy"(%arg0) : (tensor<f32>) -> tensor<f32>
-  %1 = mhlo.constant dense<1.000000e+00> : tensor<f32>
-  %2 = mhlo.add %0, %1 : tensor<f32>
-  return %2 : tensor<f32>
-}}"#;
+const CODE: &'static [u8] = include_bytes!("program.mlir");
 
 fn main() -> Result<()> {
     let api = pjrt::load_plugin("pjrt_c_api_cpu_plugin.so")?;
+    println!("api_version = {:?}", api.version());
+
     let client = api.create_client([])?;
-    println!("platform_name {}", client.platform_name());
+    println!("platform_name = {}", client.platform_name());
 
     let options = pjrt::CompileOptions::new();
-    let program = pjrt::Program::new(MLIR, MLIR_STR.to_owned());
+    let program = pjrt::Program::new(MLIR, CODE);
     let loaded_executable = client.compile(&program, &options)?;
     println!("compiled");
 
