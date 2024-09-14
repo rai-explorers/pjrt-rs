@@ -8,7 +8,7 @@ use crate::Result;
 pub static FORMAT_MLIR: &str = "mlir";
 pub static FORMAT_HLO: &str = "hlo";
 pub struct Program {
-    code: Vec<u8>,
+    pub(crate) code: Vec<u8>,
     pub(crate) prog: PJRT_Program,
 }
 

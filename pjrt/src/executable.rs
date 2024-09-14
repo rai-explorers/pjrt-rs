@@ -11,10 +11,10 @@ use pjrt_sys::{
 };
 
 use crate::program::{FORMAT_HLO, FORMAT_MLIR};
-use crate::{utils, Client, Error, NamedValueMap, PrimitiveType, Program, Result};
+use crate::{utils, Api, Error, NamedValueMap, PrimitiveType, Program, Result};
 
 pub struct Executable {
-    client: Client,
+    pub(crate) api: Api,
     pub(crate) ptr: *mut PJRT_Executable,
 }
 
@@ -22,18 +22,17 @@ impl Drop for Executable {
     fn drop(&mut self) {
         let mut args = PJRT_Executable_Destroy_Args::new();
         args.executable = self.ptr;
-        self.client
-            .api()
+        self.api
             .PJRT_Executable_Destroy(args)
             .expect("PJRT_Executable_Destroy");
     }
 }
 
 impl Executable {
-    pub fn new(client: &Client, ptr: *mut PJRT_Executable) -> Self {
+    pub fn new(api: &Api, ptr: *mut PJRT_Executable) -> Self {
         assert!(!ptr.is_null());
         Self {
-            client: client.clone(),
+            api: api.clone(),
             ptr,
         }
     }
@@ -42,8 +41,7 @@ impl Executable {
         let mut args = PJRT_Executable_Name_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_Name(args)
             .expect("PJRT_Executable_Name");
         utils::str_from_raw(args.executable_name, args.executable_name_size)
@@ -53,8 +51,7 @@ impl Executable {
         let mut args = PJRT_Executable_NumReplicas_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_NumReplicas(args)
             .expect("PJRT_Executable_NumReplicas");
         args.num_replicas
@@ -64,8 +61,7 @@ impl Executable {
         let mut args = PJRT_Executable_NumPartitions_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_NumPartitions(args)
             .expect("PJRT_Executable_NumPartitions");
         args.num_partitions
@@ -75,8 +71,7 @@ impl Executable {
         let mut args = PJRT_Executable_NumOutputs_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_NumOutputs(args)
             .expect("PJRT_Executable_NumOutputs");
         args.num_outputs
@@ -86,8 +81,7 @@ impl Executable {
         let mut args = PJRT_Executable_SizeOfGeneratedCodeInBytes_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_SizeOfGeneratedCodeInBytes(args)
             .expect("PJRT_Executable_SizeOfGeneratedCodeInBytes");
         args.size_in_bytes
@@ -97,8 +91,7 @@ impl Executable {
         let mut args = PJRT_Executable_OutputElementTypes_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_OutputElementTypes(args)
             .expect("PJRT_Executable_OutputElementTypes");
         let s = unsafe { std::slice::from_raw_parts(args.output_types, args.num_output_types) };
@@ -111,8 +104,7 @@ impl Executable {
         let mut args = PJRT_Executable_OutputDimensions_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_OutputDimensions(args)
             .expect("PJRT_Executable_OutputDimensions");
         let output_dim_size =
@@ -132,8 +124,7 @@ impl Executable {
         let mut args = PJRT_Executable_Fingerprint_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_Fingerprint(args)
             .expect("PJRT_Executable_Fingerprint");
         utils::str_from_raw(
@@ -146,8 +137,7 @@ impl Executable {
         let mut args = PJRT_Executable_GetCostAnalysis_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_GetCostAnalysis(args)
             .expect("PJRT_Executable_GetCostAnalysis");
         utils::to_named_value_map(args.properties, args.num_properties)
@@ -157,13 +147,13 @@ impl Executable {
         let mut args = PJRT_Executable_OptimizedProgram_Args::new();
         args.executable = self.ptr;
         // first call to get the size
-        args = self.client.api().PJRT_Executable_OptimizedProgram(args)?;
+        args = self.api.PJRT_Executable_OptimizedProgram(args)?;
         // prepare the code buffer
         let mut prog = unsafe { *args.program };
         let mut code: Vec<u8> = vec![0; prog.code_size];
         prog.code = code.as_mut_ptr() as *mut _;
         // second call to get the code
-        args = self.client.api().PJRT_Executable_OptimizedProgram(args)?;
+        args = self.api.PJRT_Executable_OptimizedProgram(args)?;
         let prog = unsafe { *args.program };
         let format = utils::str_from_raw(prog.format, prog.format_size);
         if format == FORMAT_MLIR {
@@ -179,8 +169,7 @@ impl Executable {
         let mut args = PJRT_Executable_OutputMemoryKinds_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_OutputMemoryKinds(args)
             .expect("PJRT_Executable_OutputMemoryKinds");
         let memory_kind_sizes =
@@ -198,8 +187,7 @@ impl Executable {
         let mut args = PJRT_Executable_Serialize_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_Serialize(args)
             .expect("PJRT_Executable_Serialize");
         SerializedExecutable {
@@ -216,8 +204,7 @@ impl Executable {
         let mut args = PJRT_Executable_GetCompiledMemoryStats_Args::new();
         args.executable = self.ptr;
         args = self
-            .client
-            .api()
+            .api
             .PJRT_Executable_GetCompiledMemoryStats(args)
             .expect("PJRT_Executable_GetCompiledMemoryStats");
         CompiledMemoryStats::from(args)

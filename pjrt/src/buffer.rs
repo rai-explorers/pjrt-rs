@@ -12,7 +12,7 @@ use crate::event::Event;
 use crate::{Client, Device, HostBuffer, Memory, MemoryLayout, PrimitiveType, Result};
 
 pub struct Buffer {
-    client: Client,
+    pub(crate) client: Client,
     pub(crate) ptr: *mut PJRT_Buffer,
 }
 

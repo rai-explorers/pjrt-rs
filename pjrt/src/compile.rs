@@ -1,9 +1,19 @@
 use pjrt_sys::protos::xla::{CompileOptionsProto, ExecutableBuildOptionsProto};
 use prost::Message;
 
-use crate::{LoadedExecutable, Result};
+use crate::{Client, Executable, LoadedExecutable, Result, TopologyDescription};
 
-pub trait Compile<T> {
+pub trait CompileToExecutable<T> {
+    fn compile(
+        &self,
+        program: &T,
+        topology: &TopologyDescription,
+        options: &CompileOptions,
+        client: Option<&Client>,
+    ) -> Result<Executable>;
+}
+
+pub trait CompileToLoadedExecutable<T> {
     fn compile(&self, program: &T, options: &CompileOptions) -> Result<LoadedExecutable>;
 }
 

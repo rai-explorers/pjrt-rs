@@ -29,7 +29,7 @@ mod memory_layout;
 pub use memory_layout::MemoryLayout;
 
 mod compile;
-pub use compile::{Compile, CompileOptions};
+pub use compile::{CompileOptions, CompileToExecutable, CompileToLoadedExecutable};
 
 mod device;
 pub use device::{Device, MemoryStats};

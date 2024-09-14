@@ -12,13 +12,13 @@ use pjrt_sys::{
 };
 
 use crate::{
-    utils, Api, Compile, CompileOptions, Device, LoadedExecutable, Memory, Program, Result,
-    TopologyDescription,
+    utils, Api, CompileOptions, CompileToLoadedExecutable, Device, LoadedExecutable, Memory,
+    Program, Result, TopologyDescription,
 };
 
 struct ClientRaw {
-    api: Api,
-    ptr: *mut PJRT_Client,
+    pub(crate) api: Api,
+    pub(crate) ptr: *mut PJRT_Client,
 }
 
 impl Drop for ClientRaw {
@@ -47,11 +47,11 @@ impl Client {
         }
     }
 
-    pub fn api(&self) -> &Api {
+    pub(crate) fn api(&self) -> &Api {
         &self.raw.api
     }
 
-    pub fn ptr(&self) -> *mut PJRT_Client {
+    pub(crate) fn ptr(&self) -> *mut PJRT_Client {
         self.raw.ptr
     }
 
@@ -152,9 +152,9 @@ impl Client {
 
     pub fn compile<T>(&self, program: &T, options: &CompileOptions) -> Result<LoadedExecutable>
     where
-        Self: Compile<T>,
+        Self: CompileToLoadedExecutable<T>,
     {
-        Compile::<T>::compile(self, program, options)
+        CompileToLoadedExecutable::<T>::compile(self, program, options)
     }
 
     pub fn load_executable(&self, bytes: &[u8]) -> Result<LoadedExecutable> {
@@ -194,7 +194,7 @@ impl Client {
     }
 }
 
-impl Compile<Program> for Client {
+impl CompileToLoadedExecutable<Program> for Client {
     fn compile(&self, program: &Program, options: &CompileOptions) -> Result<LoadedExecutable> {
         let options_encoded = options.encode();
         let mut args = PJRT_Client_Compile_Args::new();

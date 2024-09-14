@@ -14,7 +14,7 @@ use pjrt_sys::{
 use crate::{event, utils, Buffer, Client, Device, Event, Executable, Result};
 
 pub struct LoadedExecutable {
-    client: Client,
+    pub(crate) client: Client,
     pub(crate) ptr: *mut PJRT_LoadedExecutable,
 }
 
@@ -46,7 +46,7 @@ impl LoadedExecutable {
             .api()
             .PJRT_LoadedExecutable_GetExecutable(args)
             .expect("PJRT_LoadedExecutable_GetExecutable");
-        Executable::new(&self.client, args.executable)
+        Executable::new(self.client.api(), args.executable)
     }
 
     pub fn addressable_devices(&self) -> Vec<Device> {

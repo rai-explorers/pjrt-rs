@@ -11,7 +11,7 @@ use crate::named_value::NamedValueMap;
 use crate::{utils, Api};
 
 pub struct DeviceDescription {
-    api: Api,
+    pub(crate) api: Api,
     pub(crate) ptr: *mut PJRT_DeviceDescription,
 }
 

@@ -11,8 +11,8 @@ use pjrt_sys::{
 use crate::{utils, Api, DeviceDescription, NamedValueMap};
 
 pub struct TopologyDescription {
-    api: Api,
-    ptr: *mut PJRT_TopologyDescription,
+    pub(crate) api: Api,
+    pub(crate) ptr: *mut PJRT_TopologyDescription,
 }
 
 impl Drop for TopologyDescription {

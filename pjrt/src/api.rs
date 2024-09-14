@@ -2,16 +2,17 @@ use std::backtrace::Backtrace;
 use std::sync::Arc;
 
 use pjrt_sys::{
-    PJRT_Api, PJRT_Api_Version, PJRT_Client_Create_Args, PJRT_Error, PJRT_Error_Destroy_Args,
-    PJRT_Error_GetCode_Args, PJRT_Error_Message_Args, PJRT_ExecuteContext_Create_Args,
-    PJRT_NamedValue, PJRT_Plugin_Attributes_Args, PJRT_Plugin_Initialize_Args,
-    PJRT_TopologyDescription_Create_Args,
+    PJRT_Api, PJRT_Api_Version, PJRT_Client_Create_Args, PJRT_Compile_Args, PJRT_Error,
+    PJRT_Error_Destroy_Args, PJRT_Error_GetCode_Args, PJRT_Error_Message_Args,
+    PJRT_ExecuteContext_Create_Args, PJRT_NamedValue, PJRT_Plugin_Attributes_Args,
+    PJRT_Plugin_Initialize_Args, PJRT_Program, PJRT_TopologyDescription_Create_Args,
 };
 
 use crate::kv_store::{kv_get_callback, kv_put_callback};
 use crate::named_value::NamedValueMap;
 use crate::{
-    utils, Client, Error, ExecuteContext, KeyValueStore, NamedValue, Result, TopologyDescription,
+    utils, Client, CompileOptions, CompileToExecutable, Error, Executable, ExecuteContext,
+    KeyValueStore, NamedValue, Program, Result, TopologyDescription,
 };
 
 #[derive(Clone)]
@@ -96,6 +97,19 @@ impl Api {
         Ok(Client::new(self, args.client))
     }
 
+    pub fn compile<T>(
+        &self,
+        program: &T,
+        topology: &TopologyDescription,
+        options: &CompileOptions,
+        client: Option<&Client>,
+    ) -> Result<Executable>
+    where
+        Self: CompileToExecutable<T>,
+    {
+        CompileToExecutable::<T>::compile(self, program, topology, options, client)
+    }
+
     pub(crate) fn err_or<T>(&self, err: *mut PJRT_Error, value: T) -> Result<T> {
         if err.is_null() {
             Ok(value)
@@ -118,6 +132,28 @@ impl Api {
                 backtrace,
             })
         }
+    }
+}
+
+impl CompileToExecutable<Program> for Api {
+    fn compile(
+        &self,
+        program: &Program,
+        topology: &TopologyDescription,
+        options: &CompileOptions,
+        client: Option<&Client>,
+    ) -> Result<Executable> {
+        let options_encoded = options.encode();
+        let mut args = PJRT_Compile_Args::new();
+        args.topology = topology.ptr;
+        args.program = &program.prog as *const PJRT_Program;
+        args.compile_options = options_encoded.as_ptr() as *const i8;
+        args.compile_options_size = options_encoded.len();
+        if let Some(client) = client {
+            args.client = client.ptr();
+        }
+        args = self.PJRT_Compile(args)?;
+        Ok(Executable::new(self, args.executable))
     }
 }
 
