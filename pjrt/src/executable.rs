@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::borrow::{Borrow, Cow};
 
 use pjrt_sys::{
     PJRT_Executable, PJRT_Executable_Destroy_Args, PJRT_Executable_Fingerprint_Args,
@@ -10,11 +10,11 @@ use pjrt_sys::{
     PJRT_Executable_SizeOfGeneratedCodeInBytes_Args, PJRT_SerializedExecutable,
 };
 
-use crate::program::{FORMAT_HLO, FORMAT_MLIR};
+use crate::program::ProgramFormat;
 use crate::{utils, Api, Error, NamedValueMap, PrimitiveType, Program, Result};
 
 pub struct Executable {
-    pub(crate) api: Api,
+    api: Api,
     pub(crate) ptr: *mut PJRT_Executable,
 }
 
@@ -35,6 +35,10 @@ impl Executable {
             api: api.clone(),
             ptr,
         }
+    }
+
+    pub fn api(&self) -> &Api {
+        &self.api
     }
 
     pub fn name(&self) -> Cow<'_, str> {
@@ -156,13 +160,8 @@ impl Executable {
         args = self.api.PJRT_Executable_OptimizedProgram(args)?;
         let prog = unsafe { *args.program };
         let format = utils::str_from_raw(prog.format, prog.format_size);
-        if format == FORMAT_MLIR {
-            Ok(Program::with_bytes(code, FORMAT_MLIR))
-        } else if format == FORMAT_HLO {
-            Ok(Program::with_bytes(code, FORMAT_HLO))
-        } else {
-            Err(Error::InvalidProgramFormat(format.into_owned()))
-        }
+        let format = ProgramFormat::try_from(format.borrow())?;
+        Ok(Program::new(format, code))
     }
 
     pub fn output_memory_kinds(&self) -> Vec<Cow<'_, str>> {

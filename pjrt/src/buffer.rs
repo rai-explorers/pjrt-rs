@@ -12,7 +12,7 @@ use crate::event::Event;
 use crate::{Client, Device, HostBuffer, Memory, MemoryLayout, PrimitiveType, Result};
 
 pub struct Buffer {
-    pub(crate) client: Client,
+    client: Client,
     pub(crate) ptr: *mut PJRT_Buffer,
 }
 
@@ -34,6 +34,10 @@ impl Buffer {
             client: client.clone(),
             ptr,
         }
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
     }
 
     pub fn primitive_type(&self) -> PrimitiveType {
@@ -179,7 +183,7 @@ impl Buffer {
 
     pub async fn copy_to_device(&self, device: &Device) -> Result<Buffer> {
         let args = self.call_copy_to_device(device)?;
-        let buf = Buffer::new(&device.client, args.dst_buffer);
+        let buf = Buffer::new(device.client(), args.dst_buffer);
         let event = buf.ready_event()?;
         event.await?;
         Ok(buf)
@@ -187,7 +191,7 @@ impl Buffer {
 
     pub fn copy_to_device_sync(&self, device: &Device) -> Result<Buffer> {
         let args = self.call_copy_to_device(device)?;
-        let buf = Buffer::new(&device.client, args.dst_buffer);
+        let buf = Buffer::new(device.client(), args.dst_buffer);
         let event = buf.ready_event()?;
         event.wait()?;
         Ok(buf)
@@ -202,7 +206,7 @@ impl Buffer {
 
     pub async fn copy_to_memory(&self, memory: &Memory) -> Result<Buffer> {
         let args = self.call_copy_to_memory(memory)?;
-        let buf = Buffer::new(&memory.client, args.dst_buffer);
+        let buf = Buffer::new(memory.client(), args.dst_buffer);
         let event = buf.ready_event()?;
         event.await?;
         Ok(buf)
@@ -210,7 +214,7 @@ impl Buffer {
 
     pub fn copy_to_memory_sync(&self, memory: &Memory) -> Result<Buffer> {
         let args = self.call_copy_to_memory(memory)?;
-        let buf = Buffer::new(&memory.client, args.dst_buffer);
+        let buf = Buffer::new(memory.client(), args.dst_buffer);
         let event = buf.ready_event()?;
         event.wait()?;
         Ok(buf)

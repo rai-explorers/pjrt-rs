@@ -9,7 +9,7 @@ use pjrt_sys::{
 use crate::{Client, DeviceDescription, Memory, Result};
 
 pub struct Device {
-    pub(crate) client: Client,
+    client: Client,
     pub(crate) ptr: *mut PJRT_Device,
 }
 
@@ -20,6 +20,10 @@ impl Device {
             client: client.clone(),
             ptr,
         }
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
     }
 
     pub fn get_description(&self) -> DeviceDescription {

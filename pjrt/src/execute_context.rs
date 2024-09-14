@@ -4,7 +4,7 @@ use crate::Api;
 
 pub struct ExecuteContext {
     api: Api,
-    ptr: *mut PJRT_ExecuteContext,
+    pub(crate) ptr: *mut PJRT_ExecuteContext,
 }
 
 impl Drop for ExecuteContext {
@@ -24,5 +24,9 @@ impl ExecuteContext {
             api: api.clone(),
             ptr,
         }
+    }
+
+    pub fn api(&self) -> &Api {
+        &self.api
     }
 }

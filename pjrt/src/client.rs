@@ -17,8 +17,8 @@ use crate::{
 };
 
 struct ClientRaw {
-    pub(crate) api: Api,
-    pub(crate) ptr: *mut PJRT_Client,
+    api: Api,
+    ptr: *mut PJRT_Client,
 }
 
 impl Drop for ClientRaw {
@@ -47,7 +47,7 @@ impl Client {
         }
     }
 
-    pub(crate) fn api(&self) -> &Api {
+    pub fn api(&self) -> &Api {
         &self.raw.api
     }
 

@@ -1,3 +1,4 @@
+use pjrt::ProgramFormat::MLIR;
 use pjrt::{self, HostBuffer, Result};
 
 const MLIR_STR: &str = r#"
@@ -15,8 +16,9 @@ fn main() -> Result<()> {
     println!("platform_name {}", client.platform_name());
 
     let options = pjrt::CompileOptions::new();
-    let program = pjrt::Program::with_mlir(MLIR_STR.to_owned());
+    let program = pjrt::Program::new(MLIR, MLIR_STR.to_owned());
     let loaded_executable = client.compile(&program, &options)?;
+    println!("compiled");
 
     let a = HostBuffer::scalar(1.0f32);
     println!("input = {:?}", a);

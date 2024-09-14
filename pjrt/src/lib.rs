@@ -44,7 +44,7 @@ mod topology_description;
 pub use topology_description::TopologyDescription;
 
 mod program;
-pub use program::{Program, FORMAT_HLO, FORMAT_MLIR};
+pub use program::{Program, ProgramFormat};
 
 mod loaded_executable;
 pub use loaded_executable::LoadedExecutable;

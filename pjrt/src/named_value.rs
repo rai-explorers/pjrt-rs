@@ -11,8 +11,8 @@ use crate::utils;
 
 #[derive(Debug)]
 pub struct NamedValue {
-    pub(crate) name: String,
-    pub(crate) value: Value,
+    pub name: String,
+    pub value: Value,
 }
 
 impl NamedValue {

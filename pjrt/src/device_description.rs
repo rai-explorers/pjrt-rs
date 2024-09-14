@@ -11,7 +11,7 @@ use crate::named_value::NamedValueMap;
 use crate::{utils, Api};
 
 pub struct DeviceDescription {
-    pub(crate) api: Api,
+    api: Api,
     pub(crate) ptr: *mut PJRT_DeviceDescription,
 }
 
@@ -22,6 +22,10 @@ impl DeviceDescription {
             api: api.clone(),
             ptr,
         }
+    }
+
+    pub fn api(&self) -> &Api {
+        &self.api
     }
 
     pub fn id(&self) -> i32 {

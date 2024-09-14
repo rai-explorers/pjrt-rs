@@ -321,7 +321,7 @@ impl HostBufferCopyToDest for Client {
 
 impl<'a> HostBufferCopyToDest for &'a Client {
     fn client(&self) -> &Client {
-        self
+        Client::client(*self)
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
@@ -336,7 +336,7 @@ impl<'a> HostBufferCopyToDest for &'a Client {
 
 impl HostBufferCopyToDest for Device {
     fn client(&self) -> &Client {
-        &self.client
+        Device::client(self)
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
@@ -347,7 +347,7 @@ impl HostBufferCopyToDest for Device {
 
 impl<'a> HostBufferCopyToDest for &'a Device {
     fn client(&self) -> &Client {
-        &self.client
+        Device::client(*self)
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
@@ -358,7 +358,7 @@ impl<'a> HostBufferCopyToDest for &'a Device {
 
 impl HostBufferCopyToDest for Memory {
     fn client(&self) -> &Client {
-        &self.client
+        Memory::client(self)
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
@@ -369,7 +369,7 @@ impl HostBufferCopyToDest for Memory {
 
 impl<'a> HostBufferCopyToDest for &'a Memory {
     fn client(&self) -> &Client {
-        &self.client
+        Memory::client(*self)
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {

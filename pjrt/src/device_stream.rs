@@ -8,7 +8,7 @@ use crate::{Api, Chunk, Event, Result};
 
 pub struct CopyToDeviceStream {
     api: Api,
-    ptr: *mut PJRT_CopyToDeviceStream,
+    pub(crate) ptr: *mut PJRT_CopyToDeviceStream,
 }
 
 impl Drop for CopyToDeviceStream {
@@ -28,6 +28,10 @@ impl CopyToDeviceStream {
             api: api.clone(),
             ptr,
         }
+    }
+
+    pub fn api(&self) -> &Api {
+        &self.api
     }
 
     pub fn call_add_chunk(&self, chunk: Chunk) -> Result<PJRT_CopyToDeviceStream_AddChunk_Args> {

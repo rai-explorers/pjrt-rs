@@ -14,7 +14,7 @@ use pjrt_sys::{
 use crate::{event, utils, Buffer, Client, Device, Event, Executable, Result};
 
 pub struct LoadedExecutable {
-    pub(crate) client: Client,
+    client: Client,
     pub(crate) ptr: *mut PJRT_LoadedExecutable,
 }
 
@@ -36,6 +36,10 @@ impl LoadedExecutable {
             client: client.clone(),
             ptr,
         }
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
     }
 
     pub fn executable(&self) -> Executable {

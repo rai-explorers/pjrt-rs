@@ -54,6 +54,10 @@ impl Event {
         }
     }
 
+    pub fn api(&self) -> &Api {
+        &self.api
+    }
+
     // TODO: fix sometimes hand in macos, don't know why
     #[must_use = "handle wait result"]
     pub fn wait(self) -> Result<()> {

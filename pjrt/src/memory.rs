@@ -10,7 +10,7 @@ use pjrt_sys::{
 use crate::{utils, Client, Device};
 
 pub struct Memory {
-    pub(crate) client: Client,
+    client: Client,
     pub(crate) ptr: *mut PJRT_Memory,
 }
 
@@ -21,6 +21,10 @@ impl Memory {
             client: client.clone(),
             ptr,
         }
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
     }
 
     pub fn id(&self) -> i32 {
