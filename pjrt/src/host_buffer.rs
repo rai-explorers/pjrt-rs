@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::iter::Product;
 use std::mem;
 use std::rc::Rc;
 
@@ -102,7 +101,7 @@ impl<T: Type> TypedHostBuffer<T> {
             args.device_layout = &mut device_layout as *mut _;
         }
         config.dest.set_args(&mut args)?;
-        unsafe { client.api().PJRT_Client_BufferFromHostBuffer(args) }
+        client.api().PJRT_Client_BufferFromHostBuffer(args)
     }
 
     pub fn copy_to_sync<D, C>(&self, config: C) -> Result<Buffer>
@@ -262,6 +261,7 @@ impl HostBuffer {
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[allow(dead_code)]
 pub enum HostBufferSemantics {
     /// The runtime may not hold references to `data` after the call to
     /// `PJRT_Client_BufferFromHostBuffer` completes. The caller promises that

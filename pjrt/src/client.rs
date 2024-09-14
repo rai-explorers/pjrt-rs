@@ -25,11 +25,9 @@ impl Drop for ClientRaw {
     fn drop(&mut self) {
         let mut args = PJRT_Client_Destroy_Args::new();
         args.client = self.ptr;
-        unsafe {
-            self.api
-                .PJRT_Client_Destroy(args)
-                .expect("PJRT_Client_Destroy");
-        }
+        self.api
+            .PJRT_Client_Destroy(args)
+            .expect("PJRT_Client_Destroy");
     }
 }
 
@@ -60,44 +58,40 @@ impl Client {
     pub fn platform_name(&self) -> Cow<'_, str> {
         let mut args = PJRT_Client_PlatformName_Args::new();
         args.client = self.ptr();
-        let args = unsafe {
-            self.api()
-                .PJRT_Client_PlatformName(args)
-                .expect("PJRT_Client_PlatformName")
-        };
+        args = self
+            .api()
+            .PJRT_Client_PlatformName(args)
+            .expect("PJRT_Client_PlatformName");
         utils::str_from_raw(args.platform_name, args.platform_name_size)
     }
 
     pub fn platform_version(&self) -> Cow<'_, str> {
         let mut args = PJRT_Client_PlatformVersion_Args::new();
         args.client = self.ptr();
-        let args = unsafe {
-            self.api()
-                .PJRT_Client_PlatformVersion(args)
-                .expect("PJRT_Client_PlatformVersion")
-        };
+        args = self
+            .api()
+            .PJRT_Client_PlatformVersion(args)
+            .expect("PJRT_Client_PlatformVersion");
         utils::str_from_raw(args.platform_version, args.platform_version_size)
     }
 
     pub fn process_index(&self) -> i32 {
         let mut args = PJRT_Client_ProcessIndex_Args::new();
         args.client = self.ptr();
-        let args = unsafe {
-            self.api()
-                .PJRT_Client_ProcessIndex(args)
-                .expect("PJRT_Client_ProcessIndex")
-        };
+        args = self
+            .api()
+            .PJRT_Client_ProcessIndex(args)
+            .expect("PJRT_Client_ProcessIndex");
         args.process_index
     }
 
     pub fn devices(&self) -> Vec<Device> {
         let mut args = PJRT_Client_Devices_Args::new();
         args.client = self.ptr();
-        let args = unsafe {
-            self.api()
-                .PJRT_Client_Devices(args)
-                .expect("PJRT_Client_Devices")
-        };
+        args = self
+            .api()
+            .PJRT_Client_Devices(args)
+            .expect("PJRT_Client_Devices");
         let raw_devices = unsafe { slice::from_raw_parts(args.devices, args.num_devices) };
         raw_devices
             .iter()
@@ -109,11 +103,10 @@ impl Client {
     pub fn addressable_devices(&self) -> Vec<Device> {
         let mut args = PJRT_Client_AddressableDevices_Args::new();
         args.client = self.ptr();
-        let args = unsafe {
-            self.api()
-                .PJRT_Client_AddressableDevices(args)
-                .expect("PJRT_Client_AddressableDevices")
-        };
+        args = self
+            .api()
+            .PJRT_Client_AddressableDevices(args)
+            .expect("PJRT_Client_AddressableDevices");
         let devices = unsafe {
             slice::from_raw_parts(args.addressable_devices, args.num_addressable_devices)
         };
@@ -127,11 +120,10 @@ impl Client {
     pub fn addressable_memories(&self) -> Vec<Memory> {
         let mut args = PJRT_Client_AddressableMemories_Args::new();
         args.client = self.ptr();
-        let args = unsafe {
-            self.api()
-                .PJRT_Client_AddressableMemories(args)
-                .expect("PJRT_Client_AddressableMemories")
-        };
+        args = self
+            .api()
+            .PJRT_Client_AddressableMemories(args)
+            .expect("PJRT_Client_AddressableMemories");
         let memories = unsafe {
             slice::from_raw_parts(args.addressable_memories, args.num_addressable_memories)
         };
@@ -146,7 +138,7 @@ impl Client {
         let mut args = PJRT_Client_LookupDevice_Args::new();
         args.client = self.ptr();
         args.id = id;
-        let args = unsafe { self.api().PJRT_Client_LookupDevice(args)? };
+        args = self.api().PJRT_Client_LookupDevice(args)?;
         Ok(Device::new(self, args.device))
     }
 
@@ -154,7 +146,7 @@ impl Client {
         let mut args = PJRT_Client_LookupAddressableDevice_Args::new();
         args.client = self.ptr();
         args.local_hardware_id = local_hardware_id;
-        let args = unsafe { self.api().PJRT_Client_LookupAddressableDevice(args)? };
+        args = self.api().PJRT_Client_LookupAddressableDevice(args)?;
         Ok(Device::new(self, args.addressable_device))
     }
 
@@ -170,7 +162,7 @@ impl Client {
         args.client = self.ptr();
         args.serialized_executable = bytes.as_ptr() as *const i8;
         args.serialized_executable_size = bytes.len();
-        let args = unsafe { self.api().PJRT_Executable_DeserializeAndLoad(args)? };
+        args = self.api().PJRT_Executable_DeserializeAndLoad(args)?;
         Ok(LoadedExecutable::new(self, args.loaded_executable))
     }
 
@@ -187,18 +179,17 @@ impl Client {
         args.num_partitions = num_partitions as i32;
         args.default_assignment = default_assignment.as_mut_ptr();
         args.default_assignment_size = default_assignment.len();
-        let args = unsafe { self.api().PJRT_Client_DefaultDeviceAssignment(args)? };
+        _ = self.api().PJRT_Client_DefaultDeviceAssignment(args)?;
         Ok(default_assignment)
     }
 
     pub fn topology_description(&self) -> TopologyDescription {
         let mut args = PJRT_Client_TopologyDescription_Args::new();
         args.client = self.ptr();
-        let args = unsafe {
-            self.api()
-                .PJRT_Client_TopologyDescription(args)
-                .expect("PJRT_Client_TopologyDescription")
-        };
+        args = self
+            .api()
+            .PJRT_Client_TopologyDescription(args)
+            .expect("PJRT_Client_TopologyDescription");
         TopologyDescription::new(self.api(), args.topology)
     }
 }
@@ -211,7 +202,7 @@ impl Compile<Program> for Client {
         args.program = &program.prog as *const PJRT_Program;
         args.compile_options = options_encoded.as_ptr() as *const i8;
         args.compile_options_size = options_encoded.len();
-        let args = unsafe { self.api().PJRT_Client_Compile(args)? };
+        args = self.api().PJRT_Client_Compile(args)?;
         Ok(LoadedExecutable::new(self, args.executable))
     }
 }

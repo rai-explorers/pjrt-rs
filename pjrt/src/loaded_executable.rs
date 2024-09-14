@@ -22,12 +22,10 @@ impl Drop for LoadedExecutable {
     fn drop(&mut self) {
         let mut args = PJRT_LoadedExecutable_Destroy_Args::new();
         args.executable = self.ptr;
-        unsafe {
-            self.client
-                .api()
-                .PJRT_LoadedExecutable_Destroy(args)
-                .expect("PJRT_LoadedExecutable_Destroy");
-        }
+        self.client
+            .api()
+            .PJRT_LoadedExecutable_Destroy(args)
+            .expect("PJRT_LoadedExecutable_Destroy");
     }
 }
 
@@ -43,24 +41,22 @@ impl LoadedExecutable {
     pub fn executable(&self) -> Executable {
         let mut args = PJRT_LoadedExecutable_GetExecutable_Args::new();
         args.loaded_executable = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_LoadedExecutable_GetExecutable(args)
-                .expect("PJRT_LoadedExecutable_GetExecutable")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_LoadedExecutable_GetExecutable(args)
+            .expect("PJRT_LoadedExecutable_GetExecutable");
         Executable::new(&self.client, args.executable)
     }
 
     pub fn addressable_devices(&self) -> Vec<Device> {
         let mut args = PJRT_LoadedExecutable_AddressableDevices_Args::new();
         args.executable = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_LoadedExecutable_AddressableDevices(args)
-                .expect("PJRT_LoadedExecutable_AddressableDevices")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_LoadedExecutable_AddressableDevices(args)
+            .expect("PJRT_LoadedExecutable_AddressableDevices");
         let raw_devices = unsafe {
             slice::from_raw_parts(args.addressable_devices, args.num_addressable_devices)
         };
@@ -74,23 +70,20 @@ impl LoadedExecutable {
     pub fn delete(&self) {
         let mut args = PJRT_LoadedExecutable_Delete_Args::new();
         args.executable = self.ptr;
-        unsafe {
-            self.client
-                .api()
-                .PJRT_LoadedExecutable_Delete(args)
-                .expect("PJRT_LoadedExecutable_Delete");
-        }
+        self.client
+            .api()
+            .PJRT_LoadedExecutable_Delete(args)
+            .expect("PJRT_LoadedExecutable_Delete");
     }
 
     pub fn is_deleted(&self) -> bool {
         let mut args = PJRT_LoadedExecutable_IsDeleted_Args::new();
         args.executable = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_LoadedExecutable_IsDeleted(args)
-                .expect("PJRT_LoadedExecutable_IsDeleted")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_LoadedExecutable_IsDeleted(args)
+            .expect("PJRT_LoadedExecutable_IsDeleted");
         args.is_deleted
     }
 
@@ -122,7 +115,7 @@ impl LoadedExecutable {
         // options
         let mut options = PJRT_ExecuteOptions::new();
         args.options = &mut options as *mut PJRT_ExecuteOptions;
-        let args = unsafe { self.client.api().PJRT_LoadedExecutable_Execute(args)? };
+        args = self.client.api().PJRT_LoadedExecutable_Execute(args)?;
         let events =
             unsafe { slice::from_raw_parts(args.device_complete_events, args.num_devices) };
         let events = events
@@ -163,12 +156,11 @@ impl LoadedExecutable {
     pub fn fingerprint(&self) -> Cow<'_, str> {
         let mut args = PJRT_LoadedExecutable_Fingerprint_Args::new();
         args.executable = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_LoadedExecutable_Fingerprint(args)
-                .expect("PJRT_LoadedExecutable_Fingerprint")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_LoadedExecutable_Fingerprint(args)
+            .expect("PJRT_LoadedExecutable_Fingerprint");
         utils::str_from_raw(
             args.executable_fingerprint,
             args.executable_fingerprint_size,

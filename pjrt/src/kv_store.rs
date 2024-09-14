@@ -1,5 +1,4 @@
 use std::ffi::CString;
-use std::fmt::Debug;
 use std::mem;
 
 use ::std::os::raw::c_char;
@@ -47,7 +46,7 @@ pub(crate) unsafe extern "C" fn kv_get_callback(
 pub(crate) unsafe extern "C" fn kv_put_callback(
     args: *mut PJRT_KeyValuePutCallback_Args,
 ) -> *mut PJRT_Error {
-    let mut args = unsafe { *args };
+    let args = unsafe { *args };
     let store: Box<&dyn KeyValueStore> = Box::from_raw(args.user_arg as *mut &dyn KeyValueStore);
     let key = utils::str_from_raw(args.key, args.key_size);
     let value = utils::str_from_raw(args.value, args.value_size);

@@ -25,48 +25,44 @@ impl Device {
     pub fn get_description(&self) -> DeviceDescription {
         let mut args = PJRT_Device_GetDescription_Args::new();
         args.device = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Device_GetDescription(args)
-                .expect("PJRT_Device_GetDescription")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Device_GetDescription(args)
+            .expect("PJRT_Device_GetDescription");
         DeviceDescription::new(&self.client.api(), args.device_description)
     }
 
     pub fn is_addressable(&self) -> bool {
         let mut args = PJRT_Device_IsAddressable_Args::new();
         args.device = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Device_IsAddressable(args)
-                .expect("PJRT_Device_IsAddressable")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Device_IsAddressable(args)
+            .expect("PJRT_Device_IsAddressable");
         args.is_addressable
     }
 
     pub fn local_hardware_id(&self) -> i32 {
         let mut args = PJRT_Device_LocalHardwareId_Args::new();
         args.device = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Device_LocalHardwareId(args)
-                .expect("PJRT_Device_LocalHardwareId")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Device_LocalHardwareId(args)
+            .expect("PJRT_Device_LocalHardwareId");
         args.local_hardware_id
     }
 
     pub fn addressable_memories(&self) -> Vec<Memory> {
         let mut args = PJRT_Device_AddressableMemories_Args::new();
         args.device = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Device_AddressableMemories(args)
-                .expect("PJRT_Device_AddressableMemories")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Device_AddressableMemories(args)
+            .expect("PJRT_Device_AddressableMemories");
         let memories = unsafe { slice::from_raw_parts(args.memories, args.num_memories) };
         memories
             .iter()
@@ -78,19 +74,18 @@ impl Device {
     pub fn default_memory(&self) -> Memory {
         let mut args = PJRT_Device_DefaultMemory_Args::new();
         args.device = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Device_DefaultMemory(args)
-                .expect("PJRT_Device_DefaultMemory")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Device_DefaultMemory(args)
+            .expect("PJRT_Device_DefaultMemory");
         Memory::new(&self.client, args.memory)
     }
 
     pub fn memory_stats(&self) -> Result<MemoryStats> {
         let mut args = PJRT_Device_MemoryStats_Args::new();
         args.device = self.ptr;
-        let args = unsafe { self.client.api().PJRT_Device_MemoryStats(args)? };
+        args = self.client.api().PJRT_Device_MemoryStats(args)?;
         Ok(MemoryStats::from(args))
     }
 }

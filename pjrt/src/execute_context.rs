@@ -11,11 +11,9 @@ impl Drop for ExecuteContext {
     fn drop(&mut self) {
         let mut args = PJRT_ExecuteContext_Destroy_Args::new();
         args.context = self.ptr;
-        unsafe {
-            self.api
-                .PJRT_ExecuteContext_Destroy(args)
-                .expect("PJRT_ExecuteContext_Destroy");
-        }
+        self.api
+            .PJRT_ExecuteContext_Destroy(args)
+            .expect("PJRT_ExecuteContext_Destroy");
     }
 }
 

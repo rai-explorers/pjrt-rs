@@ -17,7 +17,7 @@ use pjrt_sys::{
     PJRT_Buffer_Type_PJRT_Buffer_Type_U64, PJRT_Buffer_Type_PJRT_Buffer_Type_U8,
 };
 
-use crate::{Error, HostBuffer, Result, Shape};
+use crate::{Error, Result};
 
 pub trait Type: Sized + Copy + Debug + 'static {
     const NAME: &'static str;
@@ -26,13 +26,6 @@ pub trait Type: Sized + Copy + Debug + 'static {
     const SIZE: usize = std::mem::size_of::<Self::ElemType>();
     const ALIGNMENT: usize = std::mem::align_of::<Self::ElemType>();
     type ElemType: ElemType<Type = Self>;
-
-    fn new_host_buffer(
-        data: impl Into<Vec<Self::ElemType>>,
-        shape: impl Shape,
-    ) -> Result<HostBuffer> {
-        Err(Error::NotImplemented)
-    }
 }
 
 pub trait ElemType: Sized + Copy + Debug + 'static {

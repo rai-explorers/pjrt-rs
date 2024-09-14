@@ -24,7 +24,7 @@ impl From<Chunk> for PJRT_Chunk {
         c.data = ptr as *mut _;
         c.size = len;
         c.deleter = Some(chunk_deleter);
-        let mut delete_args = Box::new((len, cap));
+        let delete_args = Box::new((len, cap));
         c.deleter_arg = Box::into_raw(delete_args) as *mut _;
         c
     }

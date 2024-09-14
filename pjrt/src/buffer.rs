@@ -18,16 +18,12 @@ pub struct Buffer {
 
 impl Drop for Buffer {
     fn drop(&mut self) {
-        unsafe {
-            let mut args = PJRT_Buffer_Destroy_Args::new();
-            args.buffer = self.ptr;
-            unsafe {
-                self.client
-                    .api()
-                    .PJRT_Buffer_Destroy(args)
-                    .expect("PJRT_Buffer_Destroy");
-            }
-        }
+        let mut args = PJRT_Buffer_Destroy_Args::new();
+        args.buffer = self.ptr;
+        self.client
+            .api()
+            .PJRT_Buffer_Destroy(args)
+            .expect("PJRT_Buffer_Destroy");
     }
 }
 
@@ -43,24 +39,22 @@ impl Buffer {
     pub fn primitive_type(&self) -> PrimitiveType {
         let mut args = PJRT_Buffer_ElementType_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_ElementType(args)
-                .expect("PJRT_Buffer_ElementType")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_ElementType(args)
+            .expect("PJRT_Buffer_ElementType");
         PrimitiveType::try_from(args.type_).expect("PrimitiveType")
     }
 
     pub fn dimensions(&self) -> Vec<i64> {
         let mut args = PJRT_Buffer_Dimensions_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_Dimensions(args)
-                .expect("PJRT_Buffer_Dimensions")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_Dimensions(args)
+            .expect("PJRT_Buffer_Dimensions");
         if args.num_dims == 0 {
             return vec![];
         }
@@ -71,12 +65,11 @@ impl Buffer {
     pub fn unpadded_dimensions(&self) -> Vec<i64> {
         let mut args = PJRT_Buffer_UnpaddedDimensions_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_UnpaddedDimensions(args)
-                .expect("PJRT_Buffer_UnpaddedDimensions")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_UnpaddedDimensions(args)
+            .expect("PJRT_Buffer_UnpaddedDimensions");
         let s = unsafe { std::slice::from_raw_parts(args.unpadded_dims, args.num_dims) };
         s.iter().map(|s| *s).collect()
     }
@@ -84,12 +77,11 @@ impl Buffer {
     pub fn dynamic_dimension_indices(&self) -> Vec<usize> {
         let mut args = PJRT_Buffer_DynamicDimensionIndices_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_DynamicDimensionIndices(args)
-                .expect("PJRT_Buffer_DynamicDimensionIndices")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_DynamicDimensionIndices(args)
+            .expect("PJRT_Buffer_DynamicDimensionIndices");
         let s =
             unsafe { std::slice::from_raw_parts(args.dynamic_dim_indices, args.num_dynamic_dims) };
         s.iter().map(|s| *s).collect()
@@ -99,102 +91,90 @@ impl Buffer {
     pub fn layout(&self) -> MemoryLayout {
         let mut args = PJRT_Buffer_GetMemoryLayout_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_GetMemoryLayout(args)
-                .expect("PJRT_Buffer_GetMemoryLayout")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_GetMemoryLayout(args)
+            .expect("PJRT_Buffer_GetMemoryLayout");
         MemoryLayout::try_from(&args.layout).expect("layout")
     }
 
     pub fn on_device_size(&self) -> usize {
         let mut args = PJRT_Buffer_OnDeviceSizeInBytes_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_OnDeviceSizeInBytes(args)
-                .expect("PJRT_Buffer_GetMemoryLayout")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_OnDeviceSizeInBytes(args)
+            .expect("PJRT_Buffer_GetMemoryLayout");
         args.on_device_size_in_bytes
     }
 
     pub fn is_on_cpu(&self) -> bool {
         let mut args = PJRT_Buffer_IsOnCpu_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_IsOnCpu(args)
-                .expect("PJRT_Buffer_IsOnCpu")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_IsOnCpu(args)
+            .expect("PJRT_Buffer_IsOnCpu");
         args.is_on_cpu
     }
 
     pub fn device(&self) -> Device {
         let mut args = PJRT_Buffer_Device_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_Device(args)
-                .expect("PJRT_Buffer_Device")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_Device(args)
+            .expect("PJRT_Buffer_Device");
         Device::new(&self.client, args.device)
     }
 
     pub fn memory(&self) -> Memory {
         let mut args = PJRT_Buffer_Memory_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_Memory(args)
-                .expect("PJRT_Buffer_Memory")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_Memory(args)
+            .expect("PJRT_Buffer_Memory");
         Memory::new(&self.client, args.memory)
     }
 
     pub fn delete(&self) {
         let mut args = PJRT_Buffer_Delete_Args::new();
         args.buffer = self.ptr;
-        unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_Delete(args)
-                .expect("PJRT_Buffer_Delete");
-        }
+        self.client
+            .api()
+            .PJRT_Buffer_Delete(args)
+            .expect("PJRT_Buffer_Delete");
     }
 
     pub fn is_deleted(&self) -> bool {
         let mut args = PJRT_Buffer_IsDeleted_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe {
-            self.client
-                .api()
-                .PJRT_Buffer_IsDeleted(args)
-                .expect("PJRT_Buffer_IsDeleted")
-        };
+        args = self
+            .client
+            .api()
+            .PJRT_Buffer_IsDeleted(args)
+            .expect("PJRT_Buffer_IsDeleted");
         args.is_deleted
     }
 
     pub(crate) fn ready_event(&self) -> Result<Event> {
         let mut args = PJRT_Buffer_ReadyEvent_Args::new();
         args.buffer = self.ptr;
-        let args = unsafe { self.client.api().PJRT_Buffer_ReadyEvent(args)? };
+        args = self.client.api().PJRT_Buffer_ReadyEvent(args)?;
         Ok(Event::new(self.client.api(), args.event))
     }
 
     fn call_copy_to_device(&self, device: &Device) -> Result<PJRT_Buffer_CopyToDevice_Args> {
-        if self.client.ptr() == device.client.ptr() {
-            let mut args = PJRT_Buffer_CopyToDevice_Args::new();
-            args.buffer = self.ptr;
-            args.dst_device = device.ptr;
-            unsafe { self.client.api().PJRT_Buffer_CopyToDevice(args) }
-        } else {
-            unimplemented!()
-        }
+        let mut args = PJRT_Buffer_CopyToDevice_Args::new();
+        args.buffer = self.ptr;
+        args.dst_device = device.ptr;
+        self.client.api().PJRT_Buffer_CopyToDevice(args)
     }
 
     pub async fn copy_to_device(&self, device: &Device) -> Result<Buffer> {
@@ -214,14 +194,10 @@ impl Buffer {
     }
 
     fn call_copy_to_memory(&self, memory: &Memory) -> Result<PJRT_Buffer_CopyToMemory_Args> {
-        if self.client.ptr() == memory.client.ptr() {
-            let mut args = PJRT_Buffer_CopyToMemory_Args::new();
-            args.buffer = self.ptr;
-            args.dst_memory = memory.ptr;
-            unsafe { self.client.api().PJRT_Buffer_CopyToMemory(args) }
-        } else {
-            unimplemented!()
-        }
+        let mut args = PJRT_Buffer_CopyToMemory_Args::new();
+        args.buffer = self.ptr;
+        args.dst_memory = memory.ptr;
+        self.client.api().PJRT_Buffer_CopyToMemory(args)
     }
 
     pub async fn copy_to_memory(&self, memory: &Memory) -> Result<Buffer> {
@@ -244,12 +220,12 @@ impl Buffer {
         let mut args = PJRT_Buffer_ToHostBuffer_Args::new();
         args.src = self.ptr;
         // first call to get the size of the buffer
-        let mut args = unsafe { self.client.api().PJRT_Buffer_ToHostBuffer(args)? };
+        args = self.client.api().PJRT_Buffer_ToHostBuffer(args)?;
         let buf_size = args.dst_size;
         // second call to fill the buffer
         let mut buf: Vec<u8> = vec![0; buf_size];
         args.dst = buf.as_mut_ptr() as *mut _;
-        let args = unsafe { self.client.api().PJRT_Buffer_ToHostBuffer(args)? };
+        args = self.client.api().PJRT_Buffer_ToHostBuffer(args)?;
         Ok((args, buf))
     }
 

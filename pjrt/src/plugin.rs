@@ -1,14 +1,15 @@
 use std::collections::HashMap;
-use std::mem::ManuallyDrop;
 use std::sync::{Mutex, OnceLock};
 
 use libloading::Library;
 use pjrt_sys::PJRT_Api;
 
-use crate::{utils, Api, Error, Result};
+use crate::{Api, Error, Result};
+
+type GetPjrtApi = unsafe extern "C" fn() -> *const PJRT_Api;
 
 struct PluginManager {
-    plugins: Mutex<HashMap<String, Library>>,
+    plugins: Mutex<HashMap<String, (Library, Api)>>,
 }
 
 impl PluginManager {
@@ -18,22 +19,20 @@ impl PluginManager {
         }
     }
 
-    fn get_pjrt_api(&self, lib: &Library) -> Result<Api> {
-        let get_api_func: libloading::Symbol<unsafe extern "C" fn() -> *const PJRT_Api> =
-            unsafe { lib.get(b"GetPjrtApi")? };
-        let ptr = unsafe { get_api_func() };
-        Ok(Api::new(ptr))
-    }
-
     fn load_plugin(&self, library: &str) -> Result<Api> {
-        let mut libraries = self.plugins.lock().unwrap();
-        if let Some(lib) = libraries.get(library) {
-            self.get_pjrt_api(lib)
-        } else {
-            let lib = unsafe { Library::new(library)? };
-            libraries.insert(library.to_string(), lib);
-            self.get_pjrt_api(&libraries[library])
+        let mut libraries = self
+            .plugins
+            .lock()
+            .map_err(|err| Error::PoisonError(err.to_string()))?;
+        if let Some((_, api)) = libraries.get(library) {
+            return Ok(api.clone());
         }
+        let lib = unsafe { Library::new(library)? };
+        let get_api_func: libloading::Symbol<GetPjrtApi> = unsafe { lib.get(b"GetPjrtApi")? };
+        let ptr = unsafe { get_api_func() };
+        let api = Api::new(ptr);
+        libraries.insert(library.to_string(), (lib, api.clone()));
+        Ok(api)
     }
 }
 

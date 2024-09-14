@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::ffi::c_char;
-use std::mem::{self, ManuallyDrop};
+use std::mem::ManuallyDrop;
 use std::slice;
 
 use pjrt_sys::PJRT_NamedValue;
@@ -20,17 +20,6 @@ pub(crate) fn into_raw_parts<T>(vec: Vec<T>) -> (*mut T, usize, usize) {
     let length = vec.len();
     let capacity = vec.capacity();
     (vec.as_mut_ptr(), length, capacity)
-}
-
-pub(crate) unsafe fn vec_into_bytes<T>(data: Vec<T>) -> Vec<u8>
-where
-    T: Copy + Sized,
-{
-    let length = data.len() * mem::size_of::<T>();
-    let capacity = data.capacity() * mem::size_of::<T>();
-    let ptr = data.as_ptr() as *mut u8;
-    mem::forget(data);
-    Vec::from_raw_parts(ptr, length, capacity)
 }
 
 pub(crate) unsafe fn slice_to_vec2d<T, U>(

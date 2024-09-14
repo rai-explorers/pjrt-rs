@@ -1,10 +1,11 @@
 use std::backtrace::Backtrace;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use pjrt_sys::{
-    PJRT_Api, PJRT_Client_Create_Args, PJRT_Error, PJRT_Error_Destroy_Args,
-    PJRT_Error_Message_Args, PJRT_ExecuteContext_Create_Args, PJRT_NamedValue,
-    PJRT_Plugin_Attributes_Args, PJRT_Plugin_Initialize_Args, PJRT_TopologyDescription_Create_Args,
+    PJRT_Api, PJRT_Api_Version, PJRT_Client_Create_Args, PJRT_Error, PJRT_Error_Destroy_Args,
+    PJRT_Error_GetCode_Args, PJRT_Error_Message_Args, PJRT_ExecuteContext_Create_Args,
+    PJRT_NamedValue, PJRT_Plugin_Attributes_Args, PJRT_Plugin_Initialize_Args,
+    PJRT_TopologyDescription_Create_Args,
 };
 
 use crate::kv_store::{kv_get_callback, kv_put_callback};
@@ -13,41 +14,41 @@ use crate::{
     utils, Client, Error, ExecuteContext, KeyValueStore, NamedValue, Result, TopologyDescription,
 };
 
-struct ApiRaw {
-    ptr: *const PJRT_Api,
-}
-
 #[derive(Clone)]
 pub struct Api {
-    raw: Rc<ApiRaw>,
+    raw: Arc<PJRT_Api>,
+    version: Version,
 }
+unsafe impl Send for Api {}
+unsafe impl Sync for Api {}
 
 impl Api {
     pub fn new(ptr: *const PJRT_Api) -> Self {
         assert!(!ptr.is_null());
-        let api = Self {
-            raw: Rc::new(ApiRaw { ptr }),
-        };
+        let raw = Arc::new(unsafe { *ptr });
+        let version = Version::new(raw.pjrt_api_version);
+        let api = Self { raw, version };
         let args = PJRT_Plugin_Initialize_Args::new();
-        unsafe {
-            api.PJRT_Plugin_Initialize(args)
-                .expect("PJRT_Plugin_Initialize")
-        };
+        api.PJRT_Plugin_Initialize(args)
+            .expect("PJRT_Plugin_Initialize");
         api
+    }
+
+    pub fn version(&self) -> Version {
+        self.version
     }
 
     pub fn plugin_attributes(&self) -> NamedValueMap {
         let mut args = PJRT_Plugin_Attributes_Args::new();
-        args = unsafe {
-            self.PJRT_Plugin_Attributes(args)
-                .expect("PJRT_Plugin_Attributes")
-        };
+        args = self
+            .PJRT_Plugin_Attributes(args)
+            .expect("PJRT_Plugin_Attributes");
         utils::to_named_value_map(args.attributes, args.num_attributes)
     }
 
     pub fn create_execute_context(&self) -> Result<ExecuteContext> {
         let mut args = PJRT_ExecuteContext_Create_Args::new();
-        args = unsafe { self.PJRT_ExecuteContext_Create(args)? };
+        args = self.PJRT_ExecuteContext_Create(args)?;
         Ok(ExecuteContext::new(self, args.context))
     }
 
@@ -63,7 +64,7 @@ impl Api {
         args.topology_name_size = name.len();
         args.create_options = create_options.as_ptr();
         args.num_options = create_options.len();
-        let args = unsafe { self.PJRT_TopologyDescription_Create(args)? };
+        args = self.PJRT_TopologyDescription_Create(args)?;
         Ok(TopologyDescription::new(self, args.topology))
     }
 
@@ -73,7 +74,7 @@ impl Api {
         let mut args = PJRT_Client_Create_Args::new();
         args.create_options = create_options.as_ptr();
         args.num_options = create_options.len();
-        let args = unsafe { self.PJRT_Client_Create(args)? };
+        args = self.PJRT_Client_Create(args)?;
         Ok(Client::new(self, args.client))
     }
 
@@ -91,7 +92,7 @@ impl Api {
         args.kv_get_user_arg = kv_store as *const _ as *mut _;
         args.kv_put_callback = Some(kv_put_callback);
         args.kv_put_user_arg = kv_store as *const _ as *mut _;
-        let args = unsafe { self.PJRT_Client_Create(args)? };
+        args = self.PJRT_Client_Create(args)?;
         Ok(Client::new(self, args.client))
     }
 
@@ -101,15 +102,38 @@ impl Api {
         } else {
             let mut args = PJRT_Error_Message_Args::new();
             args.error = err;
-            let msg = unsafe {
-                self.PJRT_Error_Message(&mut args)?;
-                utils::str_from_raw(args.message, args.message_size).into_owned()
-            };
+            self.PJRT_Error_Message(&mut args)?;
+            let msg = utils::str_from_raw(args.message, args.message_size).into_owned();
+            let mut args = PJRT_Error_GetCode_Args::new();
+            args.error = err;
+            args = self.PJRT_Error_GetCode(args)?;
+            let code = args.code.try_into()?;
             let mut args = PJRT_Error_Destroy_Args::new();
             args.error = err;
-            unsafe { self.PJRT_Error_Destroy(&mut args)? };
+            self.PJRT_Error_Destroy(&mut args)?;
             let backtrace = Backtrace::capture().to_string();
-            Err(Error::PjrtError { msg, backtrace })
+            Err(Error::PjrtError {
+                msg,
+                code,
+                backtrace,
+            })
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Version {
+    pub major_version: i32,
+    pub minor_version: i32,
+}
+
+impl Version {
+    pub fn new(raw: PJRT_Api_Version) -> Self {
+        let major_version = raw.major_version;
+        let minor_version = raw.minor_version;
+        Self {
+            major_version,
+            minor_version,
         }
     }
 }
@@ -119,28 +143,15 @@ macro_rules! pjrt_api_fn_ret_err {
         impl Api {
             #[allow(non_snake_case)]
             #[must_use = "get function result from returned value"]
-            pub(crate) unsafe fn $fn(
+            pub(crate) fn $fn(
                 &self,
                 mut args: pjrt_sys::$args_ty,
             ) -> $crate::Result<pjrt_sys::$args_ty> {
-                let func = (*self.raw.ptr)
+                let func = self
+                    .raw
                     .$fn
                     .ok_or(Error::NullFunctionPointer(stringify!($fn)))?;
-                let err = func(&mut args as *mut _);
-                self.err_or(err, args)
-            }
-        }
-    };
-    (ext, $fn:ident, $args_ty:ident) => {
-        impl Api {
-            #[allow(non_snake_case)]
-            #[must_use = "get function result from returned value"]
-            pub(crate) unsafe fn $fn(
-                &self,
-                mut args: pjrt_sys::$args_ty,
-            ) -> $crate::Result<pjrt_sys::$args_ty> {
-                args.api = self.raw.ptr;
-                let err = pjrt_sys::$fn(&mut args as *mut _);
+                let err = unsafe { func(&mut args as *mut _) };
                 self.err_or(err, args)
             }
         }
@@ -151,11 +162,12 @@ macro_rules! pjrt_api_fn_ret_void {
     ($fn:ident, $args_ty:ident) => {
         impl Api {
             #[allow(non_snake_case)]
-            pub(crate) unsafe fn $fn(&self, args: &mut pjrt_sys::$args_ty) -> Result<()> {
-                let func = (*self.raw.ptr)
+            pub(crate) fn $fn(&self, args: &mut pjrt_sys::$args_ty) -> Result<()> {
+                let func = self
+                    .raw
                     .$fn
                     .ok_or(Error::NullFunctionPointer(stringify!($fn)))?;
-                func(args as *mut _);
+                unsafe { func(args as *mut _) };
                 Ok(())
             }
         }

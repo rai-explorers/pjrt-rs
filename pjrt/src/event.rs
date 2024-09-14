@@ -18,10 +18,8 @@ extern "C" fn on_ready_callback(err: *mut PJRT_Error, cb_data: *mut c_void) {
     if let Some((api, waker)) = cb_data.take() {
         let mut args = PJRT_Error_Destroy_Args::new();
         args.error = err;
-        unsafe {
-            api.PJRT_Error_Destroy(&mut args)
-                .expect("PJRT_Error_Destroy")
-        };
+        api.PJRT_Error_Destroy(&mut args)
+            .expect("PJRT_Error_Destroy");
         waker.wake();
     }
 }
@@ -40,11 +38,9 @@ impl Drop for Event {
     fn drop(&mut self) {
         let mut args = PJRT_Event_Destroy_Args::new();
         args.event = self.ptr;
-        let _ = unsafe {
-            self.api
-                .PJRT_Event_Destroy(args)
-                .expect("PJRT_Event_Destroy")
-        };
+        self.api
+            .PJRT_Event_Destroy(args)
+            .expect("PJRT_Event_Destroy");
     }
 }
 
@@ -63,15 +59,13 @@ impl Event {
     pub fn wait(self) -> Result<()> {
         let mut args = PJRT_Event_IsReady_Args::new();
         args.event = self.ptr;
-        let args = unsafe { self.api.PJRT_Event_IsReady(args)? };
+        args = self.api.PJRT_Event_IsReady(args)?;
         if args.is_ready {
             return Ok(());
         }
         let mut args = PJRT_Event_Await_Args::new();
         args.event = self.ptr;
-        let _ = unsafe {
-            self.api.PJRT_Event_Await(args)?;
-        };
+        let _ = self.api.PJRT_Event_Await(args)?;
         Ok(())
     }
 }
@@ -82,13 +76,13 @@ impl Future for Event {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut args = PJRT_Event_IsReady_Args::new();
         args.event = self.ptr;
-        let args = unsafe { self.api.PJRT_Event_IsReady(args) };
+        let args = self.api.PJRT_Event_IsReady(args);
         match args {
             Ok(args) => {
                 if args.is_ready {
                     let mut args = PJRT_Event_Error_Args::new();
                     args.event = self.ptr;
-                    let args = unsafe { self.api.PJRT_Event_Error(args) };
+                    let args = self.api.PJRT_Event_Error(args);
                     match args {
                         Ok(_) => Poll::Ready(Ok(())),
                         Err(err) => Poll::Ready(Err(err)),
@@ -102,7 +96,7 @@ impl Future for Event {
                         args.event = event.ptr;
                         args.user_arg = &mut event.cb_data as *mut _ as *mut c_void;
                         args.callback = Some(on_ready_callback);
-                        let args = unsafe { event.api.PJRT_Event_OnReady(args) };
+                        let args = event.api.PJRT_Event_OnReady(args);
                         match args {
                             Ok(_) => Poll::Pending,
                             Err(err) => Poll::Ready(Err(err)),

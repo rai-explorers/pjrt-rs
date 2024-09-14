@@ -1,4 +1,3 @@
-use pjrt::protos::xla::ExecutableBuildOptionsProto;
 use pjrt::{self, HostBuffer, Result};
 
 const MLIR_STR: &str = r#"
@@ -15,8 +14,7 @@ fn main() -> Result<()> {
     let client = api.create_client([])?;
     println!("platform_name {}", client.platform_name());
 
-    let mut options = pjrt::CompileOptions::new();
-
+    let options = pjrt::CompileOptions::new();
     let program = pjrt::Program::with_mlir(MLIR_STR.to_owned());
     let loaded_executable = client.compile(&program, &options)?;
 
