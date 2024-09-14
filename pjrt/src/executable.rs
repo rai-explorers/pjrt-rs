@@ -11,7 +11,7 @@ use pjrt_sys::{
 };
 
 use crate::program::ProgramFormat;
-use crate::{utils, Api, Error, NamedValueMap, PrimitiveType, Program, Result};
+use crate::{utils, Api, NamedValueMap, PrimitiveType, Program, Result};
 
 pub struct Executable {
     api: Api,

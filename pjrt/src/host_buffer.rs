@@ -35,6 +35,18 @@ impl<T: Type> TypedHostBuffer<T> {
         }
     }
 
+    pub fn data(&self) -> &[T::ElemType] {
+        &self.data
+    }
+
+    pub fn shape(&self) -> &[i64] {
+        &self.shape
+    }
+
+    pub fn layout(&self) -> &MemoryLayout {
+        &self.layout
+    }
+
     pub fn scalar(data: T::ElemType) -> Self {
         let data = vec![data];
         let shape = vec![];
