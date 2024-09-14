@@ -58,7 +58,6 @@ impl Event {
         &self.api
     }
 
-    // TODO: fix sometimes hand in macos, don't know why
     #[must_use = "handle wait result"]
     pub fn wait(self) -> Result<()> {
         let mut args = PJRT_Event_IsReady_Args::new();
