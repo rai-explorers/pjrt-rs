@@ -1,6 +1,6 @@
-# PJRT-RS
+# PJRT-SYS
 
-**`pjrt`** is a PJRT C API bindings for Rust.
+**`pjrt-sys`** is a PJRT C API bindings for Rust.
 
 
 ## LICENSE

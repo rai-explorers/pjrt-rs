@@ -1,4 +1,4 @@
-# PJRT-RS
+# PJRT
 
 **`pjrt`** is a PJRT C API bindings for Rust.
 
