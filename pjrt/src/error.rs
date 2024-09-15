@@ -59,6 +59,15 @@ pub enum Error {
     PoisonError(String),
 }
 
+impl Error {
+    pub fn code(&self) -> ErrorCode {
+        match self {
+            Error::PjrtError { code, .. } => *code,
+            _ => ErrorCode::Internal,
+        }
+    }
+}
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[repr(u32)]

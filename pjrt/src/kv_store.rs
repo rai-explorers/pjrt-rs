@@ -33,9 +33,7 @@ pub(crate) unsafe extern "C" fn kv_get_callback(
         }
         Err(err) => {
             let err_callback = (*args.callback_error).expect("callback_error");
-            // TODO: get error code from err
-            let code = PJRT_Error_Code_PJRT_Error_Code_INTERNAL;
-            // TODO: fix other place when passing String/str to C
+            let code = err.code() as u32;
             let message = format!("{:?}", err);
             let msg_bytes = message.as_bytes();
             (err_callback)(code, msg_bytes.as_ptr() as *const _, msg_bytes.len())
@@ -54,9 +52,7 @@ pub(crate) unsafe extern "C" fn kv_put_callback(
         Ok(_) => std::ptr::null_mut(),
         Err(err) => {
             let err_callback = (*args.callback_error).expect("callback_error");
-            // TODO: get error code from err
-            let code = PJRT_Error_Code_PJRT_Error_Code_INTERNAL;
-            // TODO: fix other place when passing String/str to C
+            let code = err.code() as u32;
             let message = format!("{:?}", err);
             let msg_bytes = message.as_bytes();
             (err_callback)(code, msg_bytes.as_ptr() as *const _, msg_bytes.len())
