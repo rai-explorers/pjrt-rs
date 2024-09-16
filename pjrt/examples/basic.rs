@@ -7,7 +7,7 @@ fn main() -> Result<()> {
     let api = pjrt::load_plugin("pjrt_c_api_cpu_plugin.so")?;
     println!("api_version = {:?}", api.version());
 
-    let client = api.create_client([])?;
+    let client = api.client().create()?;
     println!("platform_name = {}", client.platform_name());
 
     let options = pjrt::CompileOptions::new();

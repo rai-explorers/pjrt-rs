@@ -19,8 +19,15 @@ pub trait CompileToLoadedExecutable<T> {
     fn compile(&self, program: &T, options: &CompileOptions) -> Result<LoadedExecutable>;
 }
 
+#[derive(Debug, Clone)]
 pub struct CompileOptions {
     proto: CompileOptionsProto,
+}
+
+impl Default for CompileOptions {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CompileOptions {

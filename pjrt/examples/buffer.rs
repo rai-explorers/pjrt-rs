@@ -5,7 +5,7 @@ async fn main() -> Result<()> {
     let api = pjrt::load_plugin("pjrt_c_api_cpu_plugin.so")?;
     println!("{:?}", api.plugin_attributes());
 
-    let client = api.create_client([])?;
+    let client = api.client().create()?;
 
     let host_buf = HostBuffer::new([1.0f32, 2.0, 3.0, 4.0], [2, 2]);
     println!("{:?}", host_buf);

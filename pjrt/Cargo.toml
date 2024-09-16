@@ -16,3 +16,4 @@ prost = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 libloading = { workspace = true }
+bon = { workspace = true }
