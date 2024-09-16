@@ -91,7 +91,7 @@ impl Buffer {
         s.iter().map(|s| *s).collect()
     }
 
-    // deprecated, use layout extension
+    // TODO: deprecated, use layout extension
     pub fn layout(&self) -> MemoryLayout {
         let mut args = PJRT_Buffer_GetMemoryLayout_Args::new();
         args.buffer = self.ptr;
@@ -238,9 +238,12 @@ impl Buffer {
         let event = Event::new(self.client.api(), args.event);
         event.await?;
         let ty = self.primitive_type();
-        let shape = self.dimensions();
+        let dims = self.dimensions();
         let layout = self.layout();
-        HostBuffer::from_bytes_with_layout(data, ty, shape, layout)
+        HostBuffer::from_bytes(data, ty)
+            .shape(dims)
+            .memory_layout(layout)
+            .create()
     }
 
     pub fn copy_to_host_sync(&self) -> Result<HostBuffer> {
@@ -248,8 +251,11 @@ impl Buffer {
         let event = Event::new(self.client.api(), args.event);
         event.wait()?;
         let ty = self.primitive_type();
-        let shape = self.dimensions();
+        let dims = self.dimensions();
         let layout = self.layout();
-        HostBuffer::from_bytes_with_layout(data, ty, shape, layout)
+        HostBuffer::from_bytes(data, ty)
+            .shape(dims)
+            .memory_layout(layout)
+            .create()
     }
 }

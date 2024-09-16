@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::rc::Rc;
 use std::slice;
 
+use bon::{bon, builder};
 use pjrt_sys::{
     PJRT_Client, PJRT_Client_AddressableDevices_Args, PJRT_Client_AddressableMemories_Args,
     PJRT_Client_Compile_Args, PJRT_Client_DefaultDeviceAssignment_Args, PJRT_Client_Destroy_Args,
@@ -36,6 +37,7 @@ pub struct Client {
     raw: Rc<ClientRaw>,
 }
 
+#[bon]
 impl Client {
     pub fn new(api: &Api, ptr: *mut PJRT_Client) -> Self {
         assert!(!ptr.is_null());
@@ -150,11 +152,16 @@ impl Client {
         Ok(Device::new(self, args.addressable_device))
     }
 
-    pub fn compile<T>(&self, program: &T, options: &CompileOptions) -> Result<LoadedExecutable>
+    #[builder(finish_fn = compile)]
+    pub fn program<T>(
+        &self,
+        #[builder(start_fn)] program: &T,
+        #[builder(default)] options: CompileOptions,
+    ) -> Result<LoadedExecutable>
     where
         Self: CompileToLoadedExecutable<T>,
     {
-        CompileToLoadedExecutable::<T>::compile(self, program, options)
+        CompileToLoadedExecutable::<T>::compile(self, program, &options)
     }
 
     pub fn load_executable(&self, bytes: &[u8]) -> Result<LoadedExecutable> {

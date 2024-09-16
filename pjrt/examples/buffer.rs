@@ -7,7 +7,9 @@ async fn main() -> Result<()> {
 
     let client = api.client().create()?;
 
-    let host_buf = HostBuffer::new([1.0f32, 2.0, 3.0, 4.0], [2, 2]);
+    let host_buf = HostBuffer::from_data([1.0f32, 2.0, 3.0, 4.0])
+        .shape([2, 2])
+        .create();
     println!("{:?}", host_buf);
 
     let dev1 = client.lookup_addressable_device(0)?;

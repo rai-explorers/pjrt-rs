@@ -10,9 +10,8 @@ fn main() -> Result<()> {
     let client = api.client().create()?;
     println!("platform_name = {}", client.platform_name());
 
-    let options = pjrt::CompileOptions::new();
     let program = pjrt::Program::new(MLIR, CODE);
-    let loaded_executable = client.compile(&program, &options)?;
+    let loaded_executable = client.program(&program).compile()?;
     println!("compiled");
 
     let a = HostBuffer::scalar(1.0f32);
