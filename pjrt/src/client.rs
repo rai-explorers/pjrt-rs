@@ -2,19 +2,19 @@ use std::borrow::Cow;
 use std::rc::Rc;
 use std::slice;
 
-use bon::{bon, builder};
+use bon::bon;
 use pjrt_sys::{
     PJRT_Client, PJRT_Client_AddressableDevices_Args, PJRT_Client_AddressableMemories_Args,
-    PJRT_Client_Compile_Args, PJRT_Client_DefaultDeviceAssignment_Args, PJRT_Client_Destroy_Args,
-    PJRT_Client_Devices_Args, PJRT_Client_LookupAddressableDevice_Args,
+    PJRT_Client_Compile_Args, PJRT_Client_Create_Args, PJRT_Client_DefaultDeviceAssignment_Args,
+    PJRT_Client_Destroy_Args, PJRT_Client_Devices_Args, PJRT_Client_LookupAddressableDevice_Args,
     PJRT_Client_LookupDevice_Args, PJRT_Client_PlatformName_Args, PJRT_Client_PlatformVersion_Args,
     PJRT_Client_ProcessIndex_Args, PJRT_Client_TopologyDescription_Args,
     PJRT_Executable_DeserializeAndLoad_Args, PJRT_Program,
 };
 
 use crate::{
-    utils, Api, CompileOptions, CompileToLoadedExecutable, Device, LoadedExecutable, Memory,
-    Program, Result, TopologyDescription,
+    utils, Api, CompileOptions, CompileToLoadedExecutable, Device, KeyValueStore, LoadedExecutable,
+    Memory, NamedValue, Program, Result, TopologyDescription,
 };
 
 struct ClientRaw {
@@ -39,7 +39,7 @@ pub struct Client {
 
 #[bon]
 impl Client {
-    pub fn new(api: &Api, ptr: *mut PJRT_Client) -> Self {
+    pub fn wrap(api: &Api, ptr: *mut PJRT_Client) -> Self {
         assert!(!ptr.is_null());
         Self {
             raw: Rc::new(ClientRaw {
@@ -47,6 +47,15 @@ impl Client {
                 ptr,
             }),
         }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn builder(
+        #[builder(start_fn)] api: &Api,
+        #[builder(default = bon::vec![], into)] options: Vec<NamedValue>,
+        #[builder] kv_store: Option<&Box<dyn KeyValueStore>>,
+    ) -> Result<Self> {
+        api.create_client(options, kv_store)
     }
 
     pub fn api(&self) -> &Api {
@@ -98,7 +107,7 @@ impl Client {
         raw_devices
             .iter()
             .cloned()
-            .map(|d| Device::new(self, d))
+            .map(|d| Device::wrap(self, d))
             .collect()
     }
 
@@ -115,7 +124,7 @@ impl Client {
         devices
             .iter()
             .cloned()
-            .map(|d| Device::new(self, d))
+            .map(|d| Device::wrap(self, d))
             .collect()
     }
 
@@ -132,7 +141,7 @@ impl Client {
         memories
             .iter()
             .cloned()
-            .map(|d| Memory::new(self, d))
+            .map(|d| Memory::wrap(self, d))
             .collect()
     }
 
@@ -141,7 +150,7 @@ impl Client {
         args.client = self.ptr();
         args.id = id;
         args = self.api().PJRT_Client_LookupDevice(args)?;
-        Ok(Device::new(self, args.device))
+        Ok(Device::wrap(self, args.device))
     }
 
     pub fn lookup_addressable_device(&self, local_hardware_id: i32) -> Result<Device> {
@@ -149,15 +158,10 @@ impl Client {
         args.client = self.ptr();
         args.local_hardware_id = local_hardware_id;
         args = self.api().PJRT_Client_LookupAddressableDevice(args)?;
-        Ok(Device::new(self, args.addressable_device))
+        Ok(Device::wrap(self, args.addressable_device))
     }
 
-    #[builder(finish_fn = compile)]
-    pub fn program<T>(
-        &self,
-        #[builder(start_fn)] program: &T,
-        #[builder(default)] options: CompileOptions,
-    ) -> Result<LoadedExecutable>
+    pub fn compile<T>(&self, program: &T, options: CompileOptions) -> Result<LoadedExecutable>
     where
         Self: CompileToLoadedExecutable<T>,
     {
@@ -170,7 +174,7 @@ impl Client {
         args.serialized_executable = bytes.as_ptr() as *const i8;
         args.serialized_executable_size = bytes.len();
         args = self.api().PJRT_Executable_DeserializeAndLoad(args)?;
-        Ok(LoadedExecutable::new(self, args.loaded_executable))
+        Ok(LoadedExecutable::wrap(self, args.loaded_executable))
     }
 
     // TODO: return DeviceAssignment similar to pjrt_c_client.cc
@@ -190,14 +194,14 @@ impl Client {
         Ok(default_assignment)
     }
 
-    pub fn topology_description(&self) -> TopologyDescription {
+    pub fn topology(&self) -> TopologyDescription {
         let mut args = PJRT_Client_TopologyDescription_Args::new();
         args.client = self.ptr();
         args = self
             .api()
             .PJRT_Client_TopologyDescription(args)
             .expect("PJRT_Client_TopologyDescription");
-        TopologyDescription::new(self.api(), args.topology)
+        TopologyDescription::wrap(self.api(), args.topology)
     }
 }
 
@@ -210,6 +214,6 @@ impl CompileToLoadedExecutable<Program> for Client {
         args.compile_options = options_encoded.as_ptr() as *const i8;
         args.compile_options_size = options_encoded.len();
         args = self.api().PJRT_Client_Compile(args)?;
-        Ok(LoadedExecutable::new(self, args.executable))
+        Ok(LoadedExecutable::wrap(self, args.executable))
     }
 }

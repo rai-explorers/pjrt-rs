@@ -1,5 +1,5 @@
 use pjrt::ProgramFormat::MLIR;
-use pjrt::{self, HostBuffer, Result};
+use pjrt::{self, Client, HostBuffer, LoadedExecutable, Result};
 
 const CODE: &'static [u8] = include_bytes!("program.mlir");
 
@@ -7,11 +7,11 @@ fn main() -> Result<()> {
     let api = pjrt::load_plugin("pjrt_c_api_cpu_plugin.so")?;
     println!("api_version = {:?}", api.version());
 
-    let client = api.client().create()?;
+    let client = Client::builder(&api).build()?;
     println!("platform_name = {}", client.platform_name());
 
     let program = pjrt::Program::new(MLIR, CODE);
-    let loaded_executable = client.program(&program).compile()?;
+    let loaded_executable = LoadedExecutable::builder(&client, &program).build()?;
     println!("compiled");
 
     let a = HostBuffer::scalar(1.0f32);

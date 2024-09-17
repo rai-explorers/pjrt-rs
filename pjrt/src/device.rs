@@ -14,7 +14,7 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(client: &Client, ptr: *mut PJRT_Device) -> Device {
+    pub fn wrap(client: &Client, ptr: *mut PJRT_Device) -> Device {
         assert!(!ptr.is_null());
         Self {
             client: client.clone(),
@@ -26,7 +26,7 @@ impl Device {
         &self.client
     }
 
-    pub fn get_description(&self) -> DeviceDescription {
+    pub fn description(&self) -> DeviceDescription {
         let mut args = PJRT_Device_GetDescription_Args::new();
         args.device = self.ptr;
         args = self
@@ -34,7 +34,7 @@ impl Device {
             .api()
             .PJRT_Device_GetDescription(args)
             .expect("PJRT_Device_GetDescription");
-        DeviceDescription::new(&self.client.api(), args.device_description)
+        DeviceDescription::wrap(&self.client.api(), args.device_description)
     }
 
     pub fn is_addressable(&self) -> bool {
@@ -71,7 +71,7 @@ impl Device {
         memories
             .iter()
             .cloned()
-            .map(|d| Memory::new(&self.client, d))
+            .map(|d| Memory::wrap(&self.client, d))
             .collect()
     }
 
@@ -83,7 +83,7 @@ impl Device {
             .api()
             .PJRT_Device_DefaultMemory(args)
             .expect("PJRT_Device_DefaultMemory");
-        Memory::new(&self.client, args.memory)
+        Memory::wrap(&self.client, args.memory)
     }
 
     pub fn memory_stats(&self) -> Result<MemoryStats> {

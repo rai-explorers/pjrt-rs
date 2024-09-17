@@ -32,7 +32,7 @@ impl Default for CompileOptions {
 
 impl CompileOptions {
     pub fn new() -> Self {
-        let mut v = Self {
+        let v = Self {
             proto: CompileOptionsProto::default(),
         };
         v.executable_build_options(ExecutableBuildOptions::new())

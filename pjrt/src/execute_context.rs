@@ -18,7 +18,7 @@ impl Drop for ExecuteContext {
 }
 
 impl ExecuteContext {
-    pub fn new(api: &Api, ptr: *mut PJRT_ExecuteContext) -> Self {
+    pub fn wrap(api: &Api, ptr: *mut PJRT_ExecuteContext) -> Self {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),

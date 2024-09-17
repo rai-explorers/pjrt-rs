@@ -30,7 +30,7 @@ impl PluginManager {
         let lib = unsafe { Library::new(library)? };
         let get_api_func: libloading::Symbol<GetPjrtApi> = unsafe { lib.get(b"GetPjrtApi")? };
         let ptr = unsafe { get_api_func() };
-        let api = Api::new(ptr);
+        let api = Api::wrap(ptr);
         libraries.insert(library.to_string(), (lib, api.clone()));
         Ok(api)
     }

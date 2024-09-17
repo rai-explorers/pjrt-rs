@@ -2,6 +2,7 @@ use std::ffi::c_void;
 use std::future::Future;
 use std::mem;
 use std::pin::Pin;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::task::{Context, Poll, Waker};
 
 use pjrt_sys::{
@@ -24,6 +25,7 @@ extern "C" fn on_ready_callback(err: *mut PJRT_Error, cb_data: *mut c_void) {
 pub struct Event {
     api: Api,
     ptr: *mut PJRT_Event,
+    registered_callback: AtomicBool,
 }
 
 impl Drop for Event {
@@ -37,11 +39,12 @@ impl Drop for Event {
 }
 
 impl Event {
-    pub fn new(api: &Api, ptr: *mut PJRT_Event) -> Self {
+    pub fn wrap(api: &Api, ptr: *mut PJRT_Event) -> Self {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),
             ptr,
+            registered_callback: AtomicBool::new(false),
         }
     }
 
@@ -49,12 +52,33 @@ impl Event {
         &self.api
     }
 
-    #[must_use = "handle wait result"]
-    pub fn wait(self) -> Result<()> {
+    fn is_ready(&self) -> Result<bool> {
         let mut args = PJRT_Event_IsReady_Args::new();
         args.event = self.ptr;
-        args = self.api.PJRT_Event_IsReady(args)?;
-        if args.is_ready {
+        let args = self.api.PJRT_Event_IsReady(args)?;
+        Ok(args.is_ready)
+    }
+
+    fn error(&self) -> Result<()> {
+        let mut args = PJRT_Event_Error_Args::new();
+        args.event = self.ptr;
+        self.api.PJRT_Event_Error(args).map(|_| ())
+    }
+
+    fn register_on_ready_callback(&self, waker: &Waker) -> Result<()> {
+        let mut cb_data = Box::new((self.api.clone(), waker.clone()));
+        let mut args = PJRT_Event_OnReady_Args::new();
+        args.event = self.ptr;
+        args.user_arg = cb_data.as_mut() as *mut _ as *mut c_void;
+        args.callback = Some(on_ready_callback);
+        let args = self.api.PJRT_Event_OnReady(args);
+        mem::forget(cb_data);
+        args.map(|_| self.registered_callback.store(true, Ordering::SeqCst))
+    }
+
+    #[must_use = "handle wait result"]
+    pub fn wait(self) -> Result<()> {
+        if self.is_ready()? {
             return Ok(());
         }
         let mut args = PJRT_Event_Await_Args::new();
@@ -68,28 +92,15 @@ impl Future for Event {
     type Output = Result<()>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut args = PJRT_Event_IsReady_Args::new();
-        args.event = self.ptr;
-        let args = self.api.PJRT_Event_IsReady(args);
-        match args {
-            Ok(args) => {
-                if args.is_ready {
-                    let mut args = PJRT_Event_Error_Args::new();
-                    args.event = self.ptr;
-                    let args = self.api.PJRT_Event_Error(args);
-                    match args {
-                        Ok(_) => Poll::Ready(Ok(())),
-                        Err(err) => Poll::Ready(Err(err)),
-                    }
+        match self.is_ready() {
+            Ok(is_ready) => {
+                if is_ready {
+                    Poll::Ready(self.error())
                 } else {
-                    let mut cb_data = Box::new((self.api.clone(), cx.waker().clone()));
-                    let mut args = PJRT_Event_OnReady_Args::new();
-                    args.event = self.ptr;
-                    args.user_arg = cb_data.as_mut() as *mut _ as *mut c_void;
-                    args.callback = Some(on_ready_callback);
-                    let args = self.api.PJRT_Event_OnReady(args);
-                    mem::forget(cb_data);
-                    match args {
+                    if self.registered_callback.load(Ordering::SeqCst) {
+                        return Poll::Pending;
+                    }
+                    match self.register_on_ready_callback(cx.waker()) {
                         Ok(_) => Poll::Pending,
                         Err(err) => Poll::Ready(Err(err)),
                     }

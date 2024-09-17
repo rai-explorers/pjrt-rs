@@ -22,7 +22,7 @@ impl Drop for CopyToDeviceStream {
 }
 
 impl CopyToDeviceStream {
-    pub fn new(api: &Api, ptr: *mut PJRT_CopyToDeviceStream) -> Self {
+    pub fn wrap(api: &Api, ptr: *mut PJRT_CopyToDeviceStream) -> Self {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),
@@ -44,14 +44,14 @@ impl CopyToDeviceStream {
 
     pub fn add_chunk_sync(&self, chunk: Chunk) -> Result<()> {
         let args = self.call_add_chunk(chunk)?;
-        let event = Event::new(&self.api, args.transfer_complete);
+        let event = Event::wrap(&self.api, args.transfer_complete);
         event.wait()?;
         Ok(())
     }
 
     pub async fn add_chunk(&self, chunk: Chunk) -> Result<()> {
         let args = self.call_add_chunk(chunk)?;
-        let event = Event::new(&self.api, args.transfer_complete);
+        let event = Event::wrap(&self.api, args.transfer_complete);
         event.await?;
         Ok(())
     }

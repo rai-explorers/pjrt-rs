@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::{self, Debug, Display};
 use std::slice;
 
 use pjrt_sys::{
@@ -15,7 +16,7 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn new(client: &Client, ptr: *mut PJRT_Memory) -> Memory {
+    pub fn wrap(client: &Client, ptr: *mut PJRT_Memory) -> Memory {
         assert!(!ptr.is_null());
         Self {
             client: client.clone(),
@@ -93,7 +94,19 @@ impl Memory {
         let devices = unsafe { slice::from_raw_parts(args.devices, args.num_devices) };
         devices
             .iter()
-            .map(|device| Device::new(&self.client, *device))
+            .map(|device| Device::wrap(&self.client, *device))
             .collect()
+    }
+}
+
+impl Display for Memory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Memory({})", self.to_string())
+    }
+}
+
+impl Debug for Memory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Memory({})", self.debug_string())
     }
 }

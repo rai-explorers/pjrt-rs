@@ -28,7 +28,7 @@ impl Drop for Buffer {
 }
 
 impl Buffer {
-    pub fn new(client: &Client, ptr: *mut PJRT_Buffer) -> Self {
+    pub fn wrap(client: &Client, ptr: *mut PJRT_Buffer) -> Self {
         assert!(!ptr.is_null());
         Self {
             client: client.clone(),
@@ -51,7 +51,7 @@ impl Buffer {
         PrimitiveType::try_from(args.type_).expect("PrimitiveType")
     }
 
-    pub fn dimensions(&self) -> Vec<i64> {
+    pub fn dims(&self) -> Vec<i64> {
         let mut args = PJRT_Buffer_Dimensions_Args::new();
         args.buffer = self.ptr;
         args = self
@@ -66,7 +66,7 @@ impl Buffer {
         s.iter().map(|s| *s).collect()
     }
 
-    pub fn unpadded_dimensions(&self) -> Vec<i64> {
+    pub fn unpadded_dims(&self) -> Vec<i64> {
         let mut args = PJRT_Buffer_UnpaddedDimensions_Args::new();
         args.buffer = self.ptr;
         args = self
@@ -78,7 +78,7 @@ impl Buffer {
         s.iter().map(|s| *s).collect()
     }
 
-    pub fn dynamic_dimension_indices(&self) -> Vec<usize> {
+    pub fn dynamic_dims_indices(&self) -> Vec<usize> {
         let mut args = PJRT_Buffer_DynamicDimensionIndices_Args::new();
         args.buffer = self.ptr;
         args = self
@@ -133,7 +133,7 @@ impl Buffer {
             .api()
             .PJRT_Buffer_Device(args)
             .expect("PJRT_Buffer_Device");
-        Device::new(&self.client, args.device)
+        Device::wrap(&self.client, args.device)
     }
 
     pub fn memory(&self) -> Memory {
@@ -144,7 +144,7 @@ impl Buffer {
             .api()
             .PJRT_Buffer_Memory(args)
             .expect("PJRT_Buffer_Memory");
-        Memory::new(&self.client, args.memory)
+        Memory::wrap(&self.client, args.memory)
     }
 
     pub fn delete(&self) {
@@ -171,7 +171,7 @@ impl Buffer {
         let mut args = PJRT_Buffer_ReadyEvent_Args::new();
         args.buffer = self.ptr;
         args = self.client.api().PJRT_Buffer_ReadyEvent(args)?;
-        Ok(Event::new(self.client.api(), args.event))
+        Ok(Event::wrap(self.client.api(), args.event))
     }
 
     fn call_copy_to_device(&self, device: &Device) -> Result<PJRT_Buffer_CopyToDevice_Args> {
@@ -183,7 +183,7 @@ impl Buffer {
 
     pub async fn copy_to_device(&self, device: &Device) -> Result<Buffer> {
         let args = self.call_copy_to_device(device)?;
-        let buf = Buffer::new(device.client(), args.dst_buffer);
+        let buf = Buffer::wrap(device.client(), args.dst_buffer);
         let event = buf.ready_event()?;
         event.await?;
         Ok(buf)
@@ -191,7 +191,7 @@ impl Buffer {
 
     pub fn copy_to_device_sync(&self, device: &Device) -> Result<Buffer> {
         let args = self.call_copy_to_device(device)?;
-        let buf = Buffer::new(device.client(), args.dst_buffer);
+        let buf = Buffer::wrap(device.client(), args.dst_buffer);
         let event = buf.ready_event()?;
         event.wait()?;
         Ok(buf)
@@ -206,7 +206,7 @@ impl Buffer {
 
     pub async fn copy_to_memory(&self, memory: &Memory) -> Result<Buffer> {
         let args = self.call_copy_to_memory(memory)?;
-        let buf = Buffer::new(memory.client(), args.dst_buffer);
+        let buf = Buffer::wrap(memory.client(), args.dst_buffer);
         let event = buf.ready_event()?;
         event.await?;
         Ok(buf)
@@ -214,7 +214,7 @@ impl Buffer {
 
     pub fn copy_to_memory_sync(&self, memory: &Memory) -> Result<Buffer> {
         let args = self.call_copy_to_memory(memory)?;
-        let buf = Buffer::new(memory.client(), args.dst_buffer);
+        let buf = Buffer::wrap(memory.client(), args.dst_buffer);
         let event = buf.ready_event()?;
         event.wait()?;
         Ok(buf)
@@ -235,27 +235,29 @@ impl Buffer {
 
     pub async fn copy_to_host(&self) -> Result<HostBuffer> {
         let (args, data) = self.call_copy_to_host()?;
-        let event = Event::new(self.client.api(), args.event);
+        let event = Event::wrap(self.client.api(), args.event);
         event.await?;
         let ty = self.primitive_type();
-        let dims = self.dimensions();
+        let dims = self.dims();
         let layout = self.layout();
-        HostBuffer::from_bytes(data, ty)
-            .shape(dims)
-            .memory_layout(layout)
-            .create()
+        HostBuffer::builder()
+            .bytes(data, ty)
+            .dims(dims)
+            .layout(layout)
+            .build()
     }
 
     pub fn copy_to_host_sync(&self) -> Result<HostBuffer> {
         let (args, data) = self.call_copy_to_host()?;
-        let event = Event::new(self.client.api(), args.event);
+        let event = Event::wrap(self.client.api(), args.event);
         event.wait()?;
         let ty = self.primitive_type();
-        let dims = self.dimensions();
+        let dims = self.dims();
         let layout = self.layout();
-        HostBuffer::from_bytes(data, ty)
-            .shape(dims)
-            .memory_layout(layout)
-            .create()
+        HostBuffer::builder()
+            .bytes(data, ty)
+            .dims(dims)
+            .layout(layout)
+            .build()
     }
 }

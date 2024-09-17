@@ -1,7 +1,6 @@
 use std::backtrace::Backtrace;
 use std::sync::Arc;
 
-use bon::bon;
 use pjrt_sys::{
     PJRT_Api, PJRT_Api_Version, PJRT_Client_Create_Args, PJRT_Compile_Args, PJRT_Error,
     PJRT_Error_Destroy_Args, PJRT_Error_GetCode_Args, PJRT_Error_Message_Args,
@@ -24,9 +23,8 @@ pub struct Api {
 unsafe impl Send for Api {}
 unsafe impl Sync for Api {}
 
-#[bon]
 impl Api {
-    pub fn new(ptr: *const PJRT_Api) -> Self {
+    pub fn wrap(ptr: *const PJRT_Api) -> Self {
         assert!(!ptr.is_null());
         let raw = Arc::new(unsafe { *ptr });
         let version = Version::new(raw.pjrt_api_version);
@@ -49,17 +47,17 @@ impl Api {
         utils::to_named_value_map(args.attributes, args.num_attributes)
     }
 
+    // TODO: add more options
     pub fn create_execute_context(&self) -> Result<ExecuteContext> {
         let mut args = PJRT_ExecuteContext_Create_Args::new();
         args = self.PJRT_ExecuteContext_Create(args)?;
-        Ok(ExecuteContext::new(self, args.context))
+        Ok(ExecuteContext::wrap(self, args.context))
     }
 
-    #[builder(finish_fn = create)]
-    pub fn topology_description(
+    pub fn create_topology(
         &self,
-        #[builder(start_fn)] name: impl AsRef<str>,
-        #[builder(default = bon::vec![], into)] options: Vec<NamedValue>,
+        name: impl AsRef<str>,
+        options: Vec<NamedValue>,
     ) -> Result<TopologyDescription> {
         let name = name.as_ref().as_bytes();
         let create_options: Vec<PJRT_NamedValue> = options.iter().map(Into::into).collect();
@@ -69,14 +67,13 @@ impl Api {
         args.create_options = create_options.as_ptr();
         args.num_options = create_options.len();
         args = self.PJRT_TopologyDescription_Create(args)?;
-        Ok(TopologyDescription::new(self, args.topology))
+        Ok(TopologyDescription::wrap(self, args.topology))
     }
 
-    #[builder(finish_fn = create)]
-    pub fn client(
+    pub fn create_client(
         &self,
-        #[builder(default = bon::vec![], into)] options: Vec<NamedValue>,
-        #[builder] kv_store: Option<&Box<dyn KeyValueStore>>,
+        options: Vec<NamedValue>,
+        kv_store: Option<&Box<dyn KeyValueStore>>,
     ) -> Result<Client> {
         let create_options: Vec<PJRT_NamedValue> = options.iter().map(Into::into).collect();
         let mut args = PJRT_Client_Create_Args::new();
@@ -89,16 +86,15 @@ impl Api {
             args.kv_put_user_arg = kv_store as *const _ as *mut _;
         }
         args = self.PJRT_Client_Create(args)?;
-        Ok(Client::new(self, args.client))
+        Ok(Client::wrap(self, args.client))
     }
 
-    #[builder(finish_fn = compile)]
-    pub fn program<T>(
+    pub fn compile<T>(
         &self,
-        #[builder(start_fn)] program: &T,
-        #[builder(start_fn)] topology: &TopologyDescription,
-        #[builder(default)] options: CompileOptions,
-        #[builder] client: Option<&Client>,
+        program: &T,
+        topology: &TopologyDescription,
+        options: CompileOptions,
+        client: Option<&Client>,
     ) -> Result<Executable>
     where
         Self: CompileToExecutable<T>,
@@ -149,7 +145,7 @@ impl CompileToExecutable<Program> for Api {
             args.client = client.ptr();
         }
         args = self.PJRT_Compile(args)?;
-        Ok(Executable::new(self, args.executable))
+        Ok(Executable::wrap(self, args.executable))
     }
 }
 

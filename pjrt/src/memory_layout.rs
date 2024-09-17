@@ -1,5 +1,6 @@
 use std::vec;
 
+use bon::bon;
 use pjrt_sys::{
     PJRT_Buffer_MemoryLayout, PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides,
     PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled,
@@ -13,12 +14,14 @@ pub enum MemoryLayout {
     Strides(MemoryLayoutStrides),
 }
 
+#[bon]
 impl MemoryLayout {
-    pub fn from_tiled(
-        minor_to_major: Vec<i64>,
-        tile_dims: Option<Vec<i64>>,
-        tile_dim_sizes: Option<Vec<usize>>,
-    ) -> Self {
+    #[builder(finish_fn = build)]
+    pub fn tiled(
+        #[builder(start_fn, into)] minor_to_major: Vec<i64>,
+        #[builder] tile_dims: Option<Vec<i64>>,
+        #[builder] tile_dim_sizes: Option<Vec<usize>>,
+    ) -> MemoryLayout {
         MemoryLayout::Tiled(MemoryLayoutTiled {
             minor_to_major,
             tile_dims,
@@ -26,8 +29,10 @@ impl MemoryLayout {
         })
     }
 
-    pub fn from_strides(byte_strides: Vec<i64>) -> Self {
-        MemoryLayout::Strides(MemoryLayoutStrides { byte_strides })
+    pub fn strides(byte_strides: impl Into<Vec<i64>>) -> MemoryLayout {
+        MemoryLayout::Strides(MemoryLayoutStrides {
+            byte_strides: byte_strides.into(),
+        })
     }
 }
 

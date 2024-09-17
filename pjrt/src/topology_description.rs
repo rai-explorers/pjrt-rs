@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::slice;
 
+use bon::bon;
 use pjrt_sys::{
     PJRT_SerializedTopology, PJRT_TopologyDescription, PJRT_TopologyDescription_Attributes_Args,
     PJRT_TopologyDescription_Destroy_Args, PJRT_TopologyDescription_GetDeviceDescriptions_Args,
@@ -8,7 +9,7 @@ use pjrt_sys::{
     PJRT_TopologyDescription_Serialize_Args,
 };
 
-use crate::{utils, Api, DeviceDescription, NamedValueMap};
+use crate::{utils, Api, DeviceDescription, NamedValue, NamedValueMap, Result};
 
 pub struct TopologyDescription {
     pub(crate) api: Api,
@@ -25,13 +26,23 @@ impl Drop for TopologyDescription {
     }
 }
 
+#[bon]
 impl TopologyDescription {
-    pub fn new(api: &Api, ptr: *mut PJRT_TopologyDescription) -> TopologyDescription {
+    pub fn wrap(api: &Api, ptr: *mut PJRT_TopologyDescription) -> TopologyDescription {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),
             ptr,
         }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn builder(
+        #[builder(start_fn)] api: &Api,
+        #[builder(start_fn)] name: impl AsRef<str>,
+        #[builder(default = bon::vec![], into)] options: Vec<NamedValue>,
+    ) -> Result<Self> {
+        api.create_topology(name, options)
     }
 
     pub fn platform_name(&self) -> Cow<'_, str> {
@@ -65,7 +76,7 @@ impl TopologyDescription {
             unsafe { slice::from_raw_parts(args.descriptions, args.num_descriptions) };
         descriptions
             .iter()
-            .map(|ptr| DeviceDescription::new(&self.api, *ptr))
+            .map(|ptr| DeviceDescription::wrap(&self.api, *ptr))
             .collect()
     }
 

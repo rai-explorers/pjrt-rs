@@ -1,5 +1,6 @@
 use std::borrow::{Borrow, Cow};
 
+use bon::bon;
 use pjrt_sys::{
     PJRT_Executable, PJRT_Executable_Destroy_Args, PJRT_Executable_Fingerprint_Args,
     PJRT_Executable_GetCompiledMemoryStats_Args, PJRT_Executable_GetCostAnalysis_Args,
@@ -11,7 +12,10 @@ use pjrt_sys::{
 };
 
 use crate::program::ProgramFormat;
-use crate::{utils, Api, NamedValueMap, PrimitiveType, Program, Result};
+use crate::{
+    utils, Api, Client, CompileOptions, CompileToExecutable, NamedValueMap, PrimitiveType, Program,
+    Result, TopologyDescription,
+};
 
 pub struct Executable {
     api: Api,
@@ -28,13 +32,28 @@ impl Drop for Executable {
     }
 }
 
+#[bon]
 impl Executable {
-    pub fn new(api: &Api, ptr: *mut PJRT_Executable) -> Self {
+    pub fn wrap(api: &Api, ptr: *mut PJRT_Executable) -> Self {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),
             ptr,
         }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn builder<T>(
+        #[builder(start_fn)] api: &Api,
+        #[builder(start_fn)] program: &T,
+        #[builder(start_fn)] topology: &TopologyDescription,
+        #[builder(default)] options: CompileOptions,
+        client: Option<&Client>,
+    ) -> Result<Self>
+    where
+        Api: CompileToExecutable<T>,
+    {
+        api.compile(program, topology, options, client)
     }
 
     pub fn api(&self) -> &Api {
@@ -104,7 +123,7 @@ impl Executable {
             .collect()
     }
 
-    pub fn output_dimenssions(&self) -> Vec<Vec<i64>> {
+    pub fn output_dims(&self) -> Vec<Vec<i64>> {
         let mut args = PJRT_Executable_OutputDimensions_Args::new();
         args.executable = self.ptr;
         args = self

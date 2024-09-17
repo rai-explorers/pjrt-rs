@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::{self, Debug, Display};
 
 use pjrt_sys::{
     PJRT_DeviceDescription, PJRT_DeviceDescription_Attributes_Args,
@@ -16,7 +17,7 @@ pub struct DeviceDescription {
 }
 
 impl DeviceDescription {
-    pub fn new(api: &Api, ptr: *mut PJRT_DeviceDescription) -> DeviceDescription {
+    pub fn wrap(api: &Api, ptr: *mut PJRT_DeviceDescription) -> DeviceDescription {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),
@@ -86,5 +87,17 @@ impl DeviceDescription {
             .PJRT_DeviceDescription_ToString(args)
             .expect("PJRT_DeviceDescription_ToString");
         utils::str_from_raw(args.to_string, args.to_string_size)
+    }
+}
+
+impl Display for DeviceDescription {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DeviceDescription({})", self.to_string())
+    }
+}
+
+impl Debug for DeviceDescription {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DeviceDescription({})", self.debug_string())
     }
 }

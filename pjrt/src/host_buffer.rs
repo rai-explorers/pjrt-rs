@@ -1,4 +1,3 @@
-use std::alloc::Layout;
 use std::ffi::c_void;
 use std::mem;
 use std::rc::Rc;
@@ -15,7 +14,7 @@ use pjrt_sys::{
 use crate::event::Event;
 use crate::{
     utils, Buffer, Client, Device, ElemType, Error, Memory, MemoryLayout, PrimitiveType, Result,
-    Shape, Type, F32, F64, S16, S32, S64, S8, U16, U32, U64, U8,
+    Type, F32, F64, S16, S32, S64, S8, U16, U32, U64, U8,
 };
 
 #[derive(Debug)]
@@ -25,41 +24,18 @@ pub struct TypedHostBuffer<T: Type> {
     layout: MemoryLayout,
 }
 
-#[bon]
 impl<T: Type> TypedHostBuffer<T> {
-    #[builder(finish_fn = create)]
-    pub fn from_data(
-        #[builder(start_fn, into)] data: Vec<T::ElemType>,
-        #[builder(default = bon::vec![data.len() as i64], into)] shape: Vec<i64>,
-        #[builder] memory_layout: Option<MemoryLayout>,
-    ) -> Self {
-        let data: Vec<T::ElemType> = data.into();
-        let layout = memory_layout
-            .unwrap_or_else(|| MemoryLayout::from_strides(utils::byte_strides(&shape, T::SIZE)));
-        Self {
-            data: Rc::new(data),
-            dims: shape,
-            layout,
-        }
+    pub fn builder() -> TypedHostBufferBuilder {
+        TypedHostBufferBuilder
     }
 
-    #[builder(finish_fn = create)]
-    pub fn from_bytes(
-        #[builder(start_fn, into)] bytes: Vec<u8>,
-        #[builder(default = bon::vec![(bytes.len() / T::SIZE) as i64], into)] shape: Vec<i64>,
-        #[builder] memory_layout: Option<MemoryLayout>,
-    ) -> Self {
-        let length = bytes.len() / T::SIZE;
-        let capacity = bytes.capacity() / T::SIZE;
-        let ptr = bytes.as_ptr() as *mut T::ElemType;
-        let data = unsafe { Vec::from_raw_parts(ptr, length, capacity) };
-        mem::forget(bytes);
-        assert!(shape.iter().product::<i64>() == length as i64);
-        let layout = memory_layout
-            .unwrap_or_else(|| MemoryLayout::from_strides(utils::byte_strides(&shape, T::SIZE)));
+    pub fn scalar(data: T::ElemType) -> Self {
+        let data = vec![data];
+        let dims = vec![];
+        let layout = MemoryLayout::strides(vec![]);
         Self {
             data: Rc::new(data),
-            dims: shape,
+            dims,
             layout,
         }
     }
@@ -74,17 +50,6 @@ impl<T: Type> TypedHostBuffer<T> {
 
     pub fn layout(&self) -> &MemoryLayout {
         &self.layout
-    }
-
-    pub fn scalar(data: T::ElemType) -> Self {
-        let data = vec![data];
-        let dims = vec![];
-        let layout = MemoryLayout::from_strides(vec![]);
-        Self {
-            data: Rc::new(data),
-            dims,
-            layout,
-        }
     }
 
     pub fn call_copy_to<D>(
@@ -122,9 +87,9 @@ impl<T: Type> TypedHostBuffer<T> {
         let config = config.into_copy_to_config();
         let client = config.dest.client();
         let args = self.call_copy_to(&config)?;
-        let done_with_host_event = Event::new(client.api(), args.done_with_host_buffer);
+        let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
         done_with_host_event.wait()?;
-        let buf = Buffer::new(client, args.buffer);
+        let buf = Buffer::wrap(client, args.buffer);
         let buf_ready_event = buf.ready_event()?;
         buf_ready_event.wait()?;
         Ok(buf)
@@ -138,9 +103,9 @@ impl<T: Type> TypedHostBuffer<T> {
         let config = config.into_copy_to_config();
         let client = config.dest.client();
         let args = self.call_copy_to(&config)?;
-        let done_with_host_event = Event::new(client.api(), args.done_with_host_buffer);
+        let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
         done_with_host_event.await?;
-        let buf = Buffer::new(client, args.buffer);
+        let buf = Buffer::wrap(client, args.buffer);
         let buf_ready_event = buf.ready_event()?;
         buf_ready_event.await?;
         Ok(buf)
@@ -182,95 +147,18 @@ pub enum HostBuffer {
     U64(TypedHostBuffer<U64>),
 }
 
-#[bon]
 impl HostBuffer {
-    #[builder(finish_fn = create)]
-    pub fn from_data<T>(
-        #[builder(start_fn, into)] data: Vec<T>,
-        #[builder(default = bon::vec![data.len() as i64], into)] shape: Vec<i64>,
-        #[builder] memory_layout: Option<MemoryLayout>,
-    ) -> Self
-    where
-        T: ElemType,
-        Self: From<TypedHostBuffer<T::Type>>,
-    {
-        let buf = TypedHostBuffer::<T::Type>::from_data(data)
-            .shape(shape)
-            .maybe_memory_layout(memory_layout)
-            .create();
-        Self::from(buf)
+    pub fn builder() -> HostBufferBuilder {
+        HostBufferBuilder
     }
 
-    #[builder(finish_fn = create)]
-    pub fn from_bytes(
-        #[builder(start_fn)] bytes: Vec<u8>,
-        #[builder(start_fn)] ty: PrimitiveType,
-        #[builder(default = bon::vec![(bytes.len() / ty.boxed_dtype().size()) as i64], into)] shape: Vec<i64>,
-        #[builder] memory_layout: Option<MemoryLayout>,
-    ) -> Result<Self> {
-        match ty {
-            PrimitiveType::F32 => Ok(Self::F32(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::F64 => Ok(Self::F64(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::S8 => Ok(Self::S8(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::S16 => Ok(Self::S16(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::S32 => Ok(Self::S32(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::S64 => Ok(Self::S64(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::U8 => Ok(Self::U8(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::U16 => Ok(Self::U16(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::U32 => Ok(Self::U32(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            PrimitiveType::U64 => Ok(Self::U64(
-                TypedHostBuffer::from_bytes(bytes)
-                    .shape(shape)
-                    .maybe_memory_layout(memory_layout)
-                    .create(),
-            )),
-            _ => Err(Error::NotSupportedType(ty)),
-        }
+    pub fn scalar<E>(data: E) -> HostBuffer
+    where
+        E: ElemType,
+        Self: From<TypedHostBuffer<E::Type>>,
+    {
+        let buf = TypedHostBuffer::<E::Type>::scalar(data);
+        Self::from(buf)
     }
 
     pub fn dims(&self) -> &[i64] {
@@ -301,15 +189,6 @@ impl HostBuffer {
             Self::U32(buf) => buf.layout(),
             Self::U64(buf) => buf.layout(),
         }
-    }
-
-    pub fn scalar<T>(data: T) -> Self
-    where
-        T: ElemType,
-        Self: From<TypedHostBuffer<T::Type>>,
-    {
-        let buf = TypedHostBuffer::<T::Type>::scalar(data);
-        Self::from(buf)
     }
 
     pub fn copy_to_sync<D, C>(&self, config: C) -> Result<Buffer>
@@ -620,5 +499,164 @@ where
 {
     fn into_copy_to_config(self) -> HostBufferCopyToConfig<D> {
         self.into_config()
+    }
+}
+
+#[derive(Debug)]
+pub struct TypedHostBufferBuilder;
+
+#[bon]
+impl TypedHostBufferBuilder {
+    #[builder(finish_fn = build)]
+    pub fn data<E>(
+        &self,
+        #[builder(start_fn, into)] data: Vec<E>,
+        #[builder(default = bon::vec![data.len() as i64], into)] dims: Vec<i64>,
+        #[builder] layout: Option<MemoryLayout>,
+    ) -> TypedHostBuffer<E::Type>
+    where
+        E: ElemType,
+    {
+        let data: Vec<E> = data.into();
+        let layout = layout
+            .unwrap_or_else(|| MemoryLayout::strides(utils::byte_strides(&dims, E::Type::SIZE)));
+        TypedHostBuffer {
+            data: Rc::new(data),
+            dims,
+            layout,
+        }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn bytes<T>(
+        &self,
+        #[builder(start_fn, into)] bytes: Vec<u8>,
+        #[builder(default = bon::vec![(bytes.len() / T::SIZE) as i64], into)] dims: Vec<i64>,
+        #[builder] layout: Option<MemoryLayout>,
+    ) -> TypedHostBuffer<T>
+    where
+        T: Type,
+    {
+        let length = bytes.len() / T::SIZE;
+        let capacity = bytes.capacity() / T::SIZE;
+        let ptr = bytes.as_ptr() as *mut T::ElemType;
+        let data = unsafe { Vec::from_raw_parts(ptr, length, capacity) };
+        mem::forget(bytes);
+        assert!(dims.iter().product::<i64>() == length as i64);
+        let layout =
+            layout.unwrap_or_else(|| MemoryLayout::strides(utils::byte_strides(&dims, T::SIZE)));
+        TypedHostBuffer {
+            data: Rc::new(data),
+            dims,
+            layout,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct HostBufferBuilder;
+
+#[bon]
+impl HostBufferBuilder {
+    #[builder(finish_fn = build)]
+    pub fn data<E>(
+        &self,
+        #[builder(start_fn, into)] data: Vec<E>,
+        #[builder(default = bon::vec![data.len() as i64], into)] dims: Vec<i64>,
+        #[builder] layout: Option<MemoryLayout>,
+    ) -> HostBuffer
+    where
+        E: ElemType,
+        HostBuffer: From<TypedHostBuffer<E::Type>>,
+    {
+        let buf = TypedHostBufferBuilder
+            .data::<E>(data)
+            .dims(dims)
+            .maybe_layout(layout)
+            .build();
+        HostBuffer::from(buf)
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn bytes(
+        &self,
+        #[builder(start_fn)] bytes: Vec<u8>,
+        #[builder(start_fn)] ty: PrimitiveType,
+        #[builder(default = bon::vec![(bytes.len() / ty.boxed_dtype().size()) as i64], into)] dims: Vec<i64>,
+        #[builder] layout: Option<MemoryLayout>,
+    ) -> Result<HostBuffer> {
+        match ty {
+            PrimitiveType::F32 => Ok(HostBuffer::F32(
+                TypedHostBufferBuilder
+                    .bytes::<F32>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::F64 => Ok(HostBuffer::F64(
+                TypedHostBufferBuilder
+                    .bytes::<F64>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::S8 => Ok(HostBuffer::S8(
+                TypedHostBufferBuilder
+                    .bytes::<S8>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::S16 => Ok(HostBuffer::S16(
+                TypedHostBufferBuilder
+                    .bytes::<S16>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::S32 => Ok(HostBuffer::S32(
+                TypedHostBufferBuilder
+                    .bytes::<S32>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::S64 => Ok(HostBuffer::S64(
+                TypedHostBufferBuilder
+                    .bytes::<S64>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::U8 => Ok(HostBuffer::U8(
+                TypedHostBufferBuilder
+                    .bytes::<U8>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::U16 => Ok(HostBuffer::U16(
+                TypedHostBufferBuilder
+                    .bytes::<U16>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::U32 => Ok(HostBuffer::U32(
+                TypedHostBufferBuilder
+                    .bytes::<U32>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::U64 => Ok(HostBuffer::U64(
+                TypedHostBufferBuilder
+                    .bytes::<U64>(bytes)
+                    .dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            _ => Err(Error::NotSupportedType(ty)),
+        }
     }
 }

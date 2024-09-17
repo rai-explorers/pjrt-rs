@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::mem::MaybeUninit;
 use std::slice;
 
+use bon::bon;
 use pjrt_sys::{
     PJRT_Buffer, PJRT_Event, PJRT_ExecuteOptions, PJRT_LoadedExecutable,
     PJRT_LoadedExecutable_AddressableDevices_Args, PJRT_LoadedExecutable_Delete_Args,
@@ -11,7 +12,10 @@ use pjrt_sys::{
     PJRT_LoadedExecutable_IsDeleted_Args,
 };
 
-use crate::{event, utils, Buffer, Client, Device, Event, Executable, Result};
+use crate::{
+    event, utils, Buffer, Client, CompileOptions, CompileToLoadedExecutable, Device, Event,
+    Executable, Result,
+};
 
 pub struct LoadedExecutable {
     client: Client,
@@ -29,13 +33,26 @@ impl Drop for LoadedExecutable {
     }
 }
 
+#[bon]
 impl LoadedExecutable {
-    pub fn new(client: &Client, ptr: *mut PJRT_LoadedExecutable) -> Self {
+    pub fn wrap(client: &Client, ptr: *mut PJRT_LoadedExecutable) -> Self {
         assert!(!ptr.is_null());
         Self {
             client: client.clone(),
             ptr,
         }
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn builder<T>(
+        #[builder(start_fn)] client: &Client,
+        #[builder(start_fn)] program: &T,
+        #[builder(default)] options: CompileOptions,
+    ) -> Result<Self>
+    where
+        Client: CompileToLoadedExecutable<T>,
+    {
+        client.compile(program, options)
     }
 
     pub fn client(&self) -> &Client {
@@ -50,7 +67,7 @@ impl LoadedExecutable {
             .api()
             .PJRT_LoadedExecutable_GetExecutable(args)
             .expect("PJRT_LoadedExecutable_GetExecutable");
-        Executable::new(self.client.api(), args.executable)
+        Executable::wrap(self.client.api(), args.executable)
     }
 
     pub fn addressable_devices(&self) -> Vec<Device> {
@@ -67,7 +84,7 @@ impl LoadedExecutable {
         raw_devices
             .iter()
             .cloned()
-            .map(|d| Device::new(&self.client, d))
+            .map(|d| Device::wrap(&self.client, d))
             .collect()
     }
 
@@ -125,11 +142,11 @@ impl LoadedExecutable {
         let events = events
             .iter()
             .cloned()
-            .map(|ptr| event::Event::new(self.client.api(), ptr))
+            .map(|ptr| event::Event::wrap(self.client.api(), ptr))
             .collect::<Vec<_>>();
         let output_buffers = unsafe {
             utils::slice_to_vec2d(args.output_lists, args.num_devices, num_outputs, |ptr| {
-                Buffer::new(&self.client, ptr)
+                Buffer::wrap(&self.client, ptr)
             })
         };
         Ok((events, output_buffers))
