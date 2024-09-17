@@ -137,7 +137,7 @@ impl Executable {
             let s = unsafe {
                 std::slice::from_raw_parts(args.dims.offset(i as isize), output_dim_size[i])
             };
-            let dims = s.iter().map(|s| *s).collect();
+            let dims = s.to_owned();
             out.push(dims);
         }
         out

@@ -58,11 +58,8 @@ pub use event::Event;
 mod named_value;
 pub use named_value::{NamedValue, NamedValueMap};
 
-mod execute_context;
-pub use execute_context::ExecuteContext;
-
-mod execute_options;
-pub use execute_options::ExecuteOptions;
+mod execute;
+pub use execute::{ExecuteContext, ExecuteOptions, Execution, ExecutionInputs};
 
 mod device_stream;
 pub use device_stream::CopyToDeviceStream;

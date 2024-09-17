@@ -5,8 +5,8 @@ use std::slice;
 use bon::bon;
 use pjrt_sys::{
     PJRT_Client, PJRT_Client_AddressableDevices_Args, PJRT_Client_AddressableMemories_Args,
-    PJRT_Client_Compile_Args, PJRT_Client_Create_Args, PJRT_Client_DefaultDeviceAssignment_Args,
-    PJRT_Client_Destroy_Args, PJRT_Client_Devices_Args, PJRT_Client_LookupAddressableDevice_Args,
+    PJRT_Client_Compile_Args, PJRT_Client_DefaultDeviceAssignment_Args, PJRT_Client_Destroy_Args,
+    PJRT_Client_Devices_Args, PJRT_Client_LookupAddressableDevice_Args,
     PJRT_Client_LookupDevice_Args, PJRT_Client_PlatformName_Args, PJRT_Client_PlatformVersion_Args,
     PJRT_Client_ProcessIndex_Args, PJRT_Client_TopologyDescription_Args,
     PJRT_Executable_DeserializeAndLoad_Args, PJRT_Program,

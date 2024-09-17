@@ -2,10 +2,7 @@ use std::ffi::CString;
 use std::mem;
 
 use ::std::os::raw::c_char;
-use pjrt_sys::{
-    PJRT_Error, PJRT_Error_Code_PJRT_Error_Code_INTERNAL, PJRT_KeyValueGetCallback_Args,
-    PJRT_KeyValuePutCallback_Args,
-};
+use pjrt_sys::{PJRT_Error, PJRT_KeyValueGetCallback_Args, PJRT_KeyValuePutCallback_Args};
 
 use crate::{utils, Result};
 

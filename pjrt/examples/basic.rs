@@ -11,15 +11,15 @@ fn main() -> Result<()> {
     println!("platform_name = {}", client.platform_name());
 
     let program = pjrt::Program::new(MLIR, CODE);
+
     let loaded_executable = LoadedExecutable::builder(&client, &program).build()?;
-    println!("compiled");
 
     let a = HostBuffer::scalar(1.0f32);
     println!("input = {:?}", a);
 
     let inputs = a.copy_to_sync(&client)?;
 
-    let result = loaded_executable.execute_sync(inputs)?;
+    let result = loaded_executable.execution(inputs).run_sync()?;
 
     let ouput = &result[0][0];
     let output = ouput.copy_to_host_sync()?;

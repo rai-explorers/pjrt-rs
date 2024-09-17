@@ -64,7 +64,7 @@ impl<T: Type> TypedHostBuffer<T> {
         args.client = client.ptr();
         args.data = self.data.as_ptr() as *const c_void;
         args.type_ = T::PRIMITIVE_TYPE as u32;
-        args.dims = self.dims.as_ptr() as *const i64;
+        args.dims = self.dims.as_ptr();
         args.num_dims = self.dims.len();
         args.host_buffer_semantics = HostBufferSemantics::ImmutableUntilTransferCompletes as u32;
         if let Some(byte_strides) = &config.byte_strides {
@@ -277,7 +277,7 @@ pub trait HostBufferCopyToDest {
 
 impl HostBufferCopyToDest for Client {
     fn client(&self) -> &Client {
-        &self
+        self
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
@@ -292,7 +292,7 @@ impl HostBufferCopyToDest for Client {
 
 impl<'a> HostBufferCopyToDest for &'a Client {
     fn client(&self) -> &Client {
-        Client::client(*self)
+        *self
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {

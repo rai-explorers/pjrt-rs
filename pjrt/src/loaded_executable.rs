@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-use std::collections::HashSet;
 use std::mem::MaybeUninit;
 use std::slice;
 
@@ -8,13 +6,12 @@ use pjrt_sys::{
     PJRT_Buffer, PJRT_Event, PJRT_ExecuteOptions, PJRT_LoadedExecutable,
     PJRT_LoadedExecutable_AddressableDevices_Args, PJRT_LoadedExecutable_Delete_Args,
     PJRT_LoadedExecutable_Destroy_Args, PJRT_LoadedExecutable_Execute_Args,
-    PJRT_LoadedExecutable_Fingerprint_Args, PJRT_LoadedExecutable_GetExecutable_Args,
-    PJRT_LoadedExecutable_IsDeleted_Args,
+    PJRT_LoadedExecutable_GetExecutable_Args, PJRT_LoadedExecutable_IsDeleted_Args,
 };
 
 use crate::{
     event, utils, Buffer, Client, CompileOptions, CompileToLoadedExecutable, Device, Event,
-    Executable, Result,
+    Executable, ExecuteOptions, Execution, ExecutionInputs, Result,
 };
 
 pub struct LoadedExecutable {
@@ -88,7 +85,7 @@ impl LoadedExecutable {
             .collect()
     }
 
-    pub fn delete(&self) {
+    pub fn delete(self) {
         let mut args = PJRT_LoadedExecutable_Delete_Args::new();
         args.executable = self.ptr;
         self.client
@@ -108,10 +105,13 @@ impl LoadedExecutable {
         args.is_deleted
     }
 
-    // TODO: execute options
-    pub fn call_execute<I>(&self, inputs: I) -> Result<(Vec<Event>, Vec<Vec<Buffer>>)>
+    pub fn call_execute<I>(
+        &self,
+        inputs: I,
+        options: &ExecuteOptions,
+    ) -> Result<(Vec<Event>, Vec<Vec<Buffer>>)>
     where
-        I: ExecuteInputs,
+        I: ExecutionInputs,
     {
         let executable = self.executable();
         let num_outputs = executable.num_outputs();
@@ -134,7 +134,7 @@ impl LoadedExecutable {
         let complete_events = vec![MaybeUninit::<*mut PJRT_Event>::uninit(); args.num_devices];
         args.device_complete_events = complete_events.as_ptr() as *mut *mut PJRT_Event;
         // options
-        let mut options = PJRT_ExecuteOptions::new();
+        let mut options = options.into();
         args.options = &mut options as *mut PJRT_ExecuteOptions;
         args = self.client.api().PJRT_LoadedExecutable_Execute(args)?;
         let events =
@@ -152,94 +152,32 @@ impl LoadedExecutable {
         Ok((events, output_buffers))
     }
 
-    pub fn execute_sync<I>(&self, inputs: I) -> Result<Vec<Vec<Buffer>>>
+    pub fn execute_sync<I>(&self, inputs: I, options: &ExecuteOptions) -> Result<Vec<Vec<Buffer>>>
     where
-        I: ExecuteInputs,
+        I: ExecutionInputs,
     {
-        let (events, outputs) = self.call_execute(inputs)?;
+        let (events, outputs) = self.call_execute(inputs, options)?;
         for event in events {
             event.wait()?;
         }
         Ok(outputs)
     }
 
-    pub async fn execute<I>(&self, inputs: I) -> Result<Vec<Vec<Buffer>>>
+    pub async fn execute<I>(&self, inputs: I, options: &ExecuteOptions) -> Result<Vec<Vec<Buffer>>>
     where
-        I: ExecuteInputs,
+        I: ExecutionInputs,
     {
-        let (events, outputs) = self.call_execute(inputs)?;
+        let (events, outputs) = self.call_execute(inputs, options)?;
         for event in events {
             event.await?;
         }
         Ok(outputs)
     }
 
-    pub fn fingerprint(&self) -> Cow<'_, str> {
-        let mut args = PJRT_LoadedExecutable_Fingerprint_Args::new();
-        args.executable = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_LoadedExecutable_Fingerprint(args)
-            .expect("PJRT_LoadedExecutable_Fingerprint");
-        utils::str_from_raw(
-            args.executable_fingerprint,
-            args.executable_fingerprint_size,
-        )
-    }
-}
-
-pub trait ExecuteInputs {
-    fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>>;
-}
-
-impl ExecuteInputs for () {
-    fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>> {
-        vec![vec![]]
-    }
-}
-
-impl ExecuteInputs for Buffer {
-    fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>> {
-        vec![vec![self.ptr]]
-    }
-}
-
-impl<const A: usize> ExecuteInputs for [Buffer; A] {
-    fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>> {
-        vec![self.iter().map(|b| b.ptr).collect()]
-    }
-}
-
-impl<const D: usize, const A: usize> ExecuteInputs for [[Buffer; A]; D] {
-    fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>> {
-        let mut buffer_refs = Vec::with_capacity(D);
-        for array in self.iter() {
-            buffer_refs.push(array.iter().map(|b| b.ptr).collect());
-        }
-        buffer_refs
-    }
-}
-
-impl ExecuteInputs for Vec<Buffer> {
-    fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>> {
-        vec![self.iter().map(|b| b.ptr).collect()]
-    }
-}
-
-impl ExecuteInputs for Vec<Vec<Buffer>> {
-    fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>> {
-        let inner_size = self.iter().fold(HashSet::new(), |mut set, buffers| {
-            set.insert(buffers.len());
-            set
-        });
-        assert_eq!(
-            inner_size.len(),
-            1,
-            "all inner vectors must have the same length"
-        );
-        self.iter()
-            .map(|buffers| buffers.iter().map(|b| b.ptr).collect())
-            .collect()
+    pub fn execution<I>(&self, inputs: I) -> Execution<I>
+    where
+        I: ExecutionInputs,
+    {
+        Execution::new(self, inputs)
     }
 }

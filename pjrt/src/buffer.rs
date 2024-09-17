@@ -63,7 +63,7 @@ impl Buffer {
             return vec![];
         }
         let s = unsafe { std::slice::from_raw_parts(args.dims, args.num_dims) };
-        s.iter().map(|s| *s).collect()
+        s.to_owned()
     }
 
     pub fn unpadded_dims(&self) -> Vec<i64> {
@@ -75,7 +75,7 @@ impl Buffer {
             .PJRT_Buffer_UnpaddedDimensions(args)
             .expect("PJRT_Buffer_UnpaddedDimensions");
         let s = unsafe { std::slice::from_raw_parts(args.unpadded_dims, args.num_dims) };
-        s.iter().map(|s| *s).collect()
+        s.to_owned()
     }
 
     pub fn dynamic_dims_indices(&self) -> Vec<usize> {
@@ -88,10 +88,9 @@ impl Buffer {
             .expect("PJRT_Buffer_DynamicDimensionIndices");
         let s =
             unsafe { std::slice::from_raw_parts(args.dynamic_dim_indices, args.num_dynamic_dims) };
-        s.iter().map(|s| *s).collect()
+        s.to_owned()
     }
 
-    // TODO: deprecated, use layout extension
     pub fn layout(&self) -> MemoryLayout {
         let mut args = PJRT_Buffer_GetMemoryLayout_Args::new();
         args.buffer = self.ptr;

@@ -47,7 +47,6 @@ impl Api {
         utils::to_named_value_map(args.attributes, args.num_attributes)
     }
 
-    // TODO: add more options
     pub fn create_execute_context(&self) -> Result<ExecuteContext> {
         let mut args = PJRT_ExecuteContext_Create_Args::new();
         args = self.PJRT_ExecuteContext_Create(args)?;
@@ -168,8 +167,10 @@ impl Version {
 
 macro_rules! pjrt_api_fn_ret_err {
     ($fn:ident, $args_ty:ident) => {
+        #[allow(dead_code)]
         impl Api {
             #[allow(non_snake_case)]
+            #[allow(dead_code)]
             #[must_use = "get function result from returned value"]
             pub(crate) fn $fn(
                 &self,
@@ -188,8 +189,10 @@ macro_rules! pjrt_api_fn_ret_err {
 
 macro_rules! pjrt_api_fn_ret_void {
     ($fn:ident, $args_ty:ident) => {
+        #[allow(dead_code)]
         impl Api {
             #[allow(non_snake_case)]
+            #[allow(dead_code)]
             pub(crate) fn $fn(&self, args: &mut pjrt_sys::$args_ty) -> Result<()> {
                 let func = self
                     .raw
