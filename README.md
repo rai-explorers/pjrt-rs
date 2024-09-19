@@ -9,8 +9,6 @@
 
 ![](docs/pjrt.png)
 
-[Figure Source](https://opensource.googleblog.com/2023/05/pjrt-simplifying-ml-hardware-and-framework-integration.html)
-
 # Example
 ```rust
 use pjrt::ProgramFormat::MLIR;
