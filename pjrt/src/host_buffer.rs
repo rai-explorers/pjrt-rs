@@ -4,7 +4,8 @@ use std::rc::Rc;
 
 use bon::bon;
 use pjrt_sys::{
-    PJRT_Buffer_MemoryLayout, PJRT_Client_BufferFromHostBuffer_Args,
+    PJRT_Buffer_MemoryLayout, PJRT_Buffer_Type, PJRT_Client_BufferFromHostBuffer_Args,
+    PJRT_HostBufferSemantics,
     PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableOnlyDuringCall,
     PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableUntilTransferCompletes,
     PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableZeroCopy,
@@ -14,7 +15,7 @@ use pjrt_sys::{
 use crate::event::Event;
 use crate::{
     utils, Buffer, Client, Device, ElemType, Error, Memory, MemoryLayout, PrimitiveType, Result,
-    Type, F32, F64, S16, S32, S64, S8, U16, U32, U64, U8,
+    Type, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
 };
 
 #[derive(Debug)]
@@ -63,10 +64,11 @@ impl<T: Type> TypedHostBuffer<T> {
         let mut args = PJRT_Client_BufferFromHostBuffer_Args::new();
         args.client = client.ptr();
         args.data = self.data.as_ptr() as *const c_void;
-        args.type_ = T::PRIMITIVE_TYPE as u32;
+        args.type_ = T::PRIMITIVE_TYPE as PJRT_Buffer_Type;
         args.dims = self.dims.as_ptr();
         args.num_dims = self.dims.len();
-        args.host_buffer_semantics = HostBufferSemantics::ImmutableUntilTransferCompletes as u32;
+        args.host_buffer_semantics =
+            HostBufferSemantics::ImmutableUntilTransferCompletes as PJRT_HostBufferSemantics;
         if let Some(byte_strides) = &config.byte_strides {
             args.byte_strides = byte_strides.as_ptr() as *const _;
             args.num_byte_strides = byte_strides.len();
@@ -124,10 +126,10 @@ macro_rules! impl_from_typed_buffer {
 
 impl_from_typed_buffer!(F32);
 impl_from_typed_buffer![F64];
-impl_from_typed_buffer![S8];
-impl_from_typed_buffer![S16];
-impl_from_typed_buffer![S32];
-impl_from_typed_buffer![S64];
+impl_from_typed_buffer![I8];
+impl_from_typed_buffer![I16];
+impl_from_typed_buffer![I32];
+impl_from_typed_buffer![I64];
 impl_from_typed_buffer![U8];
 impl_from_typed_buffer![U16];
 impl_from_typed_buffer![U32];
@@ -137,10 +139,10 @@ impl_from_typed_buffer![U64];
 pub enum HostBuffer {
     F32(TypedHostBuffer<F32>),
     F64(TypedHostBuffer<F64>),
-    S8(TypedHostBuffer<S8>),
-    S16(TypedHostBuffer<S16>),
-    S32(TypedHostBuffer<S32>),
-    S64(TypedHostBuffer<S64>),
+    I8(TypedHostBuffer<I8>),
+    I16(TypedHostBuffer<I16>),
+    I32(TypedHostBuffer<I32>),
+    I64(TypedHostBuffer<I64>),
     U8(TypedHostBuffer<U8>),
     U16(TypedHostBuffer<U16>),
     U32(TypedHostBuffer<U32>),
@@ -165,10 +167,10 @@ impl HostBuffer {
         match self {
             Self::F32(buf) => buf.dims(),
             Self::F64(buf) => buf.dims(),
-            Self::S8(buf) => buf.dims(),
-            Self::S16(buf) => buf.dims(),
-            Self::S32(buf) => buf.dims(),
-            Self::S64(buf) => buf.dims(),
+            Self::I8(buf) => buf.dims(),
+            Self::I16(buf) => buf.dims(),
+            Self::I32(buf) => buf.dims(),
+            Self::I64(buf) => buf.dims(),
             Self::U8(buf) => buf.dims(),
             Self::U16(buf) => buf.dims(),
             Self::U32(buf) => buf.dims(),
@@ -180,10 +182,10 @@ impl HostBuffer {
         match self {
             Self::F32(buf) => buf.layout(),
             Self::F64(buf) => buf.layout(),
-            Self::S8(buf) => buf.layout(),
-            Self::S16(buf) => buf.layout(),
-            Self::S32(buf) => buf.layout(),
-            Self::S64(buf) => buf.layout(),
+            Self::I8(buf) => buf.layout(),
+            Self::I16(buf) => buf.layout(),
+            Self::I32(buf) => buf.layout(),
+            Self::I64(buf) => buf.layout(),
             Self::U8(buf) => buf.layout(),
             Self::U16(buf) => buf.layout(),
             Self::U32(buf) => buf.layout(),
@@ -199,10 +201,10 @@ impl HostBuffer {
         match self {
             Self::F32(buf) => buf.copy_to_sync(config),
             Self::F64(buf) => buf.copy_to_sync(config),
-            Self::S8(buf) => buf.copy_to_sync(config),
-            Self::S16(buf) => buf.copy_to_sync(config),
-            Self::S32(buf) => buf.copy_to_sync(config),
-            Self::S64(buf) => buf.copy_to_sync(config),
+            Self::I8(buf) => buf.copy_to_sync(config),
+            Self::I16(buf) => buf.copy_to_sync(config),
+            Self::I32(buf) => buf.copy_to_sync(config),
+            Self::I64(buf) => buf.copy_to_sync(config),
             Self::U8(buf) => buf.copy_to_sync(config),
             Self::U16(buf) => buf.copy_to_sync(config),
             Self::U32(buf) => buf.copy_to_sync(config),
@@ -218,10 +220,10 @@ impl HostBuffer {
         match self {
             Self::F32(buf) => buf.copy_to(config).await,
             Self::F64(buf) => buf.copy_to(config).await,
-            Self::S8(buf) => buf.copy_to(config).await,
-            Self::S16(buf) => buf.copy_to(config).await,
-            Self::S32(buf) => buf.copy_to(config).await,
-            Self::S64(buf) => buf.copy_to(config).await,
+            Self::I8(buf) => buf.copy_to(config).await,
+            Self::I16(buf) => buf.copy_to(config).await,
+            Self::I32(buf) => buf.copy_to(config).await,
+            Self::I64(buf) => buf.copy_to(config).await,
             Self::U8(buf) => buf.copy_to(config).await,
             Self::U16(buf) => buf.copy_to(config).await,
             Self::U32(buf) => buf.copy_to(config).await,
@@ -230,8 +232,8 @@ impl HostBuffer {
     }
 }
 
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(dead_code)]
 pub enum HostBufferSemantics {
     /// The runtime may not hold references to `data` after the call to
@@ -239,7 +241,7 @@ pub enum HostBufferSemantics {
     /// `data` is immutable and will not be freed only for the duration of the
     /// PJRT_Client_BufferFromHostBuffer call.
     ImmutableOnlyDuringCall =
-        PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableOnlyDuringCall,
+        PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableOnlyDuringCall as i32,
 
     /// The runtime may hold onto `data` after the call to
     /// `PJRT_Client_BufferFromHostBuffer`
@@ -247,7 +249,7 @@ pub enum HostBufferSemantics {
     /// promises not to mutate or free `data` until the transfer completes, at
     /// which point `done_with_host_buffer` will be triggered.
     ImmutableUntilTransferCompletes =
-        PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableUntilTransferCompletes,
+        PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableUntilTransferCompletes as i32,
 
     /// The PjRtBuffer may alias `data` internally and the runtime may use the
     /// `data` contents as long as the buffer is alive. The runtime promises not
@@ -256,7 +258,7 @@ pub enum HostBufferSemantics {
     /// its contents as long as the buffer is alive; to notify the caller that the
     /// buffer may be freed, the runtime will call `done_with_host_buffer` when the
     /// PjRtBuffer is freed.
-    ImmutableZeroCopy = PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableZeroCopy,
+    ImmutableZeroCopy = PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kImmutableZeroCopy as i32,
 
     /// The PjRtBuffer may alias `data` internally and the runtime may use the
     /// `data` contents as long as the buffer is alive. The runtime is allowed
@@ -267,7 +269,7 @@ pub enum HostBufferSemantics {
     /// freed, the runtime will call `on_done_with_host_buffer` when the
     /// PjRtBuffer is freed. On non-CPU platforms this acts identically to
     /// kImmutableUntilTransferCompletes.
-    MutableZeroCopy = PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kMutableZeroCopy,
+    MutableZeroCopy = PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kMutableZeroCopy as i32,
 }
 
 pub trait HostBufferCopyToDest {
@@ -511,13 +513,14 @@ impl TypedHostBufferBuilder {
     pub fn data<E>(
         &self,
         #[builder(start_fn, into)] data: Vec<E>,
-        #[builder(default = bon::vec![data.len() as i64], into)] dims: Vec<i64>,
+        #[builder(into)] dims: Option<Vec<i64>>,
         #[builder] layout: Option<MemoryLayout>,
     ) -> TypedHostBuffer<E::Type>
     where
         E: ElemType,
     {
         let data: Vec<E> = data.into();
+        let dims = dims.unwrap_or_else(|| vec![data.len() as i64]);
         let layout = layout
             .unwrap_or_else(|| MemoryLayout::strides(utils::byte_strides(&dims, E::Type::SIZE)));
         TypedHostBuffer {
@@ -531,7 +534,7 @@ impl TypedHostBufferBuilder {
     pub fn bytes<T>(
         &self,
         #[builder(start_fn, into)] bytes: Vec<u8>,
-        #[builder(default = bon::vec![(bytes.len() / T::SIZE) as i64], into)] dims: Vec<i64>,
+        #[builder(into)] dims: Option<Vec<i64>>,
         #[builder] layout: Option<MemoryLayout>,
     ) -> TypedHostBuffer<T>
     where
@@ -542,6 +545,7 @@ impl TypedHostBufferBuilder {
         let ptr = bytes.as_ptr() as *mut T::ElemType;
         let data = unsafe { Vec::from_raw_parts(ptr, length, capacity) };
         mem::forget(bytes);
+        let dims = dims.unwrap_or_else(|| vec![length as i64]);
         assert!(dims.iter().product::<i64>() == length as i64);
         let layout =
             layout.unwrap_or_else(|| MemoryLayout::strides(utils::byte_strides(&dims, T::SIZE)));
@@ -562,7 +566,7 @@ impl HostBufferBuilder {
     pub fn data<E>(
         &self,
         #[builder(start_fn, into)] data: Vec<E>,
-        #[builder(default = bon::vec![data.len() as i64], into)] dims: Vec<i64>,
+        #[builder(into)] dims: Option<Vec<i64>>,
         #[builder] layout: Option<MemoryLayout>,
     ) -> HostBuffer
     where
@@ -571,7 +575,7 @@ impl HostBufferBuilder {
     {
         let buf = TypedHostBufferBuilder
             .data::<E>(data)
-            .dims(dims)
+            .maybe_dims(dims)
             .maybe_layout(layout)
             .build();
         HostBuffer::from(buf)
@@ -582,77 +586,77 @@ impl HostBufferBuilder {
         &self,
         #[builder(start_fn)] bytes: Vec<u8>,
         #[builder(start_fn)] ty: PrimitiveType,
-        #[builder(default = bon::vec![(bytes.len() / ty.boxed_dtype().size()) as i64], into)] dims: Vec<i64>,
+        #[builder(into)] dims: Option<Vec<i64>>,
         #[builder] layout: Option<MemoryLayout>,
     ) -> Result<HostBuffer> {
         match ty {
             PrimitiveType::F32 => Ok(HostBuffer::F32(
                 TypedHostBufferBuilder
                     .bytes::<F32>(bytes)
-                    .dims(dims)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
             PrimitiveType::F64 => Ok(HostBuffer::F64(
                 TypedHostBufferBuilder
                     .bytes::<F64>(bytes)
-                    .dims(dims)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
-            PrimitiveType::S8 => Ok(HostBuffer::S8(
+            PrimitiveType::S8 => Ok(HostBuffer::I8(
                 TypedHostBufferBuilder
-                    .bytes::<S8>(bytes)
-                    .dims(dims)
+                    .bytes::<I8>(bytes)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
-            PrimitiveType::S16 => Ok(HostBuffer::S16(
+            PrimitiveType::S16 => Ok(HostBuffer::I16(
                 TypedHostBufferBuilder
-                    .bytes::<S16>(bytes)
-                    .dims(dims)
+                    .bytes::<I16>(bytes)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
-            PrimitiveType::S32 => Ok(HostBuffer::S32(
+            PrimitiveType::S32 => Ok(HostBuffer::I32(
                 TypedHostBufferBuilder
-                    .bytes::<S32>(bytes)
-                    .dims(dims)
+                    .bytes::<I32>(bytes)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
-            PrimitiveType::S64 => Ok(HostBuffer::S64(
+            PrimitiveType::S64 => Ok(HostBuffer::I64(
                 TypedHostBufferBuilder
-                    .bytes::<S64>(bytes)
-                    .dims(dims)
+                    .bytes::<I64>(bytes)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
             PrimitiveType::U8 => Ok(HostBuffer::U8(
                 TypedHostBufferBuilder
                     .bytes::<U8>(bytes)
-                    .dims(dims)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
             PrimitiveType::U16 => Ok(HostBuffer::U16(
                 TypedHostBufferBuilder
                     .bytes::<U16>(bytes)
-                    .dims(dims)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
             PrimitiveType::U32 => Ok(HostBuffer::U32(
                 TypedHostBufferBuilder
                     .bytes::<U32>(bytes)
-                    .dims(dims)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),
             PrimitiveType::U64 => Ok(HostBuffer::U64(
                 TypedHostBufferBuilder
                     .bytes::<U64>(bytes)
-                    .dims(dims)
+                    .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
             )),

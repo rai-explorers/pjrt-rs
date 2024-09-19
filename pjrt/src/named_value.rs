@@ -9,7 +9,7 @@ use pjrt_sys::{
 
 use crate::utils;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct NamedValue {
     pub name: String,
     pub value: Value,
@@ -59,7 +59,7 @@ impl NamedValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     I64(i64),
     F32(f32),
@@ -140,7 +140,7 @@ impl<'a> From<&'a PJRT_NamedValue> for NamedValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NamedValueMap {
     inner: HashMap<String, Value>,
 }

@@ -2,7 +2,9 @@ use std::ffi::CString;
 use std::mem;
 
 use ::std::os::raw::c_char;
-use pjrt_sys::{PJRT_Error, PJRT_KeyValueGetCallback_Args, PJRT_KeyValuePutCallback_Args};
+use pjrt_sys::{
+    PJRT_Error, PJRT_Error_Code, PJRT_KeyValueGetCallback_Args, PJRT_KeyValuePutCallback_Args,
+};
 
 use crate::{utils, Result};
 
@@ -30,7 +32,7 @@ pub(crate) unsafe extern "C" fn kv_get_callback(
         }
         Err(err) => {
             let err_callback = (*args.callback_error).expect("callback_error");
-            let code = err.code() as u32;
+            let code = err.code() as PJRT_Error_Code;
             let message = format!("{:?}", err);
             let msg_bytes = message.as_bytes();
             (err_callback)(code, msg_bytes.as_ptr() as *const _, msg_bytes.len())
@@ -49,7 +51,7 @@ pub(crate) unsafe extern "C" fn kv_put_callback(
         Ok(_) => std::ptr::null_mut(),
         Err(err) => {
             let err_callback = (*args.callback_error).expect("callback_error");
-            let code = err.code() as u32;
+            let code = err.code() as PJRT_Error_Code;
             let message = format!("{:?}", err);
             let msg_bytes = message.as_bytes();
             (err_callback)(code, msg_bytes.as_ptr() as *const _, msg_bytes.len())

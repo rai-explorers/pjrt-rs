@@ -5,7 +5,7 @@ use pjrt_sys::PJRT_Program;
 
 use crate::{Error, Result};
 
-#[derive(Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ProgramFormat {
     MLIR,
     HLO,
@@ -58,6 +58,14 @@ impl Program {
         program.prog.format = format.as_ptr() as *const i8;
         program.prog.format_size = format.len();
         program
+    }
+
+    pub fn format(&self) -> ProgramFormat {
+        self.format
+    }
+
+    pub fn code(&self) -> &[u8] {
+        &self.code
     }
 
     pub fn from_mlir<P: AsRef<Path>>(path: P) -> Result<Self> {

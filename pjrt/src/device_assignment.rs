@@ -2,12 +2,13 @@ use std::collections::HashMap;
 
 use crate::{Error, GlobalDeviceId, Result};
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LogicalId {
     pub replica_id: usize,
     pub partition_id: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DeviceAssignment {
     num_replicas: usize,
     num_partitions: usize,

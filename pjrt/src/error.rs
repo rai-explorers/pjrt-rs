@@ -1,7 +1,7 @@
 use pjrt_sys::{
-    PJRT_Error_Code_PJRT_Error_Code_ABORTED, PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS,
-    PJRT_Error_Code_PJRT_Error_Code_CANCELLED, PJRT_Error_Code_PJRT_Error_Code_DATA_LOSS,
-    PJRT_Error_Code_PJRT_Error_Code_DEADLINE_EXCEEDED,
+    PJRT_Error_Code, PJRT_Error_Code_PJRT_Error_Code_ABORTED,
+    PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS, PJRT_Error_Code_PJRT_Error_Code_CANCELLED,
+    PJRT_Error_Code_PJRT_Error_Code_DATA_LOSS, PJRT_Error_Code_PJRT_Error_Code_DEADLINE_EXCEEDED,
     PJRT_Error_Code_PJRT_Error_Code_FAILED_PRECONDITION, PJRT_Error_Code_PJRT_Error_Code_INTERNAL,
     PJRT_Error_Code_PJRT_Error_Code_INVALID_ARGUMENT, PJRT_Error_Code_PJRT_Error_Code_NOT_FOUND,
     PJRT_Error_Code_PJRT_Error_Code_OUT_OF_RANGE,
@@ -29,13 +29,13 @@ pub enum Error {
     NoAddressableDevice,
 
     #[error("invalid primitive type: {0}")]
-    InvalidPrimitiveType(u32),
+    InvalidPrimitiveType(i32),
 
     #[error("invalid errro code: {0}")]
-    InvalidErrorCode(u32),
+    InvalidErrorCode(i32),
 
     #[error("invalid memory layout type: {0}")]
-    InvalidMemoryLayoutType(u32),
+    InvalidMemoryLayoutType(i32),
 
     #[error("device not in device assignment: {0}")]
     DeviceNotInDeviceAssignment(GlobalDeviceId),
@@ -73,31 +73,32 @@ impl Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[repr(u32)]
+#[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ErrorCode {
-    Cancel = PJRT_Error_Code_PJRT_Error_Code_CANCELLED,
-    Unknown = PJRT_Error_Code_PJRT_Error_Code_UNKNOWN,
-    InvalidArgument = PJRT_Error_Code_PJRT_Error_Code_INVALID_ARGUMENT,
-    DeadlineExceeded = PJRT_Error_Code_PJRT_Error_Code_DEADLINE_EXCEEDED,
-    NotFound = PJRT_Error_Code_PJRT_Error_Code_NOT_FOUND,
-    AlreadyExists = PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS,
-    PermissionDenied = PJRT_Error_Code_PJRT_Error_Code_PERMISSION_DENIED,
-    ResourceExhaused = PJRT_Error_Code_PJRT_Error_Code_RESOURCE_EXHAUSTED,
-    FailedPrecondition = PJRT_Error_Code_PJRT_Error_Code_FAILED_PRECONDITION,
-    Aborted = PJRT_Error_Code_PJRT_Error_Code_ABORTED,
-    OutOfRange = PJRT_Error_Code_PJRT_Error_Code_OUT_OF_RANGE,
-    Unimplemeted = PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED,
-    Internal = PJRT_Error_Code_PJRT_Error_Code_INTERNAL,
-    Unavaliable = PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE,
-    DataLoss = PJRT_Error_Code_PJRT_Error_Code_DATA_LOSS,
-    Unauthenticated = PJRT_Error_Code_PJRT_Error_Code_UNAUTHENTICATED,
+    Cancel = PJRT_Error_Code_PJRT_Error_Code_CANCELLED as i32,
+    Unknown = PJRT_Error_Code_PJRT_Error_Code_UNKNOWN as i32,
+    InvalidArgument = PJRT_Error_Code_PJRT_Error_Code_INVALID_ARGUMENT as i32,
+    DeadlineExceeded = PJRT_Error_Code_PJRT_Error_Code_DEADLINE_EXCEEDED as i32,
+    NotFound = PJRT_Error_Code_PJRT_Error_Code_NOT_FOUND as i32,
+    AlreadyExists = PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS as i32,
+    PermissionDenied = PJRT_Error_Code_PJRT_Error_Code_PERMISSION_DENIED as i32,
+    ResourceExhaused = PJRT_Error_Code_PJRT_Error_Code_RESOURCE_EXHAUSTED as i32,
+    FailedPrecondition = PJRT_Error_Code_PJRT_Error_Code_FAILED_PRECONDITION as i32,
+    Aborted = PJRT_Error_Code_PJRT_Error_Code_ABORTED as i32,
+    OutOfRange = PJRT_Error_Code_PJRT_Error_Code_OUT_OF_RANGE as i32,
+    Unimplemeted = PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED as i32,
+    Internal = PJRT_Error_Code_PJRT_Error_Code_INTERNAL as i32,
+    Unavaliable = PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE as i32,
+    DataLoss = PJRT_Error_Code_PJRT_Error_Code_DATA_LOSS as i32,
+    Unauthenticated = PJRT_Error_Code_PJRT_Error_Code_UNAUTHENTICATED as i32,
 }
 
-impl TryFrom<u32> for ErrorCode {
+impl TryFrom<PJRT_Error_Code> for ErrorCode {
     type Error = Error;
     #[allow(non_upper_case_globals)]
-    fn try_from(code: u32) -> Result<Self> {
+    #[allow(non_snake_case)]
+    fn try_from(code: PJRT_Error_Code) -> Result<Self> {
         match code {
             PJRT_Error_Code_PJRT_Error_Code_CANCELLED => Ok(Self::Cancel),
             PJRT_Error_Code_PJRT_Error_Code_UNKNOWN => Ok(Self::Unknown),
@@ -115,7 +116,7 @@ impl TryFrom<u32> for ErrorCode {
             PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE => Ok(Self::Unavaliable),
             PJRT_Error_Code_PJRT_Error_Code_DATA_LOSS => Ok(Self::DataLoss),
             PJRT_Error_Code_PJRT_Error_Code_UNAUTHENTICATED => Ok(Self::Unauthenticated),
-            _ => Err(Error::InvalidErrorCode(code)),
+            _ => Err(Error::InvalidErrorCode(code as i32)),
         }
     }
 }

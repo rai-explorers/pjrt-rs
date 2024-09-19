@@ -6,6 +6,10 @@ fn main() {
     let include = PathBuf::from("include");
     let protos = PathBuf::from("protos");
 
+    println!("cargo:rerun-if-changed=wrapper.h");
+    println!("cargo:rerun-if-changed={}", include.display());
+    println!("cargo:rerun-if-changed={}", protos.display());
+
     // gen bindings
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")

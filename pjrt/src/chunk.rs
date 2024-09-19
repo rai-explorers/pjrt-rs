@@ -7,6 +7,8 @@ unsafe extern "C" fn chunk_deleter(data: *mut c_void, deleter_arg: *mut c_void) 
     let (len, cap) = *Box::from_raw(deleter_arg as *mut (usize, usize));
     let _ = Vec::from_raw_parts(data as *mut u8, len, cap);
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Chunk {
     data: Vec<u8>,
 }

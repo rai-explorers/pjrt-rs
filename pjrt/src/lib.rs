@@ -9,7 +9,7 @@ mod ty;
 pub use ty::*;
 
 mod plugin;
-pub use plugin::load_plugin;
+pub use plugin::plugin;
 
 mod api;
 pub use api::Api;

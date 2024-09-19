@@ -109,7 +109,7 @@ impl Device {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MemoryStats {
     pub bytes_in_use: i64,
     pub peak_bytes_in_use: i64,

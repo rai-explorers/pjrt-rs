@@ -2,19 +2,20 @@ use std::any::Any;
 use std::fmt::Debug;
 
 use pjrt_sys::{
-    PJRT_Buffer_Type_PJRT_Buffer_Type_BF16, PJRT_Buffer_Type_PJRT_Buffer_Type_C128,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_C64, PJRT_Buffer_Type_PJRT_Buffer_Type_F16,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_F32, PJRT_Buffer_Type_PJRT_Buffer_Type_F64,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ, PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_PRED, PJRT_Buffer_Type_PJRT_Buffer_Type_S16,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_S2, PJRT_Buffer_Type_PJRT_Buffer_Type_S32,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_S4, PJRT_Buffer_Type_PJRT_Buffer_Type_S64,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_S8, PJRT_Buffer_Type_PJRT_Buffer_Type_TOKEN,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_U16, PJRT_Buffer_Type_PJRT_Buffer_Type_U2,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_U32, PJRT_Buffer_Type_PJRT_Buffer_Type_U4,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_U64, PJRT_Buffer_Type_PJRT_Buffer_Type_U8,
+    PJRT_Buffer_Type, PJRT_Buffer_Type_PJRT_Buffer_Type_BF16,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_C128, PJRT_Buffer_Type_PJRT_Buffer_Type_C64,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F16, PJRT_Buffer_Type_PJRT_Buffer_Type_F32,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F64, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID, PJRT_Buffer_Type_PJRT_Buffer_Type_PRED,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_S16, PJRT_Buffer_Type_PJRT_Buffer_Type_S2,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_S32, PJRT_Buffer_Type_PJRT_Buffer_Type_S4,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_S64, PJRT_Buffer_Type_PJRT_Buffer_Type_S8,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_TOKEN, PJRT_Buffer_Type_PJRT_Buffer_Type_U16,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_U2, PJRT_Buffer_Type_PJRT_Buffer_Type_U32,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_U4, PJRT_Buffer_Type_PJRT_Buffer_Type_U64,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_U8,
 };
 
 use crate::{Error, Result};
@@ -32,7 +33,7 @@ pub trait ElemType: Sized + Copy + Debug + 'static {
     type Type: Type<ElemType = Self>;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Bool;
 
 impl Type for Bool {
@@ -46,7 +47,7 @@ impl ElemType for bool {
     type Type = Bool;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct F32;
 
 impl Type for F32 {
@@ -60,7 +61,7 @@ impl ElemType for f32 {
     type Type = F32;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct F64;
 
 impl Type for F64 {
@@ -74,63 +75,63 @@ impl ElemType for f64 {
     type Type = F64;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct S8;
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct I8;
 
-impl Type for S8 {
-    const NAME: &'static str = "s8";
+impl Type for I8 {
+    const NAME: &'static str = "i8";
     const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::S8;
-    const TYPE: Self = S8;
+    const TYPE: Self = I8;
     type ElemType = i8;
 }
 
 impl ElemType for i8 {
-    type Type = S8;
+    type Type = I8;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct S16;
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct I16;
 
-impl Type for S16 {
-    const NAME: &'static str = "s16";
+impl Type for I16 {
+    const NAME: &'static str = "i16";
     const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::S16;
-    const TYPE: Self = S16;
+    const TYPE: Self = I16;
     type ElemType = i16;
 }
 
 impl ElemType for i16 {
-    type Type = S16;
+    type Type = I16;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct S32;
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct I32;
 
-impl Type for S32 {
-    const NAME: &'static str = "s32";
+impl Type for I32 {
+    const NAME: &'static str = "i32";
     const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::S32;
-    const TYPE: Self = S32;
+    const TYPE: Self = I32;
     type ElemType = i32;
 }
 
 impl ElemType for i32 {
-    type Type = S32;
+    type Type = I32;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct S64;
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct I64;
 
-impl Type for S64 {
-    const NAME: &'static str = "s64";
+impl Type for I64 {
+    const NAME: &'static str = "i64";
     const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::S64;
-    const TYPE: Self = S64;
+    const TYPE: Self = I64;
     type ElemType = i64;
 }
 
 impl ElemType for i64 {
-    type Type = S64;
+    type Type = I64;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct U8;
 
 impl Type for U8 {
@@ -144,7 +145,7 @@ impl ElemType for u8 {
     type Type = U8;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct U16;
 
 impl Type for U16 {
@@ -158,7 +159,8 @@ impl ElemType for u16 {
     type Type = U16;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+
 pub struct U32;
 
 impl Type for U32 {
@@ -172,7 +174,8 @@ impl ElemType for u32 {
     type Type = U32;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+
 pub struct U64;
 
 impl Type for U64 {
@@ -186,78 +189,78 @@ impl ElemType for u64 {
     type Type = U64;
 }
 
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PrimitiveType {
     /// Invalid primitive type to serve as default.
-    Invalid = PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID,
+    Invalid = PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID as i32,
 
     /// Predicates are two-state booleans.
-    Pred = PJRT_Buffer_Type_PJRT_Buffer_Type_PRED,
+    Pred = PJRT_Buffer_Type_PJRT_Buffer_Type_PRED as i32,
 
     /// Signed integral values of fixed width.
-    S8 = PJRT_Buffer_Type_PJRT_Buffer_Type_S8,
-    S16 = PJRT_Buffer_Type_PJRT_Buffer_Type_S16,
-    S32 = PJRT_Buffer_Type_PJRT_Buffer_Type_S32,
-    S64 = PJRT_Buffer_Type_PJRT_Buffer_Type_S64,
+    S8 = PJRT_Buffer_Type_PJRT_Buffer_Type_S8 as i32,
+    S16 = PJRT_Buffer_Type_PJRT_Buffer_Type_S16 as i32,
+    S32 = PJRT_Buffer_Type_PJRT_Buffer_Type_S32 as i32,
+    S64 = PJRT_Buffer_Type_PJRT_Buffer_Type_S64 as i32,
 
     /// Unsigned integral values of fixed width.
-    U8 = PJRT_Buffer_Type_PJRT_Buffer_Type_U8,
-    U16 = PJRT_Buffer_Type_PJRT_Buffer_Type_U16,
-    U32 = PJRT_Buffer_Type_PJRT_Buffer_Type_U32,
-    U64 = PJRT_Buffer_Type_PJRT_Buffer_Type_U64,
+    U8 = PJRT_Buffer_Type_PJRT_Buffer_Type_U8 as i32,
+    U16 = PJRT_Buffer_Type_PJRT_Buffer_Type_U16 as i32,
+    U32 = PJRT_Buffer_Type_PJRT_Buffer_Type_U32 as i32,
+    U64 = PJRT_Buffer_Type_PJRT_Buffer_Type_U64 as i32,
 
     /// Floating-point values of fixed width.
-    F16 = PJRT_Buffer_Type_PJRT_Buffer_Type_F16,
-    F32 = PJRT_Buffer_Type_PJRT_Buffer_Type_F32,
-    F64 = PJRT_Buffer_Type_PJRT_Buffer_Type_F64,
+    F16 = PJRT_Buffer_Type_PJRT_Buffer_Type_F16 as i32,
+    F32 = PJRT_Buffer_Type_PJRT_Buffer_Type_F32 as i32,
+    F64 = PJRT_Buffer_Type_PJRT_Buffer_Type_F64 as i32,
 
     /// Truncated 16 bit floating-point format. This is similar to IEEE's 16 bit
     /// floating-point format, but uses 1 bit for the sign, 8 bits for the exponent
     /// and 7 bits for the mantissa.
-    BF16 = PJRT_Buffer_Type_PJRT_Buffer_Type_BF16,
+    BF16 = PJRT_Buffer_Type_PJRT_Buffer_Type_BF16 as i32,
 
     /// Complex values of fixed width.
     ///
     /// Paired F32 (real, imag), as in std::complex<float>.
-    C64 = PJRT_Buffer_Type_PJRT_Buffer_Type_C64,
+    C64 = PJRT_Buffer_Type_PJRT_Buffer_Type_C64 as i32,
     /// Paired F64 (real, imag), as in std::complex<double>.
-    C128 = PJRT_Buffer_Type_PJRT_Buffer_Type_C128,
+    C128 = PJRT_Buffer_Type_PJRT_Buffer_Type_C128 as i32,
 
     /// Truncated 8 bit floating-point formats.
-    F8E5M2 = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2,
-    F8E4M3FN = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN,
-    F8E4M3B11FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ,
-    F8E5M2FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ,
-    F8E4M3FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ,
+    F8E5M2 = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2 as i32,
+    F8E4M3FN = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN as i32,
+    F8E4M3B11FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ as i32,
+    F8E5M2FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ as i32,
+    F8E4M3FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ as i32,
 
     /// 4-bit integer types
-    S4 = PJRT_Buffer_Type_PJRT_Buffer_Type_S4,
-    U4 = PJRT_Buffer_Type_PJRT_Buffer_Type_U4,
+    S4 = PJRT_Buffer_Type_PJRT_Buffer_Type_S4 as i32,
+    U4 = PJRT_Buffer_Type_PJRT_Buffer_Type_U4 as i32,
 
-    Token = PJRT_Buffer_Type_PJRT_Buffer_Type_TOKEN,
+    Token = PJRT_Buffer_Type_PJRT_Buffer_Type_TOKEN as i32,
 
     /// 2-bit integer types
-    S2 = PJRT_Buffer_Type_PJRT_Buffer_Type_S2,
-    U2 = PJRT_Buffer_Type_PJRT_Buffer_Type_U2,
+    S2 = PJRT_Buffer_Type_PJRT_Buffer_Type_S2 as i32,
+    U2 = PJRT_Buffer_Type_PJRT_Buffer_Type_U2 as i32,
 }
 
 impl PrimitiveType {
-    pub fn boxed_dtype(&self) -> Box<dyn DType> {
+    pub fn try_into_dtype(&self) -> Result<Box<dyn DType>> {
         match self {
             PrimitiveType::Invalid => todo!(),
-            PrimitiveType::Pred => todo!(),
-            PrimitiveType::S8 => S8.boxed_dtype(),
-            PrimitiveType::S16 => S16.boxed_dtype(),
-            PrimitiveType::S32 => S32.boxed_dtype(),
-            PrimitiveType::S64 => S64.boxed_dtype(),
-            PrimitiveType::U8 => U8.boxed_dtype(),
-            PrimitiveType::U16 => U16.boxed_dtype(),
-            PrimitiveType::U32 => U32.boxed_dtype(),
-            PrimitiveType::U64 => U64.boxed_dtype(),
+            PrimitiveType::Pred => Ok(Bool.boxed_dtype()),
+            PrimitiveType::S8 => Ok(I8.boxed_dtype()),
+            PrimitiveType::S16 => Ok(I16.boxed_dtype()),
+            PrimitiveType::S32 => Ok(I32.boxed_dtype()),
+            PrimitiveType::S64 => Ok(I64.boxed_dtype()),
+            PrimitiveType::U8 => Ok(U8.boxed_dtype()),
+            PrimitiveType::U16 => Ok(U16.boxed_dtype()),
+            PrimitiveType::U32 => Ok(U32.boxed_dtype()),
+            PrimitiveType::U64 => Ok(U64.boxed_dtype()),
+            PrimitiveType::F32 => Ok(F32.boxed_dtype()),
+            PrimitiveType::F64 => Ok(F64.boxed_dtype()),
             PrimitiveType::F16 => todo!(),
-            PrimitiveType::F32 => F32.boxed_dtype(),
-            PrimitiveType::F64 => F64.boxed_dtype(),
             PrimitiveType::BF16 => todo!(),
             PrimitiveType::C64 => todo!(),
             PrimitiveType::C128 => todo!(),
@@ -275,11 +278,12 @@ impl PrimitiveType {
     }
 }
 
-impl TryFrom<u32> for PrimitiveType {
+impl TryFrom<PJRT_Buffer_Type> for PrimitiveType {
     type Error = Error;
 
     #[allow(non_upper_case_globals)]
-    fn try_from(value: u32) -> Result<Self> {
+    #[allow(non_snake_case)]
+    fn try_from(value: PJRT_Buffer_Type) -> Result<Self> {
         match value {
             PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID => Ok(Self::Invalid),
             PJRT_Buffer_Type_PJRT_Buffer_Type_PRED => Ok(Self::Pred),
@@ -307,7 +311,7 @@ impl TryFrom<u32> for PrimitiveType {
             PJRT_Buffer_Type_PJRT_Buffer_Type_TOKEN => Ok(Self::Token),
             PJRT_Buffer_Type_PJRT_Buffer_Type_S2 => Ok(Self::S2),
             PJRT_Buffer_Type_PJRT_Buffer_Type_U2 => Ok(Self::U2),
-            _ => Err(Error::InvalidPrimitiveType(value)),
+            _ => Err(Error::InvalidPrimitiveType(value as i32)),
         }
     }
 }

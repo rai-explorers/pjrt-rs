@@ -1,6 +1,6 @@
 # PJRT-RS
 
-![Rust](https://github.com/rai-explorers/pjrt/workflows/Rust/badge.svg)
+![Rust](https://github.com/rai-explorers/pjrt-rs/workflows/Rust/badge.svg)
 [![Docs Status](https://docs.rs/pjrt/badge.svg)](https://docs.rs/pjrt)
 [![Latest Version](https://img.shields.io/crates/v/pjrt.svg)](https://crates.io/crates/pjrt)
 [![Discord](https://img.shields.io/discord/1202429682474287144.svg?color=7289da&&logo=discord)](https://discord.gg/J7X8rNZeMC)

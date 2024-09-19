@@ -2,7 +2,8 @@ use std::vec;
 
 use bon::bon;
 use pjrt_sys::{
-    PJRT_Buffer_MemoryLayout, PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides,
+    PJRT_Buffer_MemoryLayout, PJRT_Buffer_MemoryLayout_Type,
+    PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides,
     PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled,
 };
 
@@ -48,18 +49,19 @@ pub struct MemoryLayoutStrides {
     pub byte_strides: Vec<i64>,
 }
 
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MemoryLayoutType {
-    Tiled = PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled,
-    Strides = PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides,
+    Tiled = PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled as i32,
+    Strides = PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides as i32,
 }
 
-impl TryFrom<u32> for MemoryLayoutType {
+impl TryFrom<PJRT_Buffer_MemoryLayout_Type> for MemoryLayoutType {
     type Error = Error;
 
     #[allow(non_upper_case_globals)]
-    fn try_from(value: u32) -> Result<Self> {
+    #[allow(non_snake_case)]
+    fn try_from(value: PJRT_Buffer_MemoryLayout_Type) -> Result<Self> {
         match value {
             PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled => {
                 Ok(MemoryLayoutType::Tiled)
@@ -67,7 +69,7 @@ impl TryFrom<u32> for MemoryLayoutType {
             PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides => {
                 Ok(MemoryLayoutType::Strides)
             }
-            _ => Err(Error::InvalidMemoryLayoutType(value)),
+            _ => Err(Error::InvalidMemoryLayoutType(value as i32)),
         }
     }
 }
@@ -148,7 +150,7 @@ impl<'a> From<&'a MemoryLayout> for PJRT_Buffer_MemoryLayout {
 impl<'a> From<&'a MemoryLayoutTiled> for PJRT_Buffer_MemoryLayout {
     fn from(layout: &'a MemoryLayoutTiled) -> Self {
         let mut pjrt_layout = PJRT_Buffer_MemoryLayout::new();
-        pjrt_layout.type_ = MemoryLayoutType::Tiled as u32;
+        pjrt_layout.type_ = MemoryLayoutType::Tiled as PJRT_Buffer_MemoryLayout_Type;
         pjrt_layout.__bindgen_anon_1.tiled.minor_to_major = layout.minor_to_major.as_ptr();
         pjrt_layout.__bindgen_anon_1.tiled.minor_to_major_size = layout.minor_to_major.len();
         if let Some(tile_dims) = &layout.tile_dims {
@@ -165,7 +167,7 @@ impl<'a> From<&'a MemoryLayoutTiled> for PJRT_Buffer_MemoryLayout {
 impl<'a> From<&'a MemoryLayoutStrides> for PJRT_Buffer_MemoryLayout {
     fn from(layout: &'a MemoryLayoutStrides) -> Self {
         let mut pjrt_layout = PJRT_Buffer_MemoryLayout::new();
-        pjrt_layout.type_ = MemoryLayoutType::Strides as u32;
+        pjrt_layout.type_ = MemoryLayoutType::Strides as PJRT_Buffer_MemoryLayout_Type;
         pjrt_layout.__bindgen_anon_1.strides.byte_strides = layout.byte_strides.as_ptr();
         pjrt_layout.__bindgen_anon_1.strides.num_byte_strides = layout.byte_strides.len();
         pjrt_layout

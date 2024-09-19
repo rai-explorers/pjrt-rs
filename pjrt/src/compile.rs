@@ -59,6 +59,7 @@ impl CompileOptions {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ExecutableBuildOptions {
     proto: ExecutableBuildOptionsProto,
 }
@@ -229,6 +230,7 @@ impl ExecutableBuildOptions {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct DebugOptions {
     proto: pjrt_sys::protos::xla::DebugOptions,
 }
@@ -253,6 +255,7 @@ impl DebugOptions {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CompilationEnvironments {
     proto: CompilationEnvironmentsProto,
 }
