@@ -50,6 +50,7 @@ impl Client {
         }
     }
 
+    #[allow(clippy::borrowed_box)]
     #[builder(finish_fn = build)]
     pub fn builder(
         #[builder(start_fn)] api: &Api,

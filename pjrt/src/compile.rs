@@ -66,10 +66,12 @@ pub struct ExecutableBuildOptions {
 
 impl ExecutableBuildOptions {
     pub fn new() -> Self {
-        let mut proto = ExecutableBuildOptionsProto::default();
-        proto.device_ordinal = -1;
-        proto.num_partitions = 1;
-        proto.num_replicas = 1;
+        let proto = ExecutableBuildOptionsProto {
+            device_ordinal: -1,
+            num_partitions: 1,
+            num_replicas: 1,
+            ..Default::default()
+        };
         Self { proto }
     }
 
@@ -230,6 +232,12 @@ impl ExecutableBuildOptions {
     }
 }
 
+impl Default for ExecutableBuildOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DebugOptions {
     proto: pjrt_sys::protos::xla::DebugOptions,
@@ -255,6 +263,12 @@ impl DebugOptions {
     }
 }
 
+impl Default for DebugOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CompilationEnvironments {
     proto: CompilationEnvironmentsProto,
@@ -277,5 +291,11 @@ impl CompilationEnvironments {
 
     pub fn encode(&self) -> Vec<u8> {
         self.proto.encode_to_vec()
+    }
+}
+
+impl Default for CompilationEnvironments {
+    fn default() -> Self {
+        Self::new()
     }
 }

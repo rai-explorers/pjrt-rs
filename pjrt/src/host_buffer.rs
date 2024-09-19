@@ -294,7 +294,7 @@ impl HostBufferCopyToDest for Client {
 
 impl<'a> HostBufferCopyToDest for &'a Client {
     fn client(&self) -> &Client {
-        *self
+        self
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
@@ -320,7 +320,7 @@ impl HostBufferCopyToDest for Device {
 
 impl<'a> HostBufferCopyToDest for &'a Device {
     fn client(&self) -> &Client {
-        Device::client(*self)
+        Device::client(self)
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
@@ -342,7 +342,7 @@ impl HostBufferCopyToDest for Memory {
 
 impl<'a> HostBufferCopyToDest for &'a Memory {
     fn client(&self) -> &Client {
-        Memory::client(*self)
+        Memory::client(self)
     }
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
@@ -519,7 +519,6 @@ impl TypedHostBufferBuilder {
     where
         E: ElemType,
     {
-        let data: Vec<E> = data.into();
         let dims = dims.unwrap_or_else(|| vec![data.len() as i64]);
         let layout = layout
             .unwrap_or_else(|| MemoryLayout::strides(utils::byte_strides(&dims, E::Type::SIZE)));

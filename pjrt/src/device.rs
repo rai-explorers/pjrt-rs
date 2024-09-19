@@ -49,7 +49,7 @@ impl Device {
             .api()
             .PJRT_Device_GetDescription(args)
             .expect("PJRT_Device_GetDescription");
-        DeviceDescription::wrap(&self.client.api(), args.device_description)
+        DeviceDescription::wrap(self.client.api(), args.device_description)
     }
 
     pub fn is_addressable(&self) -> bool {

@@ -245,6 +245,14 @@ pub enum PrimitiveType {
     U2 = PJRT_Buffer_Type_PJRT_Buffer_Type_U2 as i32,
 }
 
+impl TryFrom<PrimitiveType> for Box<dyn DType> {
+    type Error = Error;
+
+    fn try_from(value: PrimitiveType) -> Result<Self> {
+        value.try_into_dtype()
+    }
+}
+
 impl PrimitiveType {
     pub fn try_into_dtype(&self) -> Result<Box<dyn DType>> {
         match self {

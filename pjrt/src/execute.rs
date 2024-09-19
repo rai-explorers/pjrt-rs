@@ -62,6 +62,12 @@ impl ExecuteOptions {
     }
 }
 
+impl Default for ExecuteOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> From<&'a ExecuteOptions> for PJRT_ExecuteOptions {
     fn from(v: &'a ExecuteOptions) -> Self {
         let mut options = PJRT_ExecuteOptions::new();

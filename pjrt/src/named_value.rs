@@ -168,6 +168,12 @@ impl NamedValueMap {
     }
 }
 
+impl Default for NamedValueMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl From<HashMap<String, Value>> for NamedValueMap {
     fn from(map: HashMap<String, Value>) -> Self {
         Self { inner: map }

@@ -123,6 +123,7 @@ impl Executable {
             .collect()
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn output_dims(&self) -> Vec<Vec<i64>> {
         let mut args = PJRT_Executable_OutputDimensions_Args::new();
         args.executable = self.ptr;
@@ -134,9 +135,7 @@ impl Executable {
             unsafe { std::slice::from_raw_parts(args.dim_sizes, args.num_outputs) };
         let mut out = Vec::with_capacity(args.num_outputs);
         for i in 0..args.num_outputs {
-            let s = unsafe {
-                std::slice::from_raw_parts(args.dims.offset(i as isize), output_dim_size[i])
-            };
+            let s = unsafe { std::slice::from_raw_parts(args.dims.add(i), output_dim_size[i]) };
             let dims = s.to_owned();
             out.push(dims);
         }
@@ -183,6 +182,7 @@ impl Executable {
         Ok(Program::new(format, code))
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn output_memory_kinds(&self) -> Vec<Cow<'_, str>> {
         let mut args = PJRT_Executable_OutputMemoryKinds_Args::new();
         args.executable = self.ptr;
@@ -194,7 +194,7 @@ impl Executable {
             unsafe { std::slice::from_raw_parts(args.memory_kind_sizes, args.num_outputs) };
         let mut out = Vec::with_capacity(args.num_outputs);
         for i in 0..args.num_outputs {
-            let ptr = unsafe { *args.memory_kinds.offset(i as isize) };
+            let ptr = unsafe { *args.memory_kinds.add(i) };
             let kind = utils::str_from_raw(ptr, memory_kind_sizes[i]);
             out.push(kind);
         }

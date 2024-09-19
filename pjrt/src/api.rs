@@ -24,6 +24,8 @@ unsafe impl Send for Api {}
 unsafe impl Sync for Api {}
 
 impl Api {
+    #[allow(clippy::arc_with_non_send_sync)]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn wrap(ptr: *const PJRT_Api) -> Self {
         assert!(!ptr.is_null());
         let raw = Arc::new(unsafe { *ptr });
@@ -69,6 +71,7 @@ impl Api {
         Ok(TopologyDescription::wrap(self, args.topology))
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn create_client(
         &self,
         options: Vec<NamedValue>,
