@@ -17,7 +17,7 @@ use pjrt::{self, Client, HostBuffer, LoadedExecutable, Result};
 const CODE: &'static [u8] = include_bytes!("program.mlir");
 
 fn main() -> Result<()> {
-    let api = pjrt::load_plugin("pjrt_c_api_cpu_plugin.so")?;
+    let api = pjrt::plugin("pjrt_c_api_cpu_plugin.so").load()?;
     println!("api_version = {:?}", api.version());
 
     let client = Client::builder(&api).build()?;
