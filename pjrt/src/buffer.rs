@@ -146,7 +146,7 @@ impl Buffer {
         Memory::wrap(&self.client, args.memory)
     }
 
-    pub fn delete(&self) {
+    pub fn delete(self) {
         let mut args = PJRT_Buffer_Delete_Args::new();
         args.buffer = self.ptr;
         self.client
@@ -259,4 +259,10 @@ impl Buffer {
             .layout(layout)
             .build()
     }
+
+    // TODO:
+    // PJRT_Buffer_UnsafePointer
+    // PJRT_Buffer_IncreaseExternalReferenceCount
+    // PJRT_Buffer_DecreaseExternalReferenceCount
+    // PJRT_Buffer_OpaqueDeviceMemoryDataPointer
 }

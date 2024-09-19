@@ -204,6 +204,9 @@ impl Client {
             .expect("PJRT_Client_TopologyDescription");
         TopologyDescription::wrap(self.api(), args.topology)
     }
+
+    // TODO:
+    // PJRT_Client_CreateViewOfDeviceBuffer
 }
 
 impl CompileToLoadedExecutable<Program> for Client {
