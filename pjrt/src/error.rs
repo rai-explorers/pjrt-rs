@@ -11,7 +11,7 @@ use pjrt_sys::{
     PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED, PJRT_Error_Code_PJRT_Error_Code_UNKNOWN,
 };
 
-use crate::PrimitiveType;
+use crate::{GlobalDeviceId, PrimitiveType};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -36,6 +36,9 @@ pub enum Error {
 
     #[error("invalid memory layout type: {0}")]
     InvalidMemoryLayoutType(u32),
+
+    #[error("device not in device assignment: {0}")]
+    DeviceNotInDeviceAssignment(GlobalDeviceId),
 
     #[error("invalid program format: {0}")]
     InvalidProgramFormat(String),

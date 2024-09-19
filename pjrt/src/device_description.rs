@@ -9,7 +9,7 @@ use pjrt_sys::{
 };
 
 use crate::named_value::NamedValueMap;
-use crate::{utils, Api};
+use crate::{utils, Api, GlobalDeviceId};
 
 pub struct DeviceDescription {
     api: Api,
@@ -29,7 +29,7 @@ impl DeviceDescription {
         &self.api
     }
 
-    pub fn id(&self) -> i32 {
+    pub fn id(&self) -> GlobalDeviceId {
         let mut args = PJRT_DeviceDescription_Id_Args::new();
         args.device_description = self.ptr;
         args = self

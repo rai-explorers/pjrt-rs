@@ -8,8 +8,6 @@ pub use error::{Error, Result};
 mod ty;
 pub use ty::*;
 
-mod shape;
-pub use shape::*;
 mod plugin;
 pub use plugin::load_plugin;
 
@@ -32,10 +30,13 @@ mod compile;
 pub use compile::{CompileOptions, CompileToExecutable, CompileToLoadedExecutable};
 
 mod device;
-pub use device::{Device, MemoryStats};
+pub use device::{Device, GlobalDeviceId, LocalDeviceId, LocalHardwareId, MemoryStats};
 
 mod device_description;
 pub use device_description::DeviceDescription;
+
+mod device_assignment;
+pub use device_assignment::{DeviceAssignment, LogicalId};
 
 mod memory;
 pub use memory::Memory;

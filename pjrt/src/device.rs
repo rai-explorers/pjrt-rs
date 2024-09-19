@@ -8,6 +8,21 @@ use pjrt_sys::{
 
 use crate::{Client, DeviceDescription, Memory, Result};
 
+/// The logical global device ID. This is unique among
+/// devices of this type (e.g. CPUs, GPUs). On multi-host platforms, this will
+/// be unique across all hosts' devices.
+pub type GlobalDeviceId = i32;
+
+/// The logical local device ID. This will be used to look
+/// up an addressable device local to a given client. It is -1 if undefined.
+pub type LocalDeviceId = i32;
+
+/// The physical local device ID, e.g., the CUDA device
+/// number. Multiple PJRT devices can have the same LocalHardwareId if
+/// these PJRT devices share the same physical device.In
+/// general, not guaranteed to be dense, and -1 if undefined.
+pub type LocalHardwareId = i32;
+
 pub struct Device {
     client: Client,
     pub(crate) ptr: *mut PJRT_Device,
@@ -48,7 +63,7 @@ impl Device {
         args.is_addressable
     }
 
-    pub fn local_hardware_id(&self) -> i32 {
+    pub fn local_hardware_id(&self) -> LocalHardwareId {
         let mut args = PJRT_Device_LocalHardwareId_Args::new();
         args.device = self.ptr;
         args = self

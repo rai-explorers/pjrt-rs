@@ -13,8 +13,9 @@ use pjrt_sys::{
 };
 
 use crate::{
-    utils, Api, CompileOptions, CompileToLoadedExecutable, Device, KeyValueStore, LoadedExecutable,
-    Memory, NamedValue, Program, Result, TopologyDescription,
+    utils, Api, CompileOptions, CompileToLoadedExecutable, Device, DeviceAssignment,
+    GlobalDeviceId, KeyValueStore, LoadedExecutable, LocalHardwareId, Memory, NamedValue, Program,
+    Result, TopologyDescription,
 };
 
 struct ClientRaw {
@@ -145,15 +146,15 @@ impl Client {
             .collect()
     }
 
-    pub fn lookup_device(&self, id: i32) -> Result<Device> {
+    pub fn lookup_device(&self, global_device_id: GlobalDeviceId) -> Result<Device> {
         let mut args = PJRT_Client_LookupDevice_Args::new();
         args.client = self.ptr();
-        args.id = id;
+        args.id = global_device_id;
         args = self.api().PJRT_Client_LookupDevice(args)?;
         Ok(Device::wrap(self, args.device))
     }
 
-    pub fn lookup_addressable_device(&self, local_hardware_id: i32) -> Result<Device> {
+    pub fn lookup_addressable_device(&self, local_hardware_id: LocalHardwareId) -> Result<Device> {
         let mut args = PJRT_Client_LookupAddressableDevice_Args::new();
         args.client = self.ptr();
         args.local_hardware_id = local_hardware_id;
@@ -177,12 +178,11 @@ impl Client {
         Ok(LoadedExecutable::wrap(self, args.loaded_executable))
     }
 
-    // TODO: return DeviceAssignment similar to pjrt_c_client.cc
     pub fn default_device_assignment(
         &self,
         num_replicas: usize,
         num_partitions: usize,
-    ) -> Result<Vec<i32>> {
+    ) -> Result<DeviceAssignment> {
         let mut default_assignment = vec![0; num_replicas * num_partitions];
         let mut args = PJRT_Client_DefaultDeviceAssignment_Args::new();
         args.client = self.ptr();
@@ -191,7 +191,8 @@ impl Client {
         args.default_assignment = default_assignment.as_mut_ptr();
         args.default_assignment_size = default_assignment.len();
         _ = self.api().PJRT_Client_DefaultDeviceAssignment(args)?;
-        Ok(default_assignment)
+        let assignment = DeviceAssignment::new(num_replicas, num_partitions, default_assignment);
+        Ok(assignment)
     }
 
     pub fn topology(&self) -> TopologyDescription {
