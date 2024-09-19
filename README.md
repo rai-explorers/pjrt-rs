@@ -5,7 +5,11 @@
 [![Latest Version](https://img.shields.io/crates/v/pjrt.svg)](https://crates.io/crates/pjrt)
 [![Discord](https://img.shields.io/discord/1202429682474287144.svg?color=7289da&&logo=discord)](https://discord.gg/J7X8rNZeMC)
 
-**`pjrt`** is a safe PJRT C API bindings for Rust.
+**`pjrt`** is a safe [PJRT](https://opensource.googleblog.com/2023/05/pjrt-simplifying-ml-hardware-and-framework-integration.html) C API bindings for Rust.
+
+![](docs/pjrt.png)
+
+[Figure Source](https://opensource.googleblog.com/2023/05/pjrt-simplifying-ml-hardware-and-framework-integration.html)
 
 # Example
 ```rust
