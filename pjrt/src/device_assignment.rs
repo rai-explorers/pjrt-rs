@@ -40,10 +40,10 @@ impl DeviceAssignment {
         self.num_partitions
     }
 
-    pub fn lookup_logical_id(&self, device: GlobalDeviceId) -> Result<LogicalId> {
+    pub fn lookup_logical_id(&self, global_device_id: GlobalDeviceId) -> Result<LogicalId> {
         for (replica, assignment) in self.assignments.iter().enumerate() {
-            for (partition, d) in assignment.iter().enumerate() {
-                if *d == device {
+            for (partition, id) in assignment.iter().enumerate() {
+                if *id == global_device_id {
                     return Ok(LogicalId {
                         replica_id: replica,
                         partition_id: partition,
@@ -51,15 +51,15 @@ impl DeviceAssignment {
                 }
             }
         }
-        Err(Error::DeviceNotInDeviceAssignment(device))
+        Err(Error::DeviceNotInDeviceAssignment(global_device_id))
     }
 
     pub fn get_lookup_map(&self) -> HashMap<GlobalDeviceId, LogicalId> {
         let mut map = HashMap::new();
         for (replica, assignment) in self.assignments.iter().enumerate() {
-            for (partition, d) in assignment.iter().enumerate() {
+            for (partition, global_device_id) in assignment.iter().enumerate() {
                 map.insert(
-                    *d,
+                    *global_device_id,
                     LogicalId {
                         replica_id: replica,
                         partition_id: partition,
