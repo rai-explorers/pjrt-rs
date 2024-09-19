@@ -13,7 +13,8 @@ license = "MIT OR Apache-2.0"
 categories = ["science"]
 
 [workspace.dependencies]
-pjrt-sys = { path = "pjrt-sys", version = "0.1.0" }
+pjrt-sys = { path = "pjrt-sys", version = "0.2.0" }
+pjrt = { path = "pjrt", version = "0.2.0" }
 bindgen = "0.69"
 bytes = "1"
 libloading = "0.8"
