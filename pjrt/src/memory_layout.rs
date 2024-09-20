@@ -74,17 +74,6 @@ impl TryFrom<PJRT_Buffer_MemoryLayout_Type> for MemoryLayoutType {
     }
 }
 
-// impl TryFrom<*mut PJRT_Buffer_MemoryLayout> for MemoryLayout {
-//     type Error = Error;
-//     fn try_from(layout: *mut PJRT_Buffer_MemoryLayout) -> Result<Self> {
-//         if layout.is_null() {
-//             return Err(Error::NullPointer);
-//         }
-//         let layout = unsafe { &*layout };
-//         MemoryLayout::try_from(layout)
-//     }
-// }
-
 impl<'a> TryFrom<&'a PJRT_Buffer_MemoryLayout> for MemoryLayout {
     type Error = Error;
 
