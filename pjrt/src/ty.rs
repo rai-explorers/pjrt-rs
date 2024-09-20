@@ -217,6 +217,34 @@ impl ElemType for half::bf16 {
     type Type = BF16;
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct C64;
+
+impl Type for C64 {
+    const NAME: &'static str = "c64";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::C64;
+    const TYPE: Self = C64;
+    type ElemType = num_complex::Complex<f32>;
+}
+
+impl ElemType for num_complex::Complex<f32> {
+    type Type = C64;
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct C128;
+
+impl Type for C128 {
+    const NAME: &'static str = "c128";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::C128;
+    const TYPE: Self = C128;
+    type ElemType = num_complex::Complex<f64>;
+}
+
+impl ElemType for num_complex::Complex<f64> {
+    type Type = C128;
+}
+
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PrimitiveType {

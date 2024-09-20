@@ -18,3 +18,4 @@ tokio = { workspace = true }
 libloading = { workspace = true }
 bon = { workspace = true }
 half = { workspace = true }
+num-complex = { workspace = true }

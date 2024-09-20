@@ -15,7 +15,7 @@ use pjrt_sys::{
 use crate::event::Event;
 use crate::{
     utils, Buffer, Client, Device, ElemType, Error, Memory, MemoryLayout, PrimitiveType, Result,
-    Type, BF16, F16, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
+    Type, BF16, C128, C64, F16, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
 };
 
 #[derive(Debug)]
@@ -136,6 +136,8 @@ impl_from_typed_buffer![U8];
 impl_from_typed_buffer![U16];
 impl_from_typed_buffer![U32];
 impl_from_typed_buffer![U64];
+impl_from_typed_buffer![C64];
+impl_from_typed_buffer![C128];
 
 #[derive(Debug)]
 pub enum HostBuffer {
@@ -151,6 +153,8 @@ pub enum HostBuffer {
     U16(TypedHostBuffer<U16>),
     U32(TypedHostBuffer<U32>),
     U64(TypedHostBuffer<U64>),
+    C64(TypedHostBuffer<C64>),
+    C128(TypedHostBuffer<C128>),
 }
 
 impl HostBuffer {
@@ -181,6 +185,8 @@ impl HostBuffer {
             Self::U16(buf) => buf.dims(),
             Self::U32(buf) => buf.dims(),
             Self::U64(buf) => buf.dims(),
+            Self::C64(buf) => buf.dims(),
+            Self::C128(buf) => buf.dims(),
         }
     }
 
@@ -198,9 +204,12 @@ impl HostBuffer {
             Self::U16(buf) => buf.layout(),
             Self::U32(buf) => buf.layout(),
             Self::U64(buf) => buf.layout(),
+            Self::C64(buf) => buf.layout(),
+            Self::C128(buf) => buf.layout(),
         }
     }
 
+    // TODO: change to builder
     pub fn copy_to_sync<D, C>(&self, config: C) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
@@ -219,6 +228,8 @@ impl HostBuffer {
             Self::U16(buf) => buf.copy_to_sync(config),
             Self::U32(buf) => buf.copy_to_sync(config),
             Self::U64(buf) => buf.copy_to_sync(config),
+            Self::C64(buf) => buf.copy_to_sync(config),
+            Self::C128(buf) => buf.copy_to_sync(config),
         }
     }
 
@@ -240,6 +251,8 @@ impl HostBuffer {
             Self::U16(buf) => buf.copy_to(config).await,
             Self::U32(buf) => buf.copy_to(config).await,
             Self::U64(buf) => buf.copy_to(config).await,
+            Self::C64(buf) => buf.copy_to(config).await,
+            Self::C128(buf) => buf.copy_to(config).await,
         }
     }
 }
@@ -681,6 +694,20 @@ impl HostBufferBuilder {
             PrimitiveType::U64 => Ok(HostBuffer::U64(
                 TypedHostBufferBuilder
                     .bytes::<U64>(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::C64 => Ok(HostBuffer::C64(
+                TypedHostBufferBuilder
+                    .bytes::<C64>(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::C128 => Ok(HostBuffer::C128(
+                TypedHostBufferBuilder
+                    .bytes::<C128>(bytes)
                     .maybe_dims(dims)
                     .maybe_layout(layout)
                     .build(),
