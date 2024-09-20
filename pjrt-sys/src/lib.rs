@@ -3,6 +3,7 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 #![allow(clippy::too_long_first_doc_paragraph)]
+#![allow(clippy::doc_lazy_continuation)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
