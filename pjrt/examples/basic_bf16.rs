@@ -1,7 +1,7 @@
 use pjrt::ProgramFormat::MLIR;
 use pjrt::{self, Client, HostBuffer, LoadedExecutable, Result};
 
-const CODE: &[u8] = include_bytes!("prog_f32.mlir");
+const CODE: &[u8] = include_bytes!("prog_bf16.mlir");
 
 fn main() -> Result<()> {
     let api = pjrt::plugin("pjrt_c_api_cpu_plugin.so").load()?;
@@ -14,7 +14,7 @@ fn main() -> Result<()> {
 
     let loaded_executable = LoadedExecutable::builder(&client, &program).build()?;
 
-    let a = HostBuffer::scalar(1.25f32);
+    let a = HostBuffer::scalar(half::bf16::from_f32(1.25));
     println!("input = {:?}", a);
 
     let inputs = a.copy_to_sync(&client)?;

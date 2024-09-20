@@ -189,6 +189,34 @@ impl ElemType for u64 {
     type Type = U64;
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct F16;
+
+impl Type for F16 {
+    const NAME: &'static str = "f16";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::F16;
+    const TYPE: Self = F16;
+    type ElemType = half::f16;
+}
+
+impl ElemType for half::f16 {
+    type Type = F16;
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct BF16;
+
+impl Type for BF16 {
+    const NAME: &'static str = "bf16";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::BF16;
+    const TYPE: Self = BF16;
+    type ElemType = half::bf16;
+}
+
+impl ElemType for half::bf16 {
+    type Type = BF16;
+}
+
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PrimitiveType {
@@ -268,8 +296,8 @@ impl PrimitiveType {
             PrimitiveType::U64 => Ok(U64.boxed_dtype()),
             PrimitiveType::F32 => Ok(F32.boxed_dtype()),
             PrimitiveType::F64 => Ok(F64.boxed_dtype()),
-            PrimitiveType::F16 => todo!(),
-            PrimitiveType::BF16 => todo!(),
+            PrimitiveType::F16 => Ok(F16.boxed_dtype()),
+            PrimitiveType::BF16 => Ok(BF16.boxed_dtype()),
             PrimitiveType::C64 => todo!(),
             PrimitiveType::C128 => todo!(),
             PrimitiveType::F8E5M2 => todo!(),

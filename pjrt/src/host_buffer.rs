@@ -15,7 +15,7 @@ use pjrt_sys::{
 use crate::event::Event;
 use crate::{
     utils, Buffer, Client, Device, ElemType, Error, Memory, MemoryLayout, PrimitiveType, Result,
-    Type, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
+    Type, BF16, F16, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
 };
 
 #[derive(Debug)]
@@ -124,6 +124,8 @@ macro_rules! impl_from_typed_buffer {
     };
 }
 
+impl_from_typed_buffer!(BF16);
+impl_from_typed_buffer!(F16);
 impl_from_typed_buffer!(F32);
 impl_from_typed_buffer![F64];
 impl_from_typed_buffer![I8];
@@ -137,6 +139,8 @@ impl_from_typed_buffer![U64];
 
 #[derive(Debug)]
 pub enum HostBuffer {
+    BF16(TypedHostBuffer<BF16>),
+    F16(TypedHostBuffer<F16>),
     F32(TypedHostBuffer<F32>),
     F64(TypedHostBuffer<F64>),
     I8(TypedHostBuffer<I8>),
@@ -165,6 +169,8 @@ impl HostBuffer {
 
     pub fn dims(&self) -> &[i64] {
         match self {
+            Self::BF16(buf) => buf.dims(),
+            Self::F16(buf) => buf.dims(),
             Self::F32(buf) => buf.dims(),
             Self::F64(buf) => buf.dims(),
             Self::I8(buf) => buf.dims(),
@@ -180,6 +186,8 @@ impl HostBuffer {
 
     pub fn layout(&self) -> &MemoryLayout {
         match self {
+            Self::BF16(buf) => buf.layout(),
+            Self::F16(buf) => buf.layout(),
             Self::F32(buf) => buf.layout(),
             Self::F64(buf) => buf.layout(),
             Self::I8(buf) => buf.layout(),
@@ -199,6 +207,8 @@ impl HostBuffer {
         C: IntoHostBufferCopyToConfig<D>,
     {
         match self {
+            Self::BF16(buf) => buf.copy_to_sync(config),
+            Self::F16(buf) => buf.copy_to_sync(config),
             Self::F32(buf) => buf.copy_to_sync(config),
             Self::F64(buf) => buf.copy_to_sync(config),
             Self::I8(buf) => buf.copy_to_sync(config),
@@ -218,6 +228,8 @@ impl HostBuffer {
         C: IntoHostBufferCopyToConfig<D>,
     {
         match self {
+            Self::BF16(buf) => buf.copy_to(config).await,
+            Self::F16(buf) => buf.copy_to(config).await,
             Self::F32(buf) => buf.copy_to(config).await,
             Self::F64(buf) => buf.copy_to(config).await,
             Self::I8(buf) => buf.copy_to(config).await,
@@ -589,6 +601,20 @@ impl HostBufferBuilder {
         #[builder] layout: Option<MemoryLayout>,
     ) -> Result<HostBuffer> {
         match ty {
+            PrimitiveType::BF16 => Ok(HostBuffer::BF16(
+                TypedHostBufferBuilder
+                    .bytes::<BF16>(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::F16 => Ok(HostBuffer::F16(
+                TypedHostBufferBuilder
+                    .bytes::<F16>(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
             PrimitiveType::F32 => Ok(HostBuffer::F32(
                 TypedHostBufferBuilder
                     .bytes::<F32>(bytes)
