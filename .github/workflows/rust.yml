@@ -53,6 +53,10 @@ jobs:
           override: true
       - run: rustup component add clippy
       - run: rustup component add rustfmt
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}      
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
