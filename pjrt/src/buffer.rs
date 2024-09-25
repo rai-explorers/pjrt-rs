@@ -1,11 +1,12 @@
+use bon::bon;
 use pjrt_sys::{
     PJRT_Buffer, PJRT_Buffer_CopyToDevice_Args, PJRT_Buffer_CopyToMemory_Args,
     PJRT_Buffer_Delete_Args, PJRT_Buffer_Destroy_Args, PJRT_Buffer_Device_Args,
     PJRT_Buffer_Dimensions_Args, PJRT_Buffer_DynamicDimensionIndices_Args,
     PJRT_Buffer_ElementType_Args, PJRT_Buffer_GetMemoryLayout_Args, PJRT_Buffer_IsDeleted_Args,
-    PJRT_Buffer_IsOnCpu_Args, PJRT_Buffer_Memory_Args, PJRT_Buffer_OnDeviceSizeInBytes_Args,
-    PJRT_Buffer_ReadyEvent_Args, PJRT_Buffer_ToHostBuffer_Args,
-    PJRT_Buffer_UnpaddedDimensions_Args,
+    PJRT_Buffer_IsOnCpu_Args, PJRT_Buffer_MemoryLayout, PJRT_Buffer_Memory_Args,
+    PJRT_Buffer_OnDeviceSizeInBytes_Args, PJRT_Buffer_ReadyEvent_Args,
+    PJRT_Buffer_ToHostBuffer_Args, PJRT_Buffer_UnpaddedDimensions_Args,
 };
 
 use crate::event::Event;
@@ -27,6 +28,7 @@ impl Drop for Buffer {
     }
 }
 
+#[bon]
 impl Buffer {
     pub fn wrap(client: &Client, ptr: *mut PJRT_Buffer) -> Self {
         assert!(!ptr.is_null());
@@ -180,7 +182,8 @@ impl Buffer {
         self.client.api().PJRT_Buffer_CopyToDevice(args)
     }
 
-    pub async fn copy_to_device(&self, device: &Device) -> Result<Buffer> {
+    #[builder(finish_fn = copy)]
+    pub async fn to_device(&self, #[builder(start_fn)] device: &Device) -> Result<Buffer> {
         let args = self.call_copy_to_device(device)?;
         let buf = Buffer::wrap(device.client(), args.dst_buffer);
         let event = buf.ready_event()?;
@@ -188,7 +191,8 @@ impl Buffer {
         Ok(buf)
     }
 
-    pub fn copy_to_device_sync(&self, device: &Device) -> Result<Buffer> {
+    #[builder(finish_fn = copy)]
+    pub fn to_device_sync(&self, #[builder(start_fn)] device: &Device) -> Result<Buffer> {
         let args = self.call_copy_to_device(device)?;
         let buf = Buffer::wrap(device.client(), args.dst_buffer);
         let event = buf.ready_event()?;
@@ -203,7 +207,8 @@ impl Buffer {
         self.client.api().PJRT_Buffer_CopyToMemory(args)
     }
 
-    pub async fn copy_to_memory(&self, memory: &Memory) -> Result<Buffer> {
+    #[builder(finish_fn = copy)]
+    pub async fn to_memory(&self, #[builder(start_fn)] memory: &Memory) -> Result<Buffer> {
         let args = self.call_copy_to_memory(memory)?;
         let buf = Buffer::wrap(memory.client(), args.dst_buffer);
         let event = buf.ready_event()?;
@@ -211,7 +216,8 @@ impl Buffer {
         Ok(buf)
     }
 
-    pub fn copy_to_memory_sync(&self, memory: &Memory) -> Result<Buffer> {
+    #[builder(finish_fn = copy)]
+    pub fn to_memory_sync(&self, memory: &Memory) -> Result<Buffer> {
         let args = self.call_copy_to_memory(memory)?;
         let buf = Buffer::wrap(memory.client(), args.dst_buffer);
         let event = buf.ready_event()?;
@@ -219,9 +225,16 @@ impl Buffer {
         Ok(buf)
     }
 
-    pub fn call_copy_to_host(&self) -> Result<(PJRT_Buffer_ToHostBuffer_Args, Vec<u8>)> {
+    pub fn call_copy_to_host(
+        &self,
+        host_layout: Option<&MemoryLayout>,
+    ) -> Result<(PJRT_Buffer_ToHostBuffer_Args, Vec<u8>)> {
         let mut args = PJRT_Buffer_ToHostBuffer_Args::new();
         args.src = self.ptr;
+        if let Some(layout) = host_layout {
+            let mut l = PJRT_Buffer_MemoryLayout::from(layout);
+            args.host_layout = &mut l as *mut _;
+        }
         // first call to get the size of the buffer
         args = self.client.api().PJRT_Buffer_ToHostBuffer(args)?;
         let buf_size = args.dst_size;
@@ -232,26 +245,28 @@ impl Buffer {
         Ok((args, buf))
     }
 
-    pub async fn copy_to_host(&self) -> Result<HostBuffer> {
-        let (args, data) = self.call_copy_to_host()?;
+    #[builder(finish_fn = copy)]
+    pub async fn to_host(&self, host_layout: Option<MemoryLayout>) -> Result<HostBuffer> {
+        let (args, data) = self.call_copy_to_host(host_layout.as_ref())?;
         let event = Event::wrap(self.client.api(), args.event);
         event.await?;
         let ty = self.primitive_type();
         let dims = self.dims();
-        let layout = self.layout();
+        let layout = host_layout.unwrap_or_else(|| self.layout());
         HostBuffer::from_bytes(data, ty)
             .dims(dims)
             .layout(layout)
             .build()
     }
 
-    pub fn copy_to_host_sync(&self) -> Result<HostBuffer> {
-        let (args, data) = self.call_copy_to_host()?;
+    #[builder(finish_fn = copy)]
+    pub fn to_host_sync(&self, host_layout: Option<MemoryLayout>) -> Result<HostBuffer> {
+        let (args, data) = self.call_copy_to_host(host_layout.as_ref())?;
         let event = Event::wrap(self.client.api(), args.event);
         event.wait()?;
         let ty = self.primitive_type();
         let dims = self.dims();
-        let layout = self.layout();
+        let layout = host_layout.unwrap_or_else(|| self.layout());
         HostBuffer::from_bytes(data, ty)
             .dims(dims)
             .layout(layout)

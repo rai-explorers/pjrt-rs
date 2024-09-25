@@ -90,7 +90,7 @@ impl<T: Type> TypedHostBuffer<T> {
 
     pub(crate) fn call_copy_to<D>(
         &self,
-        dest: D,
+        dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
     ) -> Result<PJRT_Client_BufferFromHostBuffer_Args>
@@ -118,41 +118,39 @@ impl<T: Type> TypedHostBuffer<T> {
         client.api().PJRT_Client_BufferFromHostBuffer(args)
     }
 
-    #[builder(finish_fn = to)]
-    pub fn copy_sync<D>(
+    #[builder(finish_fn = copy)]
+    pub fn to_sync<D>(
         &self,
-        #[builder(finish_fn)] dest: D,
+        #[builder(start_fn)] dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
     ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
     {
-        let client = dest.client().clone();
         let args = self.call_copy_to(dest, byte_strides, device_layout)?;
-        let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
+        let done_with_host_event = Event::wrap(dest.client().api(), args.done_with_host_buffer);
         done_with_host_event.wait()?;
-        let buf = Buffer::wrap(&client, args.buffer);
+        let buf = Buffer::wrap(dest.client(), args.buffer);
         let buf_ready_event = buf.ready_event()?;
         buf_ready_event.wait()?;
         Ok(buf)
     }
 
-    #[builder(finish_fn = to)]
-    pub async fn copy<D>(
+    #[builder(finish_fn = copy)]
+    pub async fn to<D>(
         &self,
-        #[builder(finish_fn)] dest: D,
+        #[builder(start_fn)] dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
     ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
     {
-        let client = dest.client().clone();
         let args = self.call_copy_to(dest, byte_strides, device_layout)?;
-        let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
+        let done_with_host_event = Event::wrap(dest.client().api(), args.done_with_host_buffer);
         done_with_host_event.await?;
-        let buf = Buffer::wrap(&client, args.buffer);
+        let buf = Buffer::wrap(dest.client(), args.buffer);
         let buf_ready_event = buf.ready_event()?;
         buf_ready_event.await?;
         Ok(buf)
@@ -365,7 +363,7 @@ impl HostBuffer {
     }
     pub(crate) fn call_copy_to<D>(
         &self,
-        dest: D,
+        dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
     ) -> Result<PJRT_Client_BufferFromHostBuffer_Args>
@@ -390,10 +388,10 @@ impl HostBuffer {
         }
     }
 
-    #[builder(finish_fn = to)]
-    pub fn copy_sync<D>(
+    #[builder(finish_fn = copy)]
+    pub fn to_sync<D>(
         &self,
-        #[builder(finish_fn)] dest: D,
+        #[builder(start_fn)] dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
     ) -> Result<Buffer>
@@ -410,10 +408,10 @@ impl HostBuffer {
         Ok(buf)
     }
 
-    #[builder(finish_fn = to)]
-    pub async fn copy<D>(
+    #[builder(finish_fn = copy)]
+    pub async fn to<D>(
         &self,
-        #[builder(finish_fn)] dest: D,
+        #[builder(start_fn)] dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
     ) -> Result<Buffer>
@@ -471,27 +469,12 @@ pub enum HostBufferSemantics {
     MutableZeroCopy = PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kMutableZeroCopy as i32,
 }
 
-pub trait HostBufferCopyToDest {
+pub(crate) trait HostBufferCopyToDest {
     fn client(&self) -> &Client;
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()>;
 }
 
 impl HostBufferCopyToDest for Client {
-    fn client(&self) -> &Client {
-        self
-    }
-
-    fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
-        args.device = self
-            .addressable_devices()
-            .first()
-            .ok_or(Error::NoAddressableDevice)?
-            .ptr;
-        Ok(())
-    }
-}
-
-impl<'a> HostBufferCopyToDest for &'a Client {
     fn client(&self) -> &Client {
         self
     }
@@ -517,29 +500,7 @@ impl HostBufferCopyToDest for Device {
     }
 }
 
-impl<'a> HostBufferCopyToDest for &'a Device {
-    fn client(&self) -> &Client {
-        Device::client(self)
-    }
-
-    fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
-        args.device = self.ptr;
-        Ok(())
-    }
-}
-
 impl HostBufferCopyToDest for Memory {
-    fn client(&self) -> &Client {
-        Memory::client(self)
-    }
-
-    fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
-        args.memory = self.ptr;
-        Ok(())
-    }
-}
-
-impl<'a> HostBufferCopyToDest for &'a Memory {
     fn client(&self) -> &Client {
         Memory::client(self)
     }

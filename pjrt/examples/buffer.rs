@@ -16,24 +16,24 @@ async fn main() -> Result<()> {
     let dev2 = client.lookup_addressable_device(1)?;
 
     println!("-- ASYNC --");
-    let dev_buf = host_buf.copy().to(&dev1).await?;
+    let dev_buf = host_buf.to(&dev1).copy().await?;
     println!("to {:?}, {:?}", dev_buf.dims(), dev_buf.layout());
 
-    let b = dev_buf.copy_to_host().await?;
-    println!("to_host_buffer {:?}", b);
+    let b = dev_buf.to_host().copy().await?;
+    println!("to_host {:?}", b);
 
-    let b = dev_buf.copy_to_device(&dev2).await?;
-    println!("copy_to_device {:?}, {:?}", b.dims(), b.layout());
+    let b = dev_buf.to_device(&dev2).copy().await?;
+    println!("to_device {:?}, {:?}", b.dims(), b.layout());
 
     println!("-- SYNC --");
-    let dev_buf = host_buf.copy_sync().to(&dev1)?;
-    println!("to {:?}, {:?}", dev_buf.dims(), dev_buf.layout());
+    let dev_buf = host_buf.to_sync(&dev1).copy()?;
+    println!("to_sync {:?}, {:?}", dev_buf.dims(), dev_buf.layout());
 
-    let b = dev_buf.copy_to_host_sync()?;
-    println!("to_host_buffer {:?}", b);
+    let b = dev_buf.to_host_sync().copy()?;
+    println!("to_host_sync {:?}", b);
 
-    let b = dev_buf.copy_to_device_sync(&dev2)?;
-    println!("copy_to_device {:?}, {:?}", b.dims(), b.layout());
+    let b = dev_buf.to_device_sync(&dev2).copy()?;
+    println!("to_device_sync {:?}, {:?}", b.dims(), b.layout());
 
     Ok(())
 }
