@@ -28,12 +28,12 @@ fn main() -> Result<()> {
     let a = HostBuffer::from_scalar(1.25f32);
     println!("input = {:?}", a);
 
-    let inputs = a.copy_sync().to(&client)?;
+    let inputs = a.to_sync(&client).copy()?;
 
     let result = loaded_executable.execution(inputs).run_sync()?;
 
     let ouput = &result[0][0];
-    let output = ouput.copy_to_host_sync()?;
+    let output = ouput.to_host_sync().copy()?;
     println!("output= {:?}", output);
 
     Ok(())
