@@ -14,10 +14,10 @@ fn main() -> Result<()> {
 
     let loaded_executable = LoadedExecutable::builder(&client, &program).build()?;
 
-    let a = HostBuffer::scalar(num_complex::Complex::new(1.0f32, 0.25));
+    let a = HostBuffer::from_scalar(num_complex::Complex::new(1.0f32, 0.25));
     println!("input = {:?}", a);
 
-    let inputs = a.copy_to_sync(&client)?;
+    let inputs = a.copy_to_sync(&client).call()?;
 
     let result = loaded_executable.execution(inputs).run_sync()?;
 

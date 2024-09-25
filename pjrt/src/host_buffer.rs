@@ -25,15 +25,50 @@ pub struct TypedHostBuffer<T: Type> {
     layout: MemoryLayout,
 }
 
+#[bon]
 impl<T: Type> TypedHostBuffer<T> {
-    pub fn builder() -> TypedHostBufferBuilder {
-        TypedHostBufferBuilder
+    #[builder(finish_fn = build)]
+    pub fn from_data(
+        #[builder(start_fn, into)] data: Vec<T::ElemType>,
+        #[builder(into)] dims: Option<Vec<i64>>,
+        #[builder] layout: Option<MemoryLayout>,
+    ) -> Self {
+        let dims = dims.unwrap_or_else(|| vec![data.len() as i64]);
+        let layout = layout
+            .unwrap_or_else(|| MemoryLayout::from_strides(utils::byte_strides(&dims, T::SIZE)));
+        Self {
+            data: Rc::new(data),
+            dims,
+            layout,
+        }
     }
 
-    pub fn scalar(data: T::ElemType) -> Self {
+    #[builder(finish_fn = build)]
+    pub fn from_bytes(
+        #[builder(start_fn, into)] bytes: Vec<u8>,
+        #[builder(into)] dims: Option<Vec<i64>>,
+        #[builder] layout: Option<MemoryLayout>,
+    ) -> Self {
+        let length = bytes.len() / T::SIZE;
+        let capacity = bytes.capacity() / T::SIZE;
+        let ptr = bytes.as_ptr() as *mut T::ElemType;
+        let data = unsafe { Vec::from_raw_parts(ptr, length, capacity) };
+        mem::forget(bytes);
+        let dims = dims.unwrap_or_else(|| vec![length as i64]);
+        assert!(dims.iter().product::<i64>() == length as i64);
+        let layout = layout
+            .unwrap_or_else(|| MemoryLayout::from_strides(utils::byte_strides(&dims, T::SIZE)));
+        Self {
+            data: Rc::new(data),
+            dims,
+            layout,
+        }
+    }
+
+    pub fn from_scalar(data: T::ElemType) -> Self {
         let data = vec![data];
         let dims = vec![];
-        let layout = MemoryLayout::strides(vec![]);
+        let layout = MemoryLayout::from_strides(vec![]);
         Self {
             data: Rc::new(data),
             dims,
@@ -53,14 +88,16 @@ impl<T: Type> TypedHostBuffer<T> {
         &self.layout
     }
 
-    pub fn call_copy_to<D>(
+    pub(crate) fn call_copy_to<D>(
         &self,
-        config: &HostBufferCopyToConfig<D>,
+        dest: D,
+        byte_strides: Option<Vec<i64>>,
+        device_layout: Option<MemoryLayout>,
     ) -> Result<PJRT_Client_BufferFromHostBuffer_Args>
     where
         D: HostBufferCopyToDest,
     {
-        let client = config.dest.client();
+        let client = dest.client();
         let mut args = PJRT_Client_BufferFromHostBuffer_Args::new();
         args.client = client.ptr();
         args.data = self.data.as_ptr() as *const c_void;
@@ -69,45 +106,53 @@ impl<T: Type> TypedHostBuffer<T> {
         args.num_dims = self.dims.len();
         args.host_buffer_semantics =
             HostBufferSemantics::ImmutableUntilTransferCompletes as PJRT_HostBufferSemantics;
-        if let Some(byte_strides) = &config.byte_strides {
+        if let Some(byte_strides) = &byte_strides {
             args.byte_strides = byte_strides.as_ptr() as *const _;
             args.num_byte_strides = byte_strides.len();
         }
-        if let Some(device_layout) = &config.device_layout {
+        if let Some(device_layout) = &device_layout {
             let mut device_layout = PJRT_Buffer_MemoryLayout::from(device_layout);
             args.device_layout = &mut device_layout as *mut _;
         }
-        config.dest.set_args(&mut args)?;
+        dest.set_args(&mut args)?;
         client.api().PJRT_Client_BufferFromHostBuffer(args)
     }
 
-    pub fn copy_to_sync<D, C>(&self, config: C) -> Result<Buffer>
+    #[builder(finish_fn = to)]
+    pub fn copy_sync<D>(
+        &self,
+        #[builder(finish_fn)] dest: D,
+        byte_strides: Option<Vec<i64>>,
+        device_layout: Option<MemoryLayout>,
+    ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
-        C: IntoHostBufferCopyToConfig<D>,
     {
-        let config = config.into_copy_to_config();
-        let client = config.dest.client();
-        let args = self.call_copy_to(&config)?;
+        let client = dest.client().clone();
+        let args = self.call_copy_to(dest, byte_strides, device_layout)?;
         let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
         done_with_host_event.wait()?;
-        let buf = Buffer::wrap(client, args.buffer);
+        let buf = Buffer::wrap(&client, args.buffer);
         let buf_ready_event = buf.ready_event()?;
         buf_ready_event.wait()?;
         Ok(buf)
     }
 
-    pub async fn copy_to<D, C>(&self, config: C) -> Result<Buffer>
+    #[builder(finish_fn = to)]
+    pub async fn copy<D>(
+        &self,
+        #[builder(finish_fn)] dest: D,
+        byte_strides: Option<Vec<i64>>,
+        device_layout: Option<MemoryLayout>,
+    ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
-        C: IntoHostBufferCopyToConfig<D>,
     {
-        let config = config.into_copy_to_config();
-        let client = config.dest.client();
-        let args = self.call_copy_to(&config)?;
+        let client = dest.client().clone();
+        let args = self.call_copy_to(dest, byte_strides, device_layout)?;
         let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
         done_with_host_event.await?;
-        let buf = Buffer::wrap(client, args.buffer);
+        let buf = Buffer::wrap(&client, args.buffer);
         let buf_ready_event = buf.ready_event()?;
         buf_ready_event.await?;
         Ok(buf)
@@ -157,17 +202,127 @@ pub enum HostBuffer {
     C128(TypedHostBuffer<C128>),
 }
 
+#[bon]
 impl HostBuffer {
-    pub fn builder() -> HostBufferBuilder {
-        HostBufferBuilder
-    }
-
-    pub fn scalar<E>(data: E) -> HostBuffer
+    #[builder(finish_fn = build)]
+    pub fn from_data<E>(
+        #[builder(start_fn, into)] data: Vec<E>,
+        #[builder(into)] dims: Option<Vec<i64>>,
+        #[builder] layout: Option<MemoryLayout>,
+    ) -> Self
     where
         E: ElemType,
         Self: From<TypedHostBuffer<E::Type>>,
     {
-        let buf = TypedHostBuffer::<E::Type>::scalar(data);
+        let buf = TypedHostBuffer::<E::Type>::from_data(data)
+            .maybe_dims(dims)
+            .maybe_layout(layout)
+            .build();
+        Self::from(buf)
+    }
+
+    #[builder(finish_fn = build)]
+    pub fn from_bytes(
+        #[builder(start_fn)] bytes: Vec<u8>,
+        #[builder(start_fn)] ty: PrimitiveType,
+        #[builder(into)] dims: Option<Vec<i64>>,
+        #[builder] layout: Option<MemoryLayout>,
+    ) -> Result<Self> {
+        match ty {
+            PrimitiveType::BF16 => Ok(Self::BF16(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::F16 => Ok(Self::F16(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::F32 => Ok(Self::F32(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::F64 => Ok(Self::F64(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::S8 => Ok(Self::I8(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::S16 => Ok(Self::I16(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::S32 => Ok(Self::I32(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::S64 => Ok(Self::I64(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::U8 => Ok(Self::U8(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::U16 => Ok(Self::U16(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::U32 => Ok(Self::U32(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::U64 => Ok(Self::U64(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::C64 => Ok(Self::C64(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            PrimitiveType::C128 => Ok(Self::C128(
+                TypedHostBuffer::from_bytes(bytes)
+                    .maybe_dims(dims)
+                    .maybe_layout(layout)
+                    .build(),
+            )),
+            _ => Err(Error::NotSupportedType(ty)),
+        }
+    }
+
+    pub fn from_scalar<E>(data: E) -> Self
+    where
+        E: ElemType,
+        Self: From<TypedHostBuffer<E::Type>>,
+    {
+        let buf = TypedHostBuffer::<E::Type>::from_scalar(data);
         Self::from(buf)
     }
 
@@ -208,52 +363,71 @@ impl HostBuffer {
             Self::C128(buf) => buf.layout(),
         }
     }
-
-    // TODO: change to builder
-    pub fn copy_to_sync<D, C>(&self, config: C) -> Result<Buffer>
+    pub(crate) fn call_copy_to<D>(
+        &self,
+        dest: D,
+        byte_strides: Option<Vec<i64>>,
+        device_layout: Option<MemoryLayout>,
+    ) -> Result<PJRT_Client_BufferFromHostBuffer_Args>
     where
         D: HostBufferCopyToDest,
-        C: IntoHostBufferCopyToConfig<D>,
     {
         match self {
-            Self::BF16(buf) => buf.copy_to_sync(config),
-            Self::F16(buf) => buf.copy_to_sync(config),
-            Self::F32(buf) => buf.copy_to_sync(config),
-            Self::F64(buf) => buf.copy_to_sync(config),
-            Self::I8(buf) => buf.copy_to_sync(config),
-            Self::I16(buf) => buf.copy_to_sync(config),
-            Self::I32(buf) => buf.copy_to_sync(config),
-            Self::I64(buf) => buf.copy_to_sync(config),
-            Self::U8(buf) => buf.copy_to_sync(config),
-            Self::U16(buf) => buf.copy_to_sync(config),
-            Self::U32(buf) => buf.copy_to_sync(config),
-            Self::U64(buf) => buf.copy_to_sync(config),
-            Self::C64(buf) => buf.copy_to_sync(config),
-            Self::C128(buf) => buf.copy_to_sync(config),
+            Self::BF16(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::F16(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::F32(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::F64(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::I8(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::I16(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::I32(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::I64(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::U8(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::U16(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::U32(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::U64(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::C64(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::C128(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
         }
     }
 
-    pub async fn copy_to<D, C>(&self, config: C) -> Result<Buffer>
+    #[builder(finish_fn = to)]
+    pub fn copy_sync<D>(
+        &self,
+        #[builder(finish_fn)] dest: D,
+        byte_strides: Option<Vec<i64>>,
+        device_layout: Option<MemoryLayout>,
+    ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
-        C: IntoHostBufferCopyToConfig<D>,
     {
-        match self {
-            Self::BF16(buf) => buf.copy_to(config).await,
-            Self::F16(buf) => buf.copy_to(config).await,
-            Self::F32(buf) => buf.copy_to(config).await,
-            Self::F64(buf) => buf.copy_to(config).await,
-            Self::I8(buf) => buf.copy_to(config).await,
-            Self::I16(buf) => buf.copy_to(config).await,
-            Self::I32(buf) => buf.copy_to(config).await,
-            Self::I64(buf) => buf.copy_to(config).await,
-            Self::U8(buf) => buf.copy_to(config).await,
-            Self::U16(buf) => buf.copy_to(config).await,
-            Self::U32(buf) => buf.copy_to(config).await,
-            Self::U64(buf) => buf.copy_to(config).await,
-            Self::C64(buf) => buf.copy_to(config).await,
-            Self::C128(buf) => buf.copy_to(config).await,
-        }
+        let client = dest.client().clone();
+        let args = self.call_copy_to(dest, byte_strides, device_layout)?;
+        let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
+        done_with_host_event.wait()?;
+        let buf = Buffer::wrap(&client, args.buffer);
+        let buf_ready_event = buf.ready_event()?;
+        buf_ready_event.wait()?;
+        Ok(buf)
+    }
+
+    #[builder(finish_fn = to)]
+    pub async fn copy<D>(
+        &self,
+        #[builder(finish_fn)] dest: D,
+        byte_strides: Option<Vec<i64>>,
+        device_layout: Option<MemoryLayout>,
+    ) -> Result<Buffer>
+    where
+        D: HostBufferCopyToDest,
+    {
+        let client = dest.client().clone();
+        let args = self.call_copy_to(dest, byte_strides, device_layout)?;
+        let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
+        done_with_host_event.await?;
+        let buf = Buffer::wrap(&client, args.buffer);
+        let buf_ready_event = buf.ready_event()?;
+        buf_ready_event.await?;
+        Ok(buf)
     }
 }
 
@@ -373,346 +547,5 @@ impl<'a> HostBufferCopyToDest for &'a Memory {
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
         args.memory = self.ptr;
         Ok(())
-    }
-}
-
-pub struct HostBufferCopyToConfig<D>
-where
-    D: HostBufferCopyToDest,
-{
-    dest: D,
-    byte_strides: Option<Vec<i64>>,
-    device_layout: Option<MemoryLayout>,
-}
-
-impl<D> HostBufferCopyToConfig<D>
-where
-    D: HostBufferCopyToDest,
-{
-    pub fn new(dest: D) -> Self {
-        Self {
-            dest,
-            byte_strides: None,
-            device_layout: None,
-        }
-    }
-
-    pub fn byte_strides(mut self, byte_strides: Vec<i64>) -> Self {
-        self.byte_strides = Some(byte_strides);
-        self
-    }
-
-    pub fn device_layout(mut self, device_layout: MemoryLayout) -> Self {
-        self.device_layout = Some(device_layout);
-        self
-    }
-}
-
-mod private {
-    use crate::host_buffer::{HostBufferCopyToConfig, HostBufferCopyToDest};
-    use crate::MemoryLayout;
-
-    pub trait Argument {
-        type Repr;
-    }
-
-    pub trait ToConfig<A, D>
-    where
-        D: HostBufferCopyToDest,
-    {
-        fn into_config(self) -> HostBufferCopyToConfig<D>;
-    }
-
-    impl<D> Argument for D
-    where
-        D: HostBufferCopyToDest,
-    {
-        type Repr = (D,);
-    }
-
-    impl<D> ToConfig<(D,), D> for D
-    where
-        D: HostBufferCopyToDest,
-    {
-        fn into_config(self) -> HostBufferCopyToConfig<D> {
-            HostBufferCopyToConfig::new(self)
-        }
-    }
-
-    impl<D, B> Argument for (D, B)
-    where
-        D: HostBufferCopyToDest,
-        B: Into<Vec<i64>>,
-    {
-        type Repr = (D, B);
-    }
-
-    impl<D, B> ToConfig<(D, B), D> for (D, B)
-    where
-        D: HostBufferCopyToDest,
-        B: Into<Vec<i64>>,
-    {
-        fn into_config(self) -> HostBufferCopyToConfig<D> {
-            HostBufferCopyToConfig::new(self.0).byte_strides(self.1.into())
-        }
-    }
-
-    impl<D> Argument for (D, MemoryLayout)
-    where
-        D: HostBufferCopyToDest,
-    {
-        type Repr = (D, MemoryLayout);
-    }
-
-    impl<D> ToConfig<(D, MemoryLayout), D> for (D, MemoryLayout)
-    where
-        D: HostBufferCopyToDest,
-    {
-        fn into_config(self) -> HostBufferCopyToConfig<D> {
-            HostBufferCopyToConfig::new(self.0).device_layout(self.1)
-        }
-    }
-
-    impl<'a, D> Argument for (D, &'a MemoryLayout)
-    where
-        D: HostBufferCopyToDest,
-    {
-        type Repr = (D, &'a MemoryLayout);
-    }
-
-    impl<'a, D> ToConfig<(D, &'a MemoryLayout), D> for (D, &'a MemoryLayout)
-    where
-        D: HostBufferCopyToDest,
-    {
-        fn into_config(self) -> HostBufferCopyToConfig<D> {
-            HostBufferCopyToConfig::new(self.0).device_layout(self.1.clone())
-        }
-    }
-
-    impl<D, B, M> Argument for (D, B, M)
-    where
-        D: HostBufferCopyToDest,
-        B: Into<Vec<i64>>,
-        M: Into<MemoryLayout>,
-    {
-        type Repr = (D, B, M);
-    }
-
-    impl<D, B, M> ToConfig<(D, B, M), D> for (D, B, M)
-    where
-        D: HostBufferCopyToDest,
-        B: Into<Vec<i64>>,
-        M: Into<MemoryLayout>,
-    {
-        fn into_config(self) -> HostBufferCopyToConfig<D> {
-            HostBufferCopyToConfig::new(self.0)
-                .byte_strides(self.1.into())
-                .device_layout(self.2.into())
-        }
-    }
-}
-
-pub trait IntoHostBufferCopyToConfig<D>
-where
-    D: HostBufferCopyToDest,
-{
-    fn into_copy_to_config(self) -> HostBufferCopyToConfig<D>;
-}
-
-impl<T, D> IntoHostBufferCopyToConfig<D> for T
-where
-    T: private::Argument + private::ToConfig<T::Repr, D>,
-    D: HostBufferCopyToDest,
-{
-    fn into_copy_to_config(self) -> HostBufferCopyToConfig<D> {
-        self.into_config()
-    }
-}
-
-#[derive(Debug)]
-pub struct TypedHostBufferBuilder;
-
-#[bon]
-impl TypedHostBufferBuilder {
-    #[builder(finish_fn = build)]
-    pub fn data<E>(
-        &self,
-        #[builder(start_fn, into)] data: Vec<E>,
-        #[builder(into)] dims: Option<Vec<i64>>,
-        #[builder] layout: Option<MemoryLayout>,
-    ) -> TypedHostBuffer<E::Type>
-    where
-        E: ElemType,
-    {
-        let dims = dims.unwrap_or_else(|| vec![data.len() as i64]);
-        let layout = layout
-            .unwrap_or_else(|| MemoryLayout::strides(utils::byte_strides(&dims, E::Type::SIZE)));
-        TypedHostBuffer {
-            data: Rc::new(data),
-            dims,
-            layout,
-        }
-    }
-
-    #[builder(finish_fn = build)]
-    pub fn bytes<T>(
-        &self,
-        #[builder(start_fn, into)] bytes: Vec<u8>,
-        #[builder(into)] dims: Option<Vec<i64>>,
-        #[builder] layout: Option<MemoryLayout>,
-    ) -> TypedHostBuffer<T>
-    where
-        T: Type,
-    {
-        let length = bytes.len() / T::SIZE;
-        let capacity = bytes.capacity() / T::SIZE;
-        let ptr = bytes.as_ptr() as *mut T::ElemType;
-        let data = unsafe { Vec::from_raw_parts(ptr, length, capacity) };
-        mem::forget(bytes);
-        let dims = dims.unwrap_or_else(|| vec![length as i64]);
-        assert!(dims.iter().product::<i64>() == length as i64);
-        let layout =
-            layout.unwrap_or_else(|| MemoryLayout::strides(utils::byte_strides(&dims, T::SIZE)));
-        TypedHostBuffer {
-            data: Rc::new(data),
-            dims,
-            layout,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct HostBufferBuilder;
-
-#[bon]
-impl HostBufferBuilder {
-    #[builder(finish_fn = build)]
-    pub fn data<E>(
-        &self,
-        #[builder(start_fn, into)] data: Vec<E>,
-        #[builder(into)] dims: Option<Vec<i64>>,
-        #[builder] layout: Option<MemoryLayout>,
-    ) -> HostBuffer
-    where
-        E: ElemType,
-        HostBuffer: From<TypedHostBuffer<E::Type>>,
-    {
-        let buf = TypedHostBufferBuilder
-            .data::<E>(data)
-            .maybe_dims(dims)
-            .maybe_layout(layout)
-            .build();
-        HostBuffer::from(buf)
-    }
-
-    #[builder(finish_fn = build)]
-    pub fn bytes(
-        &self,
-        #[builder(start_fn)] bytes: Vec<u8>,
-        #[builder(start_fn)] ty: PrimitiveType,
-        #[builder(into)] dims: Option<Vec<i64>>,
-        #[builder] layout: Option<MemoryLayout>,
-    ) -> Result<HostBuffer> {
-        match ty {
-            PrimitiveType::BF16 => Ok(HostBuffer::BF16(
-                TypedHostBufferBuilder
-                    .bytes::<BF16>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::F16 => Ok(HostBuffer::F16(
-                TypedHostBufferBuilder
-                    .bytes::<F16>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::F32 => Ok(HostBuffer::F32(
-                TypedHostBufferBuilder
-                    .bytes::<F32>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::F64 => Ok(HostBuffer::F64(
-                TypedHostBufferBuilder
-                    .bytes::<F64>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::S8 => Ok(HostBuffer::I8(
-                TypedHostBufferBuilder
-                    .bytes::<I8>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::S16 => Ok(HostBuffer::I16(
-                TypedHostBufferBuilder
-                    .bytes::<I16>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::S32 => Ok(HostBuffer::I32(
-                TypedHostBufferBuilder
-                    .bytes::<I32>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::S64 => Ok(HostBuffer::I64(
-                TypedHostBufferBuilder
-                    .bytes::<I64>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::U8 => Ok(HostBuffer::U8(
-                TypedHostBufferBuilder
-                    .bytes::<U8>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::U16 => Ok(HostBuffer::U16(
-                TypedHostBufferBuilder
-                    .bytes::<U16>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::U32 => Ok(HostBuffer::U32(
-                TypedHostBufferBuilder
-                    .bytes::<U32>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::U64 => Ok(HostBuffer::U64(
-                TypedHostBufferBuilder
-                    .bytes::<U64>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::C64 => Ok(HostBuffer::C64(
-                TypedHostBufferBuilder
-                    .bytes::<C64>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::C128 => Ok(HostBuffer::C128(
-                TypedHostBufferBuilder
-                    .bytes::<C128>(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            _ => Err(Error::NotSupportedType(ty)),
-        }
     }
 }

@@ -18,7 +18,7 @@ pub enum MemoryLayout {
 #[bon]
 impl MemoryLayout {
     #[builder(finish_fn = build)]
-    pub fn tiled(
+    pub fn from_tiled(
         #[builder(start_fn, into)] minor_to_major: Vec<i64>,
         #[builder] tile_dims: Option<Vec<i64>>,
         #[builder] tile_dim_sizes: Option<Vec<usize>>,
@@ -30,7 +30,7 @@ impl MemoryLayout {
         })
     }
 
-    pub fn strides(byte_strides: impl Into<Vec<i64>>) -> MemoryLayout {
+    pub fn from_strides(byte_strides: impl Into<Vec<i64>>) -> MemoryLayout {
         MemoryLayout::Strides(MemoryLayoutStrides {
             byte_strides: byte_strides.into(),
         })

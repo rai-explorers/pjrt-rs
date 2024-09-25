@@ -8,16 +8,17 @@ fn main() -> Result<()> {
     println!("api_version = {:?}", api.version());
 
     let client = Client::builder(&api).build()?;
+
     println!("platform_name = {}", client.platform_name());
 
     let program = pjrt::Program::new(MLIR, CODE);
 
     let loaded_executable = LoadedExecutable::builder(&client, &program).build()?;
 
-    let a = HostBuffer::scalar(1.25f32);
+    let a = HostBuffer::from_scalar(1.25f32);
     println!("input = {:?}", a);
 
-    let inputs = a.copy_to_sync(&client)?;
+    let inputs = a.copy_sync().to(&client)?;
 
     let result = loaded_executable.execution(inputs).run_sync()?;
 

@@ -312,7 +312,7 @@ impl TryFrom<PrimitiveType> for Box<dyn DType> {
 impl PrimitiveType {
     pub fn try_into_dtype(&self) -> Result<Box<dyn DType>> {
         match self {
-            PrimitiveType::Invalid => todo!(),
+            PrimitiveType::Invalid => Err(Error::Unimplemeted),
             PrimitiveType::Pred => Ok(Bool.boxed_dtype()),
             PrimitiveType::S8 => Ok(I8.boxed_dtype()),
             PrimitiveType::S16 => Ok(I16.boxed_dtype()),
@@ -326,18 +326,18 @@ impl PrimitiveType {
             PrimitiveType::F64 => Ok(F64.boxed_dtype()),
             PrimitiveType::F16 => Ok(F16.boxed_dtype()),
             PrimitiveType::BF16 => Ok(BF16.boxed_dtype()),
-            PrimitiveType::C64 => todo!(),
-            PrimitiveType::C128 => todo!(),
-            PrimitiveType::F8E5M2 => todo!(),
-            PrimitiveType::F8E4M3FN => todo!(),
-            PrimitiveType::F8E4M3B11FNUZ => todo!(),
-            PrimitiveType::F8E5M2FNUZ => todo!(),
-            PrimitiveType::F8E4M3FNUZ => todo!(),
-            PrimitiveType::S4 => todo!(),
-            PrimitiveType::U4 => todo!(),
-            PrimitiveType::Token => todo!(),
-            PrimitiveType::S2 => todo!(),
-            PrimitiveType::U2 => todo!(),
+            PrimitiveType::C64 => Ok(C64.boxed_dtype()),
+            PrimitiveType::C128 => Ok(C128.boxed_dtype()),
+            PrimitiveType::F8E5M2 => Err(Error::Unimplemeted),
+            PrimitiveType::F8E4M3FN => Err(Error::Unimplemeted),
+            PrimitiveType::F8E4M3B11FNUZ => Err(Error::Unimplemeted),
+            PrimitiveType::F8E5M2FNUZ => Err(Error::Unimplemeted),
+            PrimitiveType::F8E4M3FNUZ => Err(Error::Unimplemeted),
+            PrimitiveType::S4 => Err(Error::Unimplemeted),
+            PrimitiveType::U4 => Err(Error::Unimplemeted),
+            PrimitiveType::Token => Err(Error::Unimplemeted),
+            PrimitiveType::S2 => Err(Error::Unimplemeted),
+            PrimitiveType::U2 => Err(Error::Unimplemeted),
         }
     }
 }

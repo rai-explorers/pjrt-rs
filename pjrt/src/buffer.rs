@@ -239,8 +239,7 @@ impl Buffer {
         let ty = self.primitive_type();
         let dims = self.dims();
         let layout = self.layout();
-        HostBuffer::builder()
-            .bytes(data, ty)
+        HostBuffer::from_bytes(data, ty)
             .dims(dims)
             .layout(layout)
             .build()
@@ -253,8 +252,7 @@ impl Buffer {
         let ty = self.primitive_type();
         let dims = self.dims();
         let layout = self.layout();
-        HostBuffer::builder()
-            .bytes(data, ty)
+        HostBuffer::from_bytes(data, ty)
             .dims(dims)
             .layout(layout)
             .build()

@@ -60,6 +60,9 @@ pub enum Error {
 
     #[error("lock poison error: {0}")]
     PoisonError(String),
+
+    #[error("unimplemented")]
+    Unimplemeted,
 }
 
 impl Error {
