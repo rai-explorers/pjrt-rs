@@ -16,7 +16,7 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn wrap(client: &Client, ptr: *mut PJRT_Memory) -> Memory {
+    pub(crate) fn wrap(client: &Client, ptr: *mut PJRT_Memory) -> Memory {
         assert!(!ptr.is_null());
         Self {
             client: client.clone(),

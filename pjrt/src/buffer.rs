@@ -30,7 +30,7 @@ impl Drop for Buffer {
 
 #[bon]
 impl Buffer {
-    pub fn wrap(client: &Client, ptr: *mut PJRT_Buffer) -> Self {
+    pub(crate) fn wrap(client: &Client, ptr: *mut PJRT_Buffer) -> Self {
         assert!(!ptr.is_null());
         Self {
             client: client.clone(),

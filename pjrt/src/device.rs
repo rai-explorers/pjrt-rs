@@ -30,7 +30,7 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn wrap(client: &Client, ptr: *mut PJRT_Device) -> Device {
+    pub(crate) fn wrap(client: &Client, ptr: *mut PJRT_Device) -> Device {
         assert!(!ptr.is_null());
         Self {
             client: client.clone(),

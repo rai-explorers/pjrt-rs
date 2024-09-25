@@ -39,7 +39,7 @@ impl Drop for Event {
 }
 
 impl Event {
-    pub fn wrap(api: &Api, ptr: *mut PJRT_Event) -> Self {
+    pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_Event) -> Self {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),

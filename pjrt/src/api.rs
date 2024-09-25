@@ -26,7 +26,7 @@ unsafe impl Sync for Api {}
 impl Api {
     #[allow(clippy::arc_with_non_send_sync)]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    pub fn wrap(ptr: *const PJRT_Api) -> Self {
+    pub(crate) fn wrap(ptr: *const PJRT_Api) -> Self {
         assert!(!ptr.is_null());
         let raw = Arc::new(unsafe { *ptr });
         let version = Version::new(raw.pjrt_api_version);
@@ -158,7 +158,7 @@ pub struct Version {
 }
 
 impl Version {
-    pub fn new(raw: PJRT_Api_Version) -> Self {
+    pub(crate) fn new(raw: PJRT_Api_Version) -> Self {
         let major_version = raw.major_version;
         let minor_version = raw.minor_version;
         Self {

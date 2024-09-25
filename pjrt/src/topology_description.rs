@@ -28,7 +28,7 @@ impl Drop for TopologyDescription {
 
 #[bon]
 impl TopologyDescription {
-    pub fn wrap(api: &Api, ptr: *mut PJRT_TopologyDescription) -> TopologyDescription {
+    pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_TopologyDescription) -> TopologyDescription {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),

@@ -32,7 +32,7 @@ impl Drop for LoadedExecutable {
 
 #[bon]
 impl LoadedExecutable {
-    pub fn wrap(client: &Client, ptr: *mut PJRT_LoadedExecutable) -> Self {
+    pub(crate) fn wrap(client: &Client, ptr: *mut PJRT_LoadedExecutable) -> Self {
         assert!(!ptr.is_null());
         Self {
             client: client.clone(),

@@ -34,7 +34,7 @@ impl Drop for Executable {
 
 #[bon]
 impl Executable {
-    pub fn wrap(api: &Api, ptr: *mut PJRT_Executable) -> Self {
+    pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_Executable) -> Self {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),

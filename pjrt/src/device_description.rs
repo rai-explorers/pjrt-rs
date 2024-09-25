@@ -17,7 +17,7 @@ pub struct DeviceDescription {
 }
 
 impl DeviceDescription {
-    pub fn wrap(api: &Api, ptr: *mut PJRT_DeviceDescription) -> DeviceDescription {
+    pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_DeviceDescription) -> DeviceDescription {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),

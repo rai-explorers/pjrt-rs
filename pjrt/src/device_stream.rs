@@ -22,7 +22,8 @@ impl Drop for CopyToDeviceStream {
 }
 
 impl CopyToDeviceStream {
-    pub fn wrap(api: &Api, ptr: *mut PJRT_CopyToDeviceStream) -> Self {
+    #[allow(dead_code)]
+    pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_CopyToDeviceStream) -> Self {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),

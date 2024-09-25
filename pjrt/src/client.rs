@@ -40,7 +40,7 @@ pub struct Client {
 
 #[bon]
 impl Client {
-    pub fn wrap(api: &Api, ptr: *mut PJRT_Client) -> Self {
+    pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_Client) -> Self {
         assert!(!ptr.is_null());
         Self {
             raw: Rc::new(ClientRaw {
