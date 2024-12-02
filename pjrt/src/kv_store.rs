@@ -17,7 +17,7 @@ unsafe extern "C" fn value_deleter_callback(value: *mut c_char) {
 pub(crate) unsafe extern "C" fn kv_get_callback(
     args: *mut PJRT_KeyValueGetCallback_Args,
 ) -> *mut PJRT_Error {
-    let mut args = unsafe { args.as_mut().unwrap() };
+    let args = unsafe { args.as_mut().unwrap() };
     let store = unsafe { (args.user_arg as *mut &dyn KeyValueStore).as_mut().unwrap() };
     let key = utils::str_from_raw(args.key, args.key_size);
     args.value_deleter_callback = Some(value_deleter_callback);
@@ -43,7 +43,7 @@ pub(crate) unsafe extern "C" fn kv_get_callback(
 pub(crate) unsafe extern "C" fn kv_put_callback(
     args: *mut PJRT_KeyValuePutCallback_Args,
 ) -> *mut PJRT_Error {
-    let mut args = unsafe { args.as_mut().unwrap() };
+    let args = unsafe { args.as_mut().unwrap() };
     let store = unsafe { (args.user_arg as *mut &dyn KeyValueStore).as_mut().unwrap() };
     let key = utils::str_from_raw(args.key, args.key_size);
     let value = utils::str_from_raw(args.value, args.value_size);
