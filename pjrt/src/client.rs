@@ -203,7 +203,7 @@ impl Client {
             .api()
             .PJRT_Client_TopologyDescription(args)
             .expect("PJRT_Client_TopologyDescription");
-        TopologyDescription::wrap(self.api(), args.topology)
+        TopologyDescription::wrap(self.api(), args.topology, Some(self))
     }
 
     // TODO:

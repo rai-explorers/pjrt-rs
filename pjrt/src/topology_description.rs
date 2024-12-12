@@ -9,10 +9,11 @@ use pjrt_sys::{
     PJRT_TopologyDescription_Serialize_Args,
 };
 
-use crate::{utils, Api, DeviceDescription, NamedValue, NamedValueMap, Result};
+use crate::{utils, Api, Client, DeviceDescription, NamedValue, NamedValueMap, Result};
 
 pub struct TopologyDescription {
     pub(crate) api: Api,
+    pub(crate) client: Option<Client>,
     pub(crate) ptr: *mut PJRT_TopologyDescription,
 }
 
@@ -20,19 +21,26 @@ impl Drop for TopologyDescription {
     fn drop(&mut self) {
         let mut args = PJRT_TopologyDescription_Destroy_Args::new();
         args.topology = self.ptr;
-        self.api
-            .PJRT_TopologyDescription_Destroy(args)
-            .expect("PJRT_TopologyDescription_Destroy");
+        if self.client.is_none() {
+            self.api
+                .PJRT_TopologyDescription_Destroy(args)
+                .expect("PJRT_TopologyDescription_Destroy");
+        }
     }
 }
 
 #[bon]
 impl TopologyDescription {
-    pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_TopologyDescription) -> TopologyDescription {
+    pub(crate) fn wrap(
+        api: &Api,
+        ptr: *mut PJRT_TopologyDescription,
+        client: Option<&Client>,
+    ) -> TopologyDescription {
         assert!(!ptr.is_null());
         Self {
             api: api.clone(),
             ptr,
+            client: client.cloned(),
         }
     }
 

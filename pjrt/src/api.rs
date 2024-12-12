@@ -68,7 +68,7 @@ impl Api {
         args.create_options = create_options.as_ptr();
         args.num_options = create_options.len();
         args = self.PJRT_TopologyDescription_Create(args)?;
-        Ok(TopologyDescription::wrap(self, args.topology))
+        Ok(TopologyDescription::wrap(self, args.topology, None))
     }
 
     #[allow(clippy::borrowed_box)]
