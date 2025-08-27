@@ -1,14 +1,27 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-XLA_COMMIT = "720b2c53346660e95abbed7cf3309a8b85e979f9"
-XLA_SHA256 = "a93bb0414c33025f6cb775c374d5695c84055f2bd88d6ea826d51d99612baaef"
+SKYLIB_VERSION = "1.7.1"
+SKYLIB_SHA256 = "bc283cdfcd526a52c3201279cda4bc298652efa898b10b4db0837dc51652756f"
+
+http_archive(
+    name = "bazel_skylib",
+    sha256 = SKYLIB_SHA256,
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz".format(version = SKYLIB_VERSION),
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz".format(version = SKYLIB_VERSION),
+    ],
+)
+
+XLA_COMMIT = "a21f04c9572d7a2f930c7df8d2076bd846449a0a"
+XLA_SHA256 = "69f6c7ef7251537b4d99ba734caa2f8d837fe19dafe309161d4547b45e28ec92"
 
 http_archive(
     name = "xla",
     sha256 = XLA_SHA256,
-    strip_prefix = "xla-{commit}".format(commit = XLA_COMMIT),
+    type = "tar.gz",
+    strip_prefix = "openxla-xla-{commit}".format(commit = XLA_COMMIT[:7]),
     urls = [
-        "https://github.com/openxla/xla/archive/{commit}.tar.gz".format(commit = XLA_COMMIT)
+        "https://api.github.com/repos/openxla/xla/tarball/{commit}".format(commit = XLA_COMMIT)
     ],
 )
 
@@ -41,7 +54,7 @@ load("@xla//:workspace0.bzl", "xla_workspace0")
 xla_workspace0()
 
 load(
-    "@tsl//third_party/gpus/cuda/hermetic:cuda_json_init_repository.bzl",
+    "@xla//third_party/gpus/cuda/hermetic:cuda_json_init_repository.bzl",
     "cuda_json_init_repository",
 )
 
@@ -52,8 +65,9 @@ load(
     "CUDA_REDISTRIBUTIONS",
     "CUDNN_REDISTRIBUTIONS",
 )
+
 load(
-    "@tsl//third_party/gpus/cuda/hermetic:cuda_redist_init_repositories.bzl",
+    "@xla//third_party/gpus/cuda/hermetic:cuda_redist_init_repositories.bzl",
     "cuda_redist_init_repositories",
     "cudnn_redist_init_repository",
 )
@@ -67,21 +81,21 @@ cudnn_redist_init_repository(
 )
 
 load(
-    "@tsl//third_party/gpus/cuda/hermetic:cuda_configure.bzl",
+    "@xla//third_party/gpus/cuda/hermetic:cuda_configure.bzl",
     "cuda_configure",
 )
 
 cuda_configure(name = "local_config_cuda")
 
 load(
-    "@tsl//third_party/nccl/hermetic:nccl_redist_init_repository.bzl",
+    "@xla//third_party/nccl/hermetic:nccl_redist_init_repository.bzl",
     "nccl_redist_init_repository",
 )
 
 nccl_redist_init_repository()
 
 load(
-    "@tsl//third_party/nccl/hermetic:nccl_configure.bzl",
+    "@xla//third_party/nccl/hermetic:nccl_configure.bzl",
     "nccl_configure",
 )
 

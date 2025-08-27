@@ -9,7 +9,7 @@ package xla;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";
-import "tsl/protobuf/dnn.proto";
+import "xla/tsl/protobuf/dnn.proto";
 
 message CudnnVersion {
   int32 major = 1;
@@ -81,6 +81,11 @@ message AutotuneResult {
     int64 num_stages = 5;
     int64 num_warps = 6;
     int64 num_ctas = 7;
+    bool is_tma_allowed = 8;
+  }
+
+  message CustomKernelFusionKey {
+    int64 kernel_index = 1;
   }
 
   int64 scratch_bytes = 8;
@@ -93,10 +98,9 @@ message AutotuneResult {
     GemmKey gemm = 6;
     TritonGemmKey triton = 17;
     CudaConvPlanKey cuda_conv_plan = 15;
+    CustomKernelFusionKey custom_kernel_fusion = 18;
     stream_executor.dnn.AlgorithmProto algorithm = 16;
   }
-
-  // Next ID: 17
 }
 
 message AutotuningLog {
@@ -117,5 +121,10 @@ message AutotuningLog {
 
   int64 fusion_count = 8;
 
-  // Next ID: 9
+  // String representation of the selected backend. For fusions that will be
+  // the GPU backend config type. For custom calls it is a target name of the
+  // custom call.
+  string selected_backend = 9;
+
+  // Next ID: 10
 }

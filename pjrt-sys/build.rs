@@ -26,6 +26,9 @@ fn main() {
     // gen protobuf
     prost_build::Config::new()
         .include_file("protos.rs")
-        .compile_protos(&[protos.join("xla/pjrt/compile_options.proto")], &[protos])
+        .compile_protos(
+            &[protos.join("xla/pjrt/proto/compile_options.proto")],
+            &[protos],
+        )
         .expect("unable to compile protos");
 }

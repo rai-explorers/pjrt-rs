@@ -3,3 +3,6 @@ common --noenable_bzlmod
 
 build --nocheck_visibility
 common --experimental_repo_remote_exec
+
+build --cxxopt='-std=c++17'
+build --host_cxxopt='-std=c++17'

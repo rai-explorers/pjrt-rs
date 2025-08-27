@@ -1,4 +1,5 @@
 load("@xla//xla/tsl:tsl.bzl", "transitive_hdrs")
+load(":proto_export.bzl", "transitive_proto_sources")
 
 transitive_hdrs(
   name = "pjrt_c_api_hdrs",
@@ -6,12 +7,13 @@ transitive_hdrs(
     "@xla//xla/pjrt/c:pjrt_c_api_hdrs",
   ]
 )
+
 genrule(
   name = "pjrt_headers",
   srcs = [
     ":pjrt_c_api_hdrs",
   ],
-  outs = ["pjrt_headers.tar"],
+  outs = ["pjrt_include.tar"],
   cmd = """
     TMP_DIR=$$(mktemp -d)
     for f in $(SRCS); do
@@ -28,25 +30,36 @@ genrule(
     """,
 )
 
+transitive_proto_sources(
+    name = "pjrt_c_api_protos",
+    deps = [
+        "@xla//xla/pjrt/proto:compile_options_proto",
+    ],
+    exclude = [
+      "../com_google_protobuf/",
+    ]
+)
+
 genrule(
   name = "pjrt_protos",
-  srcs = [
-    "@xla//xla/pjrt:compile_options_proto_proto_srcs",
-  ],
+  # Use the new target which contains all transitive sources.
+  srcs = [":pjrt_c_api_protos"],
   outs = ["pjrt_protos.tar"],
   cmd = """
     TMP_DIR=$$(mktemp -d)
     for f in $(SRCS); do
-      d="$${f%/*}"
-      if [[ $${d} == external* ]]; then
-        extname="$${d#*external/}"
-        extname="$${extname%%/*}"
-        d="$${d#*external/$${extname}/}"
-      fi      
-      mkdir -p "$${TMP_DIR}/$${d}"
-      cp "$${f}" "$${TMP_DIR}/$${d}/"
+      # This cmd script should now work correctly as it receives all needed files.
+      d=$$(dirname "$${f}")
+      rel_path=""
+      if [[ "$${d}" == *external/* ]]; then
+        rel_path="$${d#*external/}"
+        rel_path="$${rel_path#*/}"
+      else
+        rel_path="$${d}"
+      fi
+      mkdir -p "$${TMP_DIR}/$${rel_path}"
+      cp "$${f}" "$${TMP_DIR}/$${rel_path}/"
     done
     tar -C "$${TMP_DIR}" -cf $@ .
-  """
+  """,
 )
-
