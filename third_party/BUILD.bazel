@@ -6,15 +6,14 @@ transitive_hdrs(
     "@xla//xla/pjrt/c:pjrt_c_api_hdrs",
   ]
 )
-
 genrule(
   name = "pjrt_headers",
   srcs = [
     ":pjrt_c_api_hdrs",
   ],
-  outs = ["include"],
+  outs = ["pjrt_headers.tar"],
   cmd = """
-    mkdir $@
+    TMP_DIR=$$(mktemp -d)
     for f in $(SRCS); do
       d="$${f%/*}"
       if [[ $${d} == external* ]]; then
@@ -22,9 +21,10 @@ genrule(
         extname="$${extname%%/*}"
         d="$${d#*external/$${extname}/}"
       fi      
-      mkdir -p "$@/$${d}"
-      cp "$${f}" "$@/$${d}/"
+      mkdir -p "$${TMP_DIR}/$${d}"
+      cp "$${f}" "$${TMP_DIR}/$${d}/"
     done
+    tar -C "$${TMP_DIR}" -cf $@ .
     """,
 )
 
@@ -33,9 +33,9 @@ genrule(
   srcs = [
     "@xla//xla/pjrt:compile_options_proto_proto_srcs",
   ],
-  outs = ["protos"],
+  outs = ["pjrt_protos.tar"],
   cmd = """
-    mkdir $@
+    TMP_DIR=$$(mktemp -d)
     for f in $(SRCS); do
       d="$${f%/*}"
       if [[ $${d} == external* ]]; then
@@ -43,9 +43,10 @@ genrule(
         extname="$${extname%%/*}"
         d="$${d#*external/$${extname}/}"
       fi      
-      mkdir -p "$@/$${d}"
-      cp "$${f}" "$@/$${d}/"
+      mkdir -p "$${TMP_DIR}/$${d}"
+      cp "$${f}" "$${TMP_DIR}/$${d}/"
     done
+    tar -C "$${TMP_DIR}" -cf $@ .
   """
 )
 
