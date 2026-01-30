@@ -2,7 +2,9 @@ use pjrt::{self, Client, HostBuffer, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let api = pjrt::plugin("pjrt_c_api_cpu_plugin.so").load()?;
+    let plugin_path = std::env::var("PJRT_PLUGIN_PATH")
+        .expect("PJRT_PLUGIN_PATH environment variable must be set");
+    let api = pjrt::plugin(&plugin_path).load()?;
     println!("{:?}", api.plugin_attributes());
 
     let client = Client::builder(&api).build()?;
