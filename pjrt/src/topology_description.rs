@@ -4,7 +4,8 @@ use std::slice;
 use bon::bon;
 use pjrt_sys::{
     PJRT_SerializedTopology, PJRT_TopologyDescription, PJRT_TopologyDescription_Attributes_Args,
-    PJRT_TopologyDescription_Destroy_Args, PJRT_TopologyDescription_GetDeviceDescriptions_Args,
+    PJRT_TopologyDescription_Deserialize_Args, PJRT_TopologyDescription_Destroy_Args,
+    PJRT_TopologyDescription_GetDeviceDescriptions_Args,
     PJRT_TopologyDescription_PlatformName_Args, PJRT_TopologyDescription_PlatformVersion_Args,
     PJRT_TopologyDescription_Serialize_Args,
 };
@@ -111,6 +112,18 @@ impl TopologyDescription {
             data_ptr: args.serialized_bytes as *const u8,
             data_len: args.serialized_bytes_size,
         }
+    }
+
+    /// Deserializes a topology from previously serialized bytes.
+    ///
+    /// This is useful for recreating a topology on a different process
+    /// or after serialization for caching purposes.
+    pub fn deserialize(api: &Api, bytes: &[u8]) -> Result<Self> {
+        let mut args = PJRT_TopologyDescription_Deserialize_Args::new();
+        args.serialized_topology = bytes.as_ptr() as *const i8;
+        args.serialized_topology_size = bytes.len();
+        let args = api.PJRT_TopologyDescription_Deserialize(args)?;
+        Ok(Self::wrap(api, args.topology, None))
     }
 }
 

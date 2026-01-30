@@ -6,12 +6,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::task::{Context, Poll, Waker};
 
 use pjrt_sys::{
-    PJRT_Error, PJRT_Error_Destroy_Args, PJRT_Event, PJRT_Event_Await_Args,
-    PJRT_Event_Destroy_Args, PJRT_Event_Error_Args, PJRT_Event_IsReady_Args,
-    PJRT_Event_OnReady_Args,
+    PJRT_Error, PJRT_Error_Code, PJRT_Error_Destroy_Args, PJRT_Event, PJRT_Event_Await_Args,
+    PJRT_Event_Create_Args, PJRT_Event_Destroy_Args, PJRT_Event_Error_Args,
+    PJRT_Event_IsReady_Args, PJRT_Event_OnReady_Args, PJRT_Event_Set_Args,
 };
 
-use crate::{Api, Result};
+use crate::{Api, ErrorCode, Result};
 
 extern "C" fn on_ready_callback(err: *mut PJRT_Error, cb_data: *mut c_void) {
     let (api, waker) = unsafe { *Box::from_raw(cb_data as *mut (Api, Waker)) };
@@ -85,6 +85,30 @@ impl Event {
         args.event = self.ptr;
         let _ = self.api.PJRT_Event_Await(args)?;
         Ok(())
+    }
+
+    /// Creates a new event.
+    ///
+    /// This creates an event that can be set later to signal completion.
+    pub fn create(api: &Api) -> Result<Self> {
+        let mut args = PJRT_Event_Create_Args::new();
+        let args = api.PJRT_Event_Create(args)?;
+        Ok(Self::wrap(api, args.event))
+    }
+
+    /// Sets this event with the given error code and message.
+    ///
+    /// This marks the event as complete. If error_code is OK, the event
+    /// completes successfully. Otherwise, it completes with an error.
+    pub fn set(&self, error_code: ErrorCode, error_message: Option<&str>) -> Result<()> {
+        let mut args = PJRT_Event_Set_Args::new();
+        args.event = self.ptr;
+        args.error_code = error_code as PJRT_Error_Code;
+        if let Some(msg) = error_message {
+            args.error_message = msg.as_ptr() as *const i8;
+            args.error_message_size = msg.len();
+        }
+        self.api.PJRT_Event_Set(args).map(|_| ())
     }
 }
 

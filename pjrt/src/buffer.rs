@@ -1,12 +1,12 @@
 use bon::bon;
 use pjrt_sys::{
-    PJRT_Buffer, PJRT_Buffer_CopyToDevice_Args, PJRT_Buffer_CopyToMemory_Args,
-    PJRT_Buffer_Delete_Args, PJRT_Buffer_Destroy_Args, PJRT_Buffer_Device_Args,
-    PJRT_Buffer_Dimensions_Args, PJRT_Buffer_DynamicDimensionIndices_Args,
+    PJRT_Buffer, PJRT_Buffer_CopyRawToHost_Args, PJRT_Buffer_CopyToDevice_Args,
+    PJRT_Buffer_CopyToMemory_Args, PJRT_Buffer_Delete_Args, PJRT_Buffer_Destroy_Args,
+    PJRT_Buffer_Device_Args, PJRT_Buffer_Dimensions_Args, PJRT_Buffer_DynamicDimensionIndices_Args,
     PJRT_Buffer_ElementType_Args, PJRT_Buffer_GetMemoryLayout_Args, PJRT_Buffer_IsDeleted_Args,
     PJRT_Buffer_IsOnCpu_Args, PJRT_Buffer_MemoryLayout, PJRT_Buffer_Memory_Args,
-    PJRT_Buffer_OnDeviceSizeInBytes_Args, PJRT_Buffer_ReadyEvent_Args,
-    PJRT_Buffer_ToHostBuffer_Args, PJRT_Buffer_UnpaddedDimensions_Args,
+    PJRT_Buffer_OnDeviceSizeInBytes_Args, PJRT_Buffer_ReadyEvent_Args, PJRT_Buffer_ToHostBuffer_Args,
+    PJRT_Buffer_UnpaddedDimensions_Args,
 };
 
 use crate::event::Event;
@@ -272,6 +272,47 @@ impl Buffer {
             .layout(layout)
             .build()
     }
+
+    /// Copies raw data from the buffer to host memory.
+    /// 
+    /// This is a lower-level API that copies raw bytes without type conversion.
+    #[builder(finish_fn = copy)]
+    pub async fn copy_raw_to_host(
+        &self,
+        #[builder(start_fn)] dst: &mut [u8],
+        offset: usize,
+        transfer_size: usize,
+    ) -> Result<()> {
+        let mut args = PJRT_Buffer_CopyRawToHost_Args::new();
+        args.buffer = self.ptr;
+        args.dst = dst.as_mut_ptr() as *mut _;
+        args.offset = offset as i64;
+        args.transfer_size = transfer_size as i64;
+        let args = self.client.api().PJRT_Buffer_CopyRawToHost(args)?;
+        let event = Event::wrap(self.client.api(), args.event);
+        event.await
+    }
+
+    /// Copies raw data from the buffer to host memory synchronously.
+    #[builder(finish_fn = copy)]
+    pub fn copy_raw_to_host_sync(
+        &self,
+        #[builder(start_fn)] dst: &mut [u8],
+        offset: usize,
+        transfer_size: usize,
+    ) -> Result<()> {
+        let mut args = PJRT_Buffer_CopyRawToHost_Args::new();
+        args.buffer = self.ptr;
+        args.dst = dst.as_mut_ptr() as *mut _;
+        args.offset = offset as i64;
+        args.transfer_size = transfer_size as i64;
+        let args = self.client.api().PJRT_Buffer_CopyRawToHost(args)?;
+        let event = Event::wrap(self.client.api(), args.event);
+        event.wait()
+    }
+
+    // TODO: PJRT_Buffer_CopyRawToHostFuture - needs callback handling
+    // TODO: PJRT_Buffer_DonateWithControlDependency - complex callback-based API
 
     // TODO:
     // PJRT_Buffer_UnsafePointer

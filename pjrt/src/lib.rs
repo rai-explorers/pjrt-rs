@@ -3,7 +3,7 @@
 mod utils;
 
 mod error;
-pub use error::{Error, Result};
+pub use error::{Error, ErrorCode, Result};
 
 mod ty;
 pub use ty::*;
@@ -15,7 +15,7 @@ mod api;
 pub use api::Api;
 
 mod client;
-pub use client::Client;
+pub use client::{Client, FulfillAliasBufferCallback, ProcessInfo, ProcessState};
 
 mod buffer;
 pub use buffer::Buffer;
@@ -30,7 +30,7 @@ mod compile;
 pub use compile::{CompileOptions, CompileToExecutable, CompileToLoadedExecutable};
 
 mod device;
-pub use device::{Device, GlobalDeviceId, LocalDeviceId, LocalHardwareId, MemoryStats};
+pub use device::{AsyncTrackingEvent, Device, GlobalDeviceId, LocalDeviceId, LocalHardwareId, MemoryStats};
 
 mod device_description;
 pub use device_description::DeviceDescription;
@@ -70,5 +70,8 @@ pub use chunk::Chunk;
 
 mod kv_store;
 pub use kv_store::KeyValueStore;
+
+mod async_transfer;
+pub use async_transfer::{AsyncHostToDeviceTransferManager, BufferShape};
 // re-export pjrt-sys
 pub use pjrt_sys::protos;

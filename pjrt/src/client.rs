@@ -1,20 +1,27 @@
 use std::borrow::Cow;
+use std::ffi::c_void;
 use std::rc::Rc;
 use std::slice;
 
 use bon::bon;
 use pjrt_sys::{
     PJRT_Client, PJRT_Client_AddressableDevices_Args, PJRT_Client_AddressableMemories_Args,
-    PJRT_Client_Compile_Args, PJRT_Client_DefaultDeviceAssignment_Args, PJRT_Client_Destroy_Args,
-    PJRT_Client_Devices_Args, PJRT_Client_LookupAddressableDevice_Args,
-    PJRT_Client_LookupDevice_Args, PJRT_Client_PlatformName_Args, PJRT_Client_PlatformVersion_Args,
-    PJRT_Client_ProcessIndex_Args, PJRT_Client_TopologyDescription_Args,
-    PJRT_Executable_DeserializeAndLoad_Args, PJRT_Program,
+    PJRT_Client_Compile_Args, PJRT_Client_CreateAliasBuffer_Args,
+    PJRT_Client_CreateBuffersForAsyncHostToDevice_Args, PJRT_Client_CreateErrorBuffer_Args,
+    PJRT_Client_CreateUninitializedBuffer_Args, PJRT_Client_DefaultDeviceAssignment_Args,
+    PJRT_Client_Destroy_Args, PJRT_Client_Devices_Args, PJRT_Client_DmaMap_Args,
+    PJRT_Client_DmaUnmap_Args, PJRT_Client_FulfillAliasBuffer_Args,
+    PJRT_Client_LookupAddressableDevice_Args, PJRT_Client_LookupDevice_Args,
+    PJRT_Client_PlatformName_Args, PJRT_Client_PlatformVersion_Args, PJRT_Client_ProcessIndex_Args,
+    PJRT_Client_TopologyDescription_Args, PJRT_Client_UpdateGlobalProcessInfo_Args,
+    PJRT_Error_Code, PJRT_Executable_DeserializeAndLoad_Args, PJRT_ProcessInfo, PJRT_Program,
+    PJRT_ShapeSpec,
 };
 
 use crate::{
-    utils, Api, CompileOptions, CompileToLoadedExecutable, Device, DeviceAssignment,
-    GlobalDeviceId, KeyValueStore, LoadedExecutable, LocalHardwareId, Memory, NamedValue, Program,
+    utils, Api, AsyncHostToDeviceTransferManager, Buffer, BufferShape, CompileOptions,
+    CompileToLoadedExecutable, Device, DeviceAssignment, ErrorCode, GlobalDeviceId, KeyValueStore,
+    LoadedExecutable, LocalHardwareId, Memory, MemoryLayout, NamedValue, PrimitiveType, Program,
     Result, TopologyDescription,
 };
 
@@ -206,6 +213,171 @@ impl Client {
         TopologyDescription::wrap(self.api(), args.topology, Some(self))
     }
 
+    /// Creates buffers for asynchronous host-to-device transfers.
+    ///
+    /// Returns a transfer manager that can be used to transfer data asynchronously.
+    pub fn create_buffers_for_async_host_to_device(
+        &self,
+        shapes: &[BufferShape],
+        memory: &Memory,
+    ) -> Result<AsyncHostToDeviceTransferManager> {
+        let mut specs: Vec<PJRT_ShapeSpec> = shapes.iter().map(|s| s.to_spec()).collect();
+        let mut layouts: Vec<pjrt_sys::PJRT_Buffer_MemoryLayout> = shapes
+            .iter()
+            .filter_map(|s| s.layout().map(|l| l.into()))
+            .collect();
+        let mut layout_ptrs: Vec<*mut pjrt_sys::PJRT_Buffer_MemoryLayout> =
+            layouts.iter_mut().map(|l| l as *mut _).collect();
+
+        let mut args = PJRT_Client_CreateBuffersForAsyncHostToDevice_Args::new();
+        args.client = self.ptr();
+        args.shape_specs = specs.as_mut_ptr();
+        args.num_shape_specs = shapes.len();
+        if !layout_ptrs.is_empty() {
+            args.device_layouts = layout_ptrs.as_mut_ptr();
+            args.num_device_layouts = layout_ptrs.len();
+        }
+        args.memory = memory.ptr;
+        let args = self
+            .api()
+            .PJRT_Client_CreateBuffersForAsyncHostToDevice(args)?;
+        Ok(AsyncHostToDeviceTransferManager::wrap(
+            self,
+            args.transfer_manager,
+        ))
+    }
+
+    /// Creates an uninitialized buffer on the device.
+    ///
+    /// The buffer's memory is allocated but not initialized.
+    pub fn create_uninitialized_buffer(
+        &self,
+        dims: &[i64],
+        element_type: PrimitiveType,
+        memory: &Memory,
+        layout: Option<&MemoryLayout>,
+    ) -> Result<Buffer> {
+        let mut args = PJRT_Client_CreateUninitializedBuffer_Args::new();
+        args.client = self.ptr();
+        args.shape_dims = dims.as_ptr();
+        args.shape_num_dims = dims.len();
+        args.shape_element_type = element_type as pjrt_sys::PJRT_Buffer_Type;
+        if let Some(layout) = layout {
+            let mut layout_c = pjrt_sys::PJRT_Buffer_MemoryLayout::from(layout);
+            args.shape_layout = &mut layout_c as *mut _;
+        }
+        args.memory = memory.ptr;
+        let args = self.api().PJRT_Client_CreateUninitializedBuffer(args)?;
+        Ok(Buffer::wrap(self, args.buffer))
+    }
+
+    /// Creates a buffer that carries an error future without allocating memory.
+    ///
+    /// If this buffer is passed to an Execute call, the execution will fail
+    /// with the given error code and message.
+    pub fn create_error_buffer(
+        &self,
+        error_code: ErrorCode,
+        error_message: &str,
+        dims: &[i64],
+        element_type: PrimitiveType,
+        memory: &Memory,
+        layout: Option<&MemoryLayout>,
+    ) -> Result<Buffer> {
+        let mut args = PJRT_Client_CreateErrorBuffer_Args::new();
+        args.client = self.ptr();
+        args.error_code = error_code as PJRT_Error_Code;
+        args.error_message = error_message.as_ptr() as *const i8;
+        args.error_message_size = error_message.len();
+        args.shape_dims = dims.as_ptr();
+        args.shape_num_dims = dims.len();
+        args.shape_element_type = element_type as pjrt_sys::PJRT_Buffer_Type;
+        if let Some(layout) = layout {
+            let mut layout_c = pjrt_sys::PJRT_Buffer_MemoryLayout::from(layout);
+            args.shape_layout = &mut layout_c as *mut _;
+        }
+        args.memory = memory.ptr;
+        let args = self.api().PJRT_Client_CreateErrorBuffer(args)?;
+        Ok(Buffer::wrap(self, args.buffer))
+    }
+
+    /// Creates an alias buffer that can be fulfilled later.
+    ///
+    /// This is useful for creating output buffers before the computation
+    /// that produces them has completed.
+    #[builder(finish_fn = build)]
+    pub fn create_alias_buffer(
+        &self,
+        #[builder(start_fn)] memory: &Memory,
+        dims: &[i64],
+        element_type: PrimitiveType,
+        #[builder] layout: Option<&MemoryLayout>,
+    ) -> Result<(Buffer, FulfillAliasBufferCallback)> {
+        let mut args = PJRT_Client_CreateAliasBuffer_Args::new();
+        args.client = self.ptr();
+        args.memory = memory.ptr;
+        args.shape_dims = dims.as_ptr();
+        args.shape_num_dims = dims.len();
+        args.shape_element_type = element_type as pjrt_sys::PJRT_Buffer_Type;
+        if let Some(layout) = layout {
+            let mut layout_c = pjrt_sys::PJRT_Buffer_MemoryLayout::from(layout);
+            args.shape_layout = &mut layout_c as *mut _;
+        }
+        let args = self.api().PJRT_Client_CreateAliasBuffer(args)?;
+        let buffer = Buffer::wrap(self, args.alias_buffer);
+        let callback = FulfillAliasBufferCallback {
+            client: self.clone(),
+            ptr: args.fulfill_alias_buffer_cb,
+        };
+        Ok((buffer, callback))
+    }
+
+    /// Updates global process information for distributed execution.
+    pub fn update_global_process_info(&self, process_infos: &[ProcessInfo]) -> Result<()> {
+        let mut raw_infos: Vec<PJRT_ProcessInfo> = process_infos
+            .iter()
+            .map(|info| {
+                let mut raw = PJRT_ProcessInfo::new();
+                raw.task_id = info.task_id;
+                raw.incarnation_id = info.incarnation_id;
+                raw.state = info.state as pjrt_sys::PJRT_ProcessState;
+                raw.error_code = info.error_code.unwrap_or(0);
+                if let Some(ref msg) = info.error_message {
+                    raw.error_message = msg.as_ptr() as *const i8;
+                    raw.error_message_size = msg.len();
+                }
+                raw
+            })
+            .collect();
+
+        let mut args = PJRT_Client_UpdateGlobalProcessInfo_Args::new();
+        args.client = self.ptr();
+        args.process_infos = raw_infos.as_mut_ptr();
+        args.num_process_infos = raw_infos.len();
+        self.api()
+            .PJRT_Client_UpdateGlobalProcessInfo(args)
+            .map(|_| ())
+    }
+
+    /// Maps a host memory region for DMA transfers to the device.
+    ///
+    /// This allows the device to directly access host memory via DMA.
+    pub fn dma_map(&self, data: *mut c_void, size: usize) -> Result<()> {
+        let mut args = PJRT_Client_DmaMap_Args::new();
+        args.client = self.ptr();
+        args.data = data;
+        args.size = size;
+        self.api().PJRT_Client_DmaMap(args).map(|_| ())
+    }
+
+    /// Unmaps a previously DMA-mapped host memory region.
+    pub fn dma_unmap(&self, data: *mut c_void) -> Result<()> {
+        let mut args = PJRT_Client_DmaUnmap_Args::new();
+        args.client = self.ptr();
+        args.data = data;
+        self.api().PJRT_Client_DmaUnmap(args).map(|_| ())
+    }
+
     // TODO:
     // PJRT_Client_CreateViewOfDeviceBuffer
 }
@@ -220,5 +392,81 @@ impl CompileToLoadedExecutable<Program> for Client {
         args.compile_options_size = options_encoded.len();
         args = self.api().PJRT_Client_Compile(args)?;
         Ok(LoadedExecutable::wrap(self, args.executable))
+    }
+}
+
+/// Represents the state of a process in distributed execution.
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum ProcessState {
+    Unspecified = 0,
+    Uninitialized = 1,
+    Disconnected = 2,
+    Connected = 3,
+    Error = 4,
+}
+
+/// Information about a process in distributed execution.
+#[derive(Debug, Clone)]
+pub struct ProcessInfo {
+    pub task_id: i32,
+    pub incarnation_id: u64,
+    pub state: ProcessState,
+    pub error_code: Option<i32>,
+    pub error_message: Option<String>,
+}
+
+impl ProcessInfo {
+    pub fn new(task_id: i32, state: ProcessState) -> Self {
+        Self {
+            task_id,
+            incarnation_id: 0,
+            state,
+            error_code: None,
+            error_message: None,
+        }
+    }
+
+    pub fn with_incarnation(mut self, incarnation_id: u64) -> Self {
+        self.incarnation_id = incarnation_id;
+        self
+    }
+
+    pub fn with_error(mut self, code: i32, message: impl Into<String>) -> Self {
+        self.error_code = Some(code);
+        self.error_message = Some(message.into());
+        self
+    }
+}
+
+/// A callback that can be used to fulfill an alias buffer.
+pub struct FulfillAliasBufferCallback {
+    client: Client,
+    ptr: *mut pjrt_sys::PJRT_FulfillAliasBufferCallback,
+}
+
+impl FulfillAliasBufferCallback {
+    /// Fulfills the alias buffer with the given data.
+    pub fn fulfill(
+        &self,
+        buffer: &Buffer,
+        status_code: Option<ErrorCode>,
+        error_message: Option<&str>,
+    ) -> Result<()> {
+        let mut args = PJRT_Client_FulfillAliasBuffer_Args::new();
+        args.client = self.client.ptr();
+        args.buffer = buffer.ptr;
+        if let Some(code) = status_code {
+            args.status_code = code as PJRT_Error_Code;
+        }
+        if let Some(msg) = error_message {
+            args.error_message = msg.as_ptr() as *const i8;
+            args.error_message_size = msg.len();
+        }
+        args.fulfill_alias_buffer_cb = self.ptr;
+        self.client
+            .api()
+            .PJRT_Client_FulfillAliasBuffer(args)
+            .map(|_| ())
     }
 }

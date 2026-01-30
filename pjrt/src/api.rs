@@ -490,3 +490,123 @@ pjrt_api_fn_ret_err!(
     PJRT_ExecuteContext_Destroy,
     PJRT_ExecuteContext_Destroy_Args
 );
+
+// New APIs for XLA commit 68069613f91e354a1fc5a2e235da2ba44670e612
+
+// Event Create and Set
+pjrt_api_fn_ret_err!(PJRT_Event_Create, PJRT_Event_Create_Args);
+pjrt_api_fn_ret_err!(PJRT_Event_Set, PJRT_Event_Set_Args);
+
+// AsyncHostToDeviceTransferManager
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_Destroy,
+    PJRT_AsyncHostToDeviceTransferManager_Destroy_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_TransferData,
+    PJRT_AsyncHostToDeviceTransferManager_TransferData_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_RetrieveBuffer,
+    PJRT_AsyncHostToDeviceTransferManager_RetrieveBuffer_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_Device,
+    PJRT_AsyncHostToDeviceTransferManager_Device_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_BufferCount,
+    PJRT_AsyncHostToDeviceTransferManager_BufferCount_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_BufferSize,
+    PJRT_AsyncHostToDeviceTransferManager_BufferSize_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_SetBufferError,
+    PJRT_AsyncHostToDeviceTransferManager_SetBufferError_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_AddMetadata,
+    PJRT_AsyncHostToDeviceTransferManager_AddMetadata_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncHostToDeviceTransferManager_TransferLiteral,
+    PJRT_AsyncHostToDeviceTransferManager_TransferLiteral_Args
+);
+
+// Buffer CopyRawToHost
+pjrt_api_fn_ret_err!(PJRT_Buffer_CopyRawToHost, PJRT_Buffer_CopyRawToHost_Args);
+pjrt_api_fn_ret_err!(
+    PJRT_Buffer_CopyRawToHostFuture,
+    PJRT_Buffer_CopyRawToHostFuture_Args
+);
+
+// Buffer DonateWithControlDependency
+pjrt_api_fn_ret_err!(
+    PJRT_Buffer_DonateWithControlDependency,
+    PJRT_Buffer_DonateWithControlDependency_Args
+);
+
+// Client CreateBuffersForAsyncHostToDevice
+pjrt_api_fn_ret_err!(
+    PJRT_Client_CreateBuffersForAsyncHostToDevice,
+    PJRT_Client_CreateBuffersForAsyncHostToDevice_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_Client_CreateUninitializedBuffer,
+    PJRT_Client_CreateUninitializedBuffer_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_Client_CreateErrorBuffer,
+    PJRT_Client_CreateErrorBuffer_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_Client_CreateAliasBuffer,
+    PJRT_Client_CreateAliasBuffer_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_Client_FulfillAliasBuffer,
+    PJRT_Client_FulfillAliasBuffer_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_Client_UpdateGlobalProcessInfo,
+    PJRT_Client_UpdateGlobalProcessInfo_Args
+);
+pjrt_api_fn_ret_err!(PJRT_Client_DmaMap, PJRT_Client_DmaMap_Args);
+pjrt_api_fn_ret_err!(PJRT_Client_DmaUnmap, PJRT_Client_DmaUnmap_Args);
+
+// Device CreateAsyncTrackingEvent and PoisonExecution
+pjrt_api_fn_ret_err!(
+    PJRT_Device_CreateAsyncTrackingEvent,
+    PJRT_Device_CreateAsyncTrackingEvent_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_Device_PoisonExecution,
+    PJRT_Device_PoisonExecution_Args
+);
+
+// TopologyDescription Deserialize
+pjrt_api_fn_ret_err!(
+    PJRT_TopologyDescription_Deserialize,
+    PJRT_TopologyDescription_Deserialize_Args
+);
+
+// Executable GetCompileOptions and GetDeviceAssignment
+pjrt_api_fn_ret_err!(
+    PJRT_Executable_GetCompileOptions,
+    PJRT_Executable_GetCompileOptions_Args
+);
+pjrt_api_fn_ret_err!(
+    PJRT_LoadedExecutable_GetDeviceAssignment,
+    PJRT_LoadedExecutable_GetDeviceAssignment_Args
+);
+
+// AsyncTrackingEvent Destroy
+pjrt_api_fn_ret_err!(
+    PJRT_AsyncTrackingEvent_Destroy,
+    PJRT_AsyncTrackingEvent_Destroy_Args
+);
+
+// Note: PJRT_KeyValueTryGetCallback is a callback field in PJRT_Client_Create_Args,
+// not a standalone API function. It's used when creating a client with KV store support.

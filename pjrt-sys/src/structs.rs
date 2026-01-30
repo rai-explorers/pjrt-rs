@@ -508,3 +508,170 @@ impl_new!(
 );
 
 impl_new!(PJRT_Compile_Args, PJRT_Compile_Args_STRUCT_SIZE);
+
+// AsyncHostToDeviceTransferManager structs
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_Destroy_Args,
+    PJRT_AsyncHostToDeviceTransferManager_Destroy_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_TransferData_Args,
+    PJRT_AsyncHostToDeviceTransferManager_TransferData_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_RetrieveBuffer_Args,
+    PJRT_AsyncHostToDeviceTransferManager_RetrieveBuffer_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_Device_Args,
+    PJRT_AsyncHostToDeviceTransferManager_Device_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_BufferCount_Args,
+    PJRT_AsyncHostToDeviceTransferManager_BufferCount_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_BufferSize_Args,
+    PJRT_AsyncHostToDeviceTransferManager_BufferSize_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_SetBufferError_Args,
+    PJRT_AsyncHostToDeviceTransferManager_SetBufferError_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_AddMetadata_Args,
+    PJRT_AsyncHostToDeviceTransferManager_AddMetadata_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_AsyncHostToDeviceTransferManager_TransferLiteral_Args,
+    PJRT_AsyncHostToDeviceTransferManager_TransferLiteral_Args_STRUCT_SIZE
+);
+
+// Buffer CopyRawToHost structs
+impl_new!(
+    PJRT_Buffer_CopyRawToHost_Args,
+    PJRT_Buffer_CopyRawToHost_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Buffer_CopyRawToHostFuture_Args,
+    PJRT_Buffer_CopyRawToHostFuture_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Buffer_CopyRawToHostFuture_Callback_Args,
+    PJRT_Buffer_CopyRawToHostFuture_Callback_Args_STRUCT_SIZE
+);
+
+// Buffer DonateWithControlDependency structs
+impl_new!(
+    PJRT_Buffer_DonateWithControlDependency_Args,
+    PJRT_Buffer_DonateWithControlDependency_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Buffer_DonateWithControlDependency_Callback_Args,
+    PJRT_Buffer_DonateWithControlDependency_Callback_Args_STRUCT_SIZE
+);
+
+// Client new structs
+impl_new!(
+    PJRT_Client_CreateBuffersForAsyncHostToDevice_Args,
+    PJRT_Client_CreateBuffersForAsyncHostToDevice_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Client_CreateUninitializedBuffer_Args,
+    PJRT_Client_CreateUninitializedBuffer_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Client_CreateErrorBuffer_Args,
+    PJRT_Client_CreateErrorBuffer_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Client_CreateAliasBuffer_Args,
+    PJRT_Client_CreateAliasBuffer_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Client_FulfillAliasBuffer_Args,
+    PJRT_Client_FulfillAliasBuffer_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Client_UpdateGlobalProcessInfo_Args,
+    PJRT_Client_UpdateGlobalProcessInfo_Args_STRUCT_SIZE
+);
+
+impl_new!(PJRT_Client_DmaMap_Args, PJRT_Client_DmaMap_Args_STRUCT_SIZE);
+
+impl_new!(
+    PJRT_Client_DmaUnmap_Args,
+    PJRT_Client_DmaUnmap_Args_STRUCT_SIZE
+);
+
+// Device new structs
+impl_new!(
+    PJRT_Device_CreateAsyncTrackingEvent_Args,
+    PJRT_Device_CreateAsyncTrackingEvent_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_Device_PoisonExecution_Args,
+    PJRT_Device_PoisonExecution_Args_STRUCT_SIZE
+);
+
+// Event new structs
+impl_new!(PJRT_Event_Create_Args, PJRT_Event_Create_Args_STRUCT_SIZE);
+
+impl_new!(PJRT_Event_Set_Args, PJRT_Event_Set_Args_STRUCT_SIZE);
+
+// Executable new structs
+impl_new!(
+    PJRT_Executable_GetCompileOptions_Args,
+    PJRT_Executable_GetCompileOptions_Args_STRUCT_SIZE
+);
+
+impl_new!(
+    PJRT_LoadedExecutable_GetDeviceAssignment_Args,
+    PJRT_LoadedExecutable_GetDeviceAssignment_Args_STRUCT_SIZE
+);
+
+// KeyValueTryGetCallback
+impl_new!(
+    PJRT_KeyValueTryGetCallback_Args,
+    PJRT_KeyValueTryGetCallback_Args_STRUCT_SIZE
+);
+
+// ProcessInfo
+impl_new!(PJRT_ProcessInfo, PJRT_ProcessInfo_STRUCT_SIZE);
+
+// Callback Info structs (no struct_size field, use simple form)
+impl_new!(PJRT_RecvCallbackInfo);
+
+impl_new!(PJRT_SendCallbackInfo);
+
+// ShapeSpec
+impl_new!(PJRT_ShapeSpec, PJRT_ShapeSpec_STRUCT_SIZE);
+
+// TopologyDescription Deserialize
+impl_new!(
+    PJRT_TopologyDescription_Deserialize_Args,
+    PJRT_TopologyDescription_Deserialize_Args_STRUCT_SIZE
+);
+
+// AsyncTrackingEvent
+impl_new!(
+    PJRT_AsyncTrackingEvent_Destroy_Args,
+    PJRT_AsyncTrackingEvent_Destroy_Args_STRUCT_SIZE
+);

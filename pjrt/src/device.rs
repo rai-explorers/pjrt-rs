@@ -1,12 +1,14 @@
 use std::slice;
 
 use pjrt_sys::{
-    PJRT_Device, PJRT_Device_AddressableMemories_Args, PJRT_Device_DefaultMemory_Args,
+    PJRT_AsyncTrackingEvent_Destroy_Args, PJRT_Device, PJRT_Device_AddressableMemories_Args,
+    PJRT_Device_CreateAsyncTrackingEvent_Args, PJRT_Device_DefaultMemory_Args,
     PJRT_Device_GetDescription_Args, PJRT_Device_IsAddressable_Args,
     PJRT_Device_LocalHardwareId_Args, PJRT_Device_MemoryStats_Args,
+    PJRT_Device_PoisonExecution_Args,
 };
 
-use crate::{Client, DeviceDescription, Memory, Result};
+use crate::{Client, DeviceDescription, ErrorCode, Memory, Result};
 
 /// The logical global device ID.
 /// This is unique among devices of this type (e.g. CPUs, GPUs).
@@ -107,6 +109,64 @@ impl Device {
         args.device = self.ptr;
         args = self.client.api().PJRT_Device_MemoryStats(args)?;
         Ok(MemoryStats::from(args))
+    }
+
+    /// Creates an async tracking event for this device.
+    ///
+    /// This can be used to track the completion of asynchronous operations.
+    pub fn create_async_tracking_event(&self) -> Result<AsyncTrackingEvent> {
+        let mut args = PJRT_Device_CreateAsyncTrackingEvent_Args::new();
+        args.device = self.ptr;
+        let args = self
+            .client
+            .api()
+            .PJRT_Device_CreateAsyncTrackingEvent(args)?;
+        Ok(AsyncTrackingEvent {
+            api: self.client.api().clone(),
+            ptr: args.event,
+        })
+    }
+
+    /// Marks this device's execution as poisoned.
+    ///
+    /// This is a mechanism to signal that something has gone wrong with the device
+    /// and subsequent operations should fail with the given error code and message.
+    pub fn poison_execution(&self, error_code: ErrorCode, error_message: &str) -> Result<()> {
+        let mut args = PJRT_Device_PoisonExecution_Args::new();
+        args.device = self.ptr;
+        args.error_code = error_code as pjrt_sys::PJRT_Error_Code;
+        args.error_message = error_message.as_ptr() as *const i8;
+        args.error_message_size = error_message.len();
+        self.client
+            .api()
+            .PJRT_Device_PoisonExecution(args)
+            .map(|_| ())
+    }
+}
+
+/// An async tracking event for monitoring device operations.
+pub struct AsyncTrackingEvent {
+    api: crate::Api,
+    ptr: *mut pjrt_sys::PJRT_AsyncTrackingEvent,
+}
+
+impl Drop for AsyncTrackingEvent {
+    fn drop(&mut self) {
+        let mut args = PJRT_AsyncTrackingEvent_Destroy_Args::new();
+        args.event = self.ptr;
+        self.api
+            .PJRT_AsyncTrackingEvent_Destroy(args)
+            .expect("PJRT_AsyncTrackingEvent_Destroy");
+    }
+}
+
+impl AsyncTrackingEvent {
+    pub fn api(&self) -> &crate::Api {
+        &self.api
+    }
+
+    pub(crate) fn ptr(&self) -> *mut pjrt_sys::PJRT_AsyncTrackingEvent {
+        self.ptr
     }
 }
 

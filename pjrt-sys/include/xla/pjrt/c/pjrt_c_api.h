@@ -67,6 +67,11 @@ typedef enum {
   PJRT_Extension_Type_Unknown,
   PJRT_Extension_Type_CrossHostTransfers,
   PJRT_Extension_Type_ExecutableMetadata,
+  PJRT_Extension_Type_Callback,
+  PJRT_Extension_Type_HostAllocator,  // Experimental.
+  PJRT_Extension_Type_TpuTopology,
+  PJRT_Extension_Type_TpuExecutable,
+  PJRT_Extension_Type_Megascale,
 } PJRT_Extension_Type;
 
 // PJRT_Extension_Base contains a type and a pointer to next
@@ -101,7 +106,7 @@ PJRT_DEFINE_STRUCT_TRAITS(PJRT_Extension_Base, next);
 // Changes include:
 // * Adding a new field to the PJRT_Api or argument structs
 // * Renaming a method or argument (doesn't affect ABI)
-#define PJRT_API_MINOR 75
+#define PJRT_API_MINOR 90
 
 // The plugin should set the major_version and minor_version of
 // PJRT_Api.pjrt_api_version to be the `PJRT_API_MAJOR` and `PJRT_API_MINOR` in
@@ -149,6 +154,7 @@ typedef void PJRT_Error_Message(PJRT_Error_Message_Args* args);
 
 // Codes are based on https://abseil.io/docs/cpp/guides/status-codes
 typedef enum {
+  PJRT_Error_Code_OK = 0,
   PJRT_Error_Code_CANCELLED = 1,
   PJRT_Error_Code_UNKNOWN = 2,
   PJRT_Error_Code_INVALID_ARGUMENT = 3,
@@ -243,9 +249,11 @@ typedef PJRT_Error* PJRT_Plugin_Attributes(PJRT_Plugin_Attributes_Args* args);
 
 // ---------------------------------- Events -----------------------------------
 
-// Represents a notifying event that is returned by PJRT APIs that enqueue
+// Represents a notifying event that may be returned by PJRT APIs that enqueue
 // asynchronous work, informing callers when the work is complete and reporting
-// a value of type `PJRT_Error*` or `nullptr` as error status.
+// a value of type `PJRT_Error*` or `nullptr` as error status. When passed to
+// PJRT APIs that wait for asynchronous work, setting the event indicates that
+// the work is complete.
 //
 // Callers are always responsible for freeing `PJRT_Event`s by calling
 // `PJRT_Event_Destroy`.
@@ -324,6 +332,29 @@ PJRT_DEFINE_STRUCT_TRAITS(PJRT_Event_OnReady_Args, user_arg);
 // error status and a pointer to an object of the caller's choice as arguments.
 typedef PJRT_Error* PJRT_Event_OnReady(PJRT_Event_OnReady_Args* args);
 
+struct PJRT_Event_Create_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Event* event;  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Event_Create_Args, event);
+
+// Creates a new PJRT_Event.
+typedef PJRT_Error* PJRT_Event_Create(PJRT_Event_Create_Args* args);
+
+struct PJRT_Event_Set_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Event* event;           // An event created by `PJRT_Event_Create`.
+  PJRT_Error_Code error_code;  // The error code with which to set the event.
+  const char* error_message;   // Can be freed after the function returns.
+  size_t error_message_size;
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Event_Set_Args, error_message_size);
+
+// Sets the PJRT_Event as completed with the given error code and message.
+typedef PJRT_Error* PJRT_Event_Set(PJRT_Event_Set_Args* args);
+
 // ---------------------------------- Client -----------------------------------
 
 typedef struct PJRT_Client PJRT_Client;
@@ -335,14 +366,15 @@ typedef struct PJRT_TopologyDescription PJRT_TopologyDescription;
 typedef struct PJRT_Executable PJRT_Executable;
 typedef struct PJRT_LoadedExecutable PJRT_LoadedExecutable;
 typedef struct PJRT_Buffer PJRT_Buffer;
+typedef struct PJRT_FulfillAliasBufferCallback PJRT_FulfillAliasBufferCallback;
 typedef struct PJRT_AsyncHostToDeviceTransferManager
     PJRT_AsyncHostToDeviceTransferManager;
 typedef struct PJRT_PhaseCompiler PJRT_PhaseCompiler;
 
 // The caller of PJRT_Client_Create can optionally provide a key-value store
-// accessible across nodes and/or processes. KV store access may be necessary to
-// create some multi-node/multi-process clients. The caller can provide the two
-// callbacks below to access the key-value store.
+// accessible across nodes and/or processes. KV store access may be necessary
+// to create some multi-node/multi-process clients. The caller can provide the
+// two callbacks below to access the key-value store.
 
 // A callback to delete the value returned by PJRT_KeyValueGetCallback.
 typedef void (*PJRT_KeyValueGetCallback_ValueDeleter)(char* value);
@@ -663,8 +695,7 @@ struct PJRT_Client_Compile_Args {
   // `program->format` and `program->format_size` are owned by the caller.
   const PJRT_Program* program;
   // TODO(b/240560013): consider putting some of option fields in priv.
-  // Serialized CompileOptionsProto
-  // (https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/pjrt/compile_options.proto)
+  // Serialized CompileOptionsProto.
   const char* compile_options;
   size_t compile_options_size;
   PJRT_LoadedExecutable* executable;  // out
@@ -963,6 +994,31 @@ struct PJRT_Buffer_MemoryLayout {
 };
 PJRT_DEFINE_STRUCT_TRAITS(PJRT_Buffer_MemoryLayout, type);
 
+struct PJRT_AsyncHostToDeviceTransferManager_TransferLiteral_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+
+  PJRT_AsyncHostToDeviceTransferManager* transfer_manager;
+  int buffer_index;
+  const void* data;
+
+  // Shape fields.
+  const int64_t* shape_dims;
+  size_t shape_num_dims;
+  PJRT_Buffer_Type shape_element_type;
+  PJRT_Buffer_MemoryLayout* shape_layout;
+
+  PJRT_Event* done_with_h2d_transfer;  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(
+    PJRT_AsyncHostToDeviceTransferManager_TransferLiteral_Args,
+    done_with_h2d_transfer);
+
+// Asynchronously copies a host literal to a buffer managed by a transfer
+// manager.
+typedef PJRT_Error* PJRT_AsyncHostToDeviceTransferManager_TransferLiteral(
+    PJRT_AsyncHostToDeviceTransferManager_TransferLiteral_Args* args);
+
 struct PJRT_Client_CreateUninitializedBuffer_Args {
   size_t struct_size;
   PJRT_Extension_Base* extension_start;
@@ -989,6 +1045,77 @@ PJRT_DEFINE_STRUCT_TRAITS(PJRT_Client_CreateUninitializedBuffer_Args, buffer);
 
 typedef PJRT_Error* PJRT_Client_CreateUninitializedBuffer(
     PJRT_Client_CreateUninitializedBuffer_Args* args);
+
+struct PJRT_Client_CreateErrorBuffer_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Client* client;
+
+  // Status fields.
+  PJRT_Error_Code error_code;
+  const char* error_message;
+  size_t error_message_size;
+
+  // Shape fields.
+  const int64_t* shape_dims;
+  size_t shape_num_dims;
+  PJRT_Buffer_Type shape_element_type;
+  PJRT_Buffer_MemoryLayout* shape_layout;
+
+  // Destination memory space for the error buffer.
+  PJRT_Memory* memory;
+
+  // Output device buffer. The caller is responsible for calling
+  // PJRT_Buffer_Destroy.
+  PJRT_Buffer* buffer;  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Client_CreateErrorBuffer_Args, buffer);
+
+// Creates a buffer in the given memory space that carries an error future
+// without allocating memory. If this buffer is passed to an Execute call, the
+// execution will fail with the given error code and message.
+typedef PJRT_Error* PJRT_Client_CreateErrorBuffer(
+    PJRT_Client_CreateErrorBuffer_Args* args);
+
+struct PJRT_Client_CreateAliasBuffer_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Client* client;
+
+  // Destination memory space for the buffer alias.
+  PJRT_Memory* memory;
+
+  // Shape fields.
+  const int64_t* shape_dims;
+  size_t shape_num_dims;
+  PJRT_Buffer_Type shape_element_type;
+  PJRT_Buffer_MemoryLayout* shape_layout;
+
+  PJRT_Buffer* alias_buffer;                                 // out
+  PJRT_FulfillAliasBufferCallback* fulfill_alias_buffer_cb;  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Client_CreateAliasBuffer_Args,
+                          fulfill_alias_buffer_cb);
+
+typedef PJRT_Error* PJRT_Client_CreateAliasBuffer(
+    PJRT_Client_CreateAliasBuffer_Args* args);
+
+struct PJRT_Client_FulfillAliasBuffer_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Client* client;
+
+  PJRT_Buffer* buffer;                                       // in
+  PJRT_Error_Code status_code;                               // in
+  const char* error_message;                                 // in
+  size_t error_message_size;                                 // in
+  PJRT_FulfillAliasBufferCallback* fulfill_alias_buffer_cb;  // in
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Client_FulfillAliasBuffer_Args,
+                          fulfill_alias_buffer_cb);
+
+typedef PJRT_Error* PJRT_Client_FulfillAliasBuffer(
+    PJRT_Client_FulfillAliasBuffer_Args* args);
 
 struct PJRT_Client_BufferFromHostBuffer_Args {
   size_t struct_size;
@@ -1319,6 +1446,57 @@ PJRT_DEFINE_STRUCT_TRAITS(PJRT_Device_MemoryStats_Args, peak_pool_bytes_is_set);
 // also return PJRT_Error_Code_UNIMPLEMENTED. Intended for diagnostic purposes.
 typedef PJRT_Error* PJRT_Device_MemoryStats(PJRT_Device_MemoryStats_Args* args);
 
+struct PJRT_Device_PoisonExecution_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+
+  PJRT_Device* device;
+  int32_t launch_id;
+
+  // Status fields.
+  PJRT_Error_Code error_code;
+  const char* error_message;
+  size_t error_message_size;
+
+  bool poisoned;  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Device_PoisonExecution_Args, poisoned);
+
+// Poisons the earliest execution on this device with given launch_id if it's
+// not finished yet, i.e. makes its output buffers error.
+typedef PJRT_Error* PJRT_Device_PoisonExecution(
+    PJRT_Device_PoisonExecution_Args* args);
+
+// --------------------------- AsyncTrackingEvent ------------------------------
+
+typedef struct PJRT_AsyncTrackingEvent PJRT_AsyncTrackingEvent;
+
+struct PJRT_Device_CreateAsyncTrackingEvent_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Device* device;
+  const char* description;
+  size_t description_size;
+  PJRT_AsyncTrackingEvent* event;  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Device_CreateAsyncTrackingEvent_Args, event);
+
+// Creates an async tracking event. The caller is responsible for destroying the
+// event.
+typedef PJRT_Error* PJRT_Device_CreateAsyncTrackingEvent(
+    PJRT_Device_CreateAsyncTrackingEvent_Args* args);
+
+struct PJRT_AsyncTrackingEvent_Destroy_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_AsyncTrackingEvent* event;
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_AsyncTrackingEvent_Destroy_Args, event);
+
+// Destroys the async tracking event.
+typedef PJRT_Error* PJRT_AsyncTrackingEvent_Destroy(
+    PJRT_AsyncTrackingEvent_Destroy_Args* args);
+
 //-------------------------------- Memory --------------------------------------
 
 struct PJRT_Memory_Id_Args {
@@ -1460,6 +1638,35 @@ PJRT_DEFINE_STRUCT_TRAITS(PJRT_LoadedExecutable_GetExecutable_Args, executable);
 // executable should be freed by the caller with PJRT_Executable_Destroy.
 typedef PJRT_Error* PJRT_LoadedExecutable_GetExecutable(
     PJRT_LoadedExecutable_GetExecutable_Args* args);
+
+typedef struct PJRT_DeviceAssignmentSerialized PJRT_DeviceAssignmentSerialized;
+
+struct PJRT_LoadedExecutable_GetDeviceAssignment_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_LoadedExecutable* executable;
+
+  // Lives only as long as serialized_device_assignment
+  const char* serialized_bytes;  // out
+  size_t serialized_bytes_size;  // out
+
+  PJRT_DeviceAssignmentSerialized*
+      serialized_device_assignment;  // backs serialized_bytes.
+  // cleanup fn must be called to free the backing memory for serialized_bytes.
+  // Should only be called once on serialized_device_assignment.
+  void (*serialized_device_assignment_deleter)(
+      PJRT_DeviceAssignmentSerialized* da);  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_LoadedExecutable_GetDeviceAssignment_Args,
+                          serialized_device_assignment_deleter);
+
+// Retrieves the serialized DeviceAssignmentProto for a given
+// PJRT_LoadedExecutable. The implementation allocates the serialized data,
+// which is valid as long as `serialized_device_assignment` is alive. The
+// caller must call `serialized_device_assignment_deleter` to free the
+// backing memory.
+typedef PJRT_Error* PJRT_LoadedExecutable_GetDeviceAssignment(
+    PJRT_LoadedExecutable_GetDeviceAssignment_Args* args);
 
 struct PJRT_Executable_Name_Args {
   size_t struct_size;
@@ -1650,8 +1857,26 @@ struct PJRT_ExecuteOptions {
   const int64_t* non_donatable_input_indices;
   size_t num_non_donatable_input_indices;
   PJRT_ExecuteContext* context;
+  // The `call_location` field is used to pass down call site location
+  // information from higher-level frameworks like JAX and PyTorch to the PJRT
+  // plugin. This field stores the source location (e.g., file:line) of the
+  // Python code that triggered the execution of this compiled program. This
+  // differs from the source location metadata stored in `OpMetadata`, which
+  // refers to the origin of individual operations within the HLO module.
+  // The plugin can use `call_location` for debugging and error reporting,
+  // allowing users to pinpoint which program execution led to an issue.
+  // The `call_location` pointer is owned by the caller and must point to a
+  // null-terminated string. It is only valid for the duration of the C API
+  // call. The plugin must copy the string if it needs to be stored.
+  const char* call_location;
+
+  // The incarnation id for every task. For every 0 <= i < num_tasks,
+  // task task_ids[i] has incarnation incarnation_ids[i].
+  size_t num_tasks;
+  int* task_ids;
+  int64_t* incarnation_ids;
 };
-PJRT_DEFINE_STRUCT_TRAITS(PJRT_ExecuteOptions, context);
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_ExecuteOptions, incarnation_ids);
 
 struct PJRT_LoadedExecutable_Execute_Args {
   size_t struct_size;
@@ -1775,9 +2000,11 @@ struct PJRT_Executable_GetCompiledMemoryStats_Args {
 
   // Device memory stats, from xla::CompiledMemoryStats.
   int64_t peak_memory_in_bytes;  // out
+  // Total Device default memory (e.g., HBM for GPU/TPU) usage.
+  int64_t total_size_in_bytes;  // out
 };
 PJRT_DEFINE_STRUCT_TRAITS(PJRT_Executable_GetCompiledMemoryStats_Args,
-                          peak_memory_in_bytes);
+                          total_size_in_bytes);
 
 // Return memory stats that allow callers to estimate memory usage when running
 // this executable. The memory stats could contain usage info from different
@@ -1836,6 +2063,8 @@ typedef PJRT_Error* PJRT_Executable_OutputMemoryKinds(
 
 typedef struct PJRT_SerializedExecutable PJRT_SerializedExecutable;
 
+typedef struct PJRT_SerializedCompileOptions PJRT_SerializedCompileOptions;
+
 struct PJRT_Executable_Serialize_Args {
   size_t struct_size;
   PJRT_Extension_Base* extension_start;
@@ -1859,6 +2088,29 @@ PJRT_DEFINE_STRUCT_TRAITS(PJRT_Executable_Serialize_Args,
 typedef PJRT_Error* PJRT_Executable_Serialize(
     PJRT_Executable_Serialize_Args* args);
 
+struct PJRT_Executable_GetCompileOptions_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Executable* executable;
+
+  // Lives only as long as serialized_compile_options
+  const char* serialized_bytes;  // out
+  size_t serialized_bytes_size;  // out
+
+  PJRT_SerializedCompileOptions*
+      serialized_compile_options;  // backs serialized_bytes.
+  // cleanup fn must be called to free the backing memory for serialized_bytes.
+  // Should only be called once on serialized_compile_options.
+  void (*serialized_compile_options_deleter)(
+      PJRT_SerializedCompileOptions* options);  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Executable_GetCompileOptions_Args,
+                          serialized_compile_options_deleter);
+
+// Returns the CompileOptions that were used to compile this executable.
+typedef PJRT_Error* PJRT_Executable_GetCompileOptions(
+    PJRT_Executable_GetCompileOptions_Args* args);
+
 struct PJRT_Executable_DeserializeAndLoad_Args {
   size_t struct_size;
   PJRT_Extension_Base* extension_start;
@@ -1868,7 +2120,6 @@ struct PJRT_Executable_DeserializeAndLoad_Args {
   PJRT_LoadedExecutable* loaded_executable;  // out
   // Serialized CompileOptionsProto or null (to use the options
   // from the serialized executable).
-  // (https://github.com/openxla/xla/blob/main/xla/pjrt/compile_options.proto)
   const char* overridden_serialized_compile_options;
   size_t overridden_serialized_compile_options_size;
 };
@@ -2067,6 +2318,43 @@ PJRT_DEFINE_STRUCT_TRAITS(PJRT_Buffer_CopyRawToHost_Args, event);
 typedef PJRT_Error* PJRT_Buffer_CopyRawToHost(
     PJRT_Buffer_CopyRawToHost_Args* args);
 
+struct PJRT_Buffer_CopyRawToHostFuture_Callback_Args {
+  size_t struct_size;
+
+  // callback_data should be set to the one returned by
+  // PJRT_Buffer_CopyRawToHostFuture.
+  void* callback_data;
+
+  PJRT_Error_Code error_code;
+  // error_message and error_message_size are only valid if error_code is not
+  // PJRT_ERROR_CODE_OK.
+  const char* error_message;
+  size_t error_message_size;
+  // dst is only valid if error_code is PJRT_ERROR_CODE_OK.
+  void* dst;
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Buffer_CopyRawToHostFuture_Callback_Args, dst);
+
+struct PJRT_Buffer_CopyRawToHostFuture_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Buffer* buffer;
+  int64_t offset;
+  int64_t transfer_size;
+  PJRT_Event* event;  // out
+  // callback_data should be sent to the future_ready, when dst is ready.
+  void* callback_data;  // out
+  void (*future_ready_callback)(
+      PJRT_Buffer_CopyRawToHostFuture_Callback_Args* args);  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Buffer_CopyRawToHostFuture_Args,
+                          future_ready_callback);
+
+// Similar to PJRT_Buffer_CopyRawToHost, but the transfer will not happen until
+// `future_ready_callback` is invoked.
+typedef PJRT_Error* PJRT_Buffer_CopyRawToHostFuture(
+    PJRT_Buffer_CopyRawToHostFuture_Args* args);
+
 struct PJRT_Buffer_CopyToDevice_Args {
   size_t struct_size;
   PJRT_Extension_Base* extension_start;
@@ -2207,6 +2495,33 @@ PJRT_DEFINE_STRUCT_TRAITS(PJRT_Buffer_OpaqueDeviceMemoryDataPointer_Args,
 // count is greater than 0 via PJRT_Buffer_IncreaseExternalReferenceCount.
 typedef PJRT_Error* PJRT_Buffer_OpaqueDeviceMemoryDataPointer(
     PJRT_Buffer_OpaqueDeviceMemoryDataPointer_Args* args);
+
+struct PJRT_Buffer_DonateWithControlDependency_Callback_Args {
+  size_t struct_size;
+  void* callback_data;
+  PJRT_Error_Code error_code;
+  const char* error_message;
+  size_t error_message_size;
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Buffer_DonateWithControlDependency_Callback_Args,
+                          error_message_size);
+
+struct PJRT_Buffer_DonateWithControlDependency_Args {
+  size_t struct_size;
+  PJRT_Extension_Base* extension_start;
+  PJRT_Buffer* buffer;
+
+  void* callback_data;  // out
+  void (*dependency_ready_callback)(
+      PJRT_Buffer_DonateWithControlDependency_Callback_Args* args);  // out
+
+  PJRT_Buffer* out_buffer;  // out
+};
+PJRT_DEFINE_STRUCT_TRAITS(PJRT_Buffer_DonateWithControlDependency_Args,
+                          out_buffer);
+
+typedef PJRT_Error* PJRT_Buffer_DonateWithControlDependency(
+    PJRT_Buffer_DonateWithControlDependency_Args* args);
 
 // ---------------------------- CopyToDeviceStream -----------------------------
 
@@ -2423,8 +2738,7 @@ struct PJRT_Compile_Args {
   // `program->format` and `program->format_size` are owned by the caller.
   const PJRT_Program* program;
   // TODO(b/240560013): consider putting some of option fields in priv.
-  // Serialized CompileOptionsProto
-  // (https://github.com/tensorflow/tensorflow/blob/master/tensorflow/compiler/xla/pjrt/compile_options.proto)
+  // Serialized CompileOptionsProto.
   const char* compile_options;
   size_t compile_options_size;
   // Optionally provided for performance-guided optimizations.
@@ -2587,12 +2901,22 @@ typedef struct PJRT_Api {
   _PJRT_API_STRUCT_FIELD(PJRT_Client_CreateUninitializedBuffer);
   _PJRT_API_STRUCT_FIELD(PJRT_Client_UpdateGlobalProcessInfo);
   _PJRT_API_STRUCT_FIELD(PJRT_TopologyDescription_Deserialize);
+  _PJRT_API_STRUCT_FIELD(PJRT_Client_CreateAliasBuffer);
+  _PJRT_API_STRUCT_FIELD(PJRT_Client_FulfillAliasBuffer);
+  _PJRT_API_STRUCT_FIELD(PJRT_LoadedExecutable_GetDeviceAssignment);
+  _PJRT_API_STRUCT_FIELD(PJRT_Client_CreateErrorBuffer);
+  _PJRT_API_STRUCT_FIELD(PJRT_AsyncHostToDeviceTransferManager_TransferLiteral);
+  _PJRT_API_STRUCT_FIELD(PJRT_Buffer_CopyRawToHostFuture);
+  _PJRT_API_STRUCT_FIELD(PJRT_Device_PoisonExecution);
+  _PJRT_API_STRUCT_FIELD(PJRT_Device_CreateAsyncTrackingEvent);
+  _PJRT_API_STRUCT_FIELD(PJRT_AsyncTrackingEvent_Destroy);
+  _PJRT_API_STRUCT_FIELD(PJRT_Executable_GetCompileOptions);
+  _PJRT_API_STRUCT_FIELD(PJRT_Buffer_DonateWithControlDependency);
+  _PJRT_API_STRUCT_FIELD(PJRT_Event_Create);
+  _PJRT_API_STRUCT_FIELD(PJRT_Event_Set);
 } PJRT_Api;
 
-enum {
-  PJRT_Api_STRUCT_SIZE =
-      PJRT_STRUCT_SIZE(PJRT_Api, PJRT_TopologyDescription_Deserialize)
-};
+enum { PJRT_Api_STRUCT_SIZE = PJRT_STRUCT_SIZE(PJRT_Api, PJRT_Event_Set) };
 
 #undef _PJRT_API_STRUCT_FIELD
 
