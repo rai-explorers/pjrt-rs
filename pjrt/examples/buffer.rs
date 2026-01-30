@@ -1,3 +1,15 @@
+//! Buffer Operations Example
+//!
+//! This example demonstrates various buffer operations:
+//! 1. Creating host buffers from data
+//! 2. Transferring data between host and device (async/sync)
+//! 3. Copying buffers between devices
+//! 4. Managing buffer layouts and dimensions
+//!
+//! This example showcases both synchronous and asynchronous operations,
+//! which is essential for understanding performance characteristics
+//! of different transfer methods.
+
 use pjrt::{self, Client, HostBuffer, Result};
 
 #[tokio::main]

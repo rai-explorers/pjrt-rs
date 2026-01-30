@@ -1,3 +1,18 @@
+//! PJRT Memory Management
+//!
+//! This module provides the `Memory` struct for working with PJRT memory spaces.
+//! Memory spaces represent different physical memory regions (e.g., GPU memory,
+//! system RAM, unified memory) and provide functionality to:
+//!
+//! - Query memory properties and capabilities
+//! - Determine which devices can access each memory space
+//! - Optimize buffer placement based on memory topology
+//!
+//! Understanding memory topology is important for:
+//! - Optimizing data placement for performance
+//! - Managing memory usage on device-limited systems
+//! - Implementing efficient multi-GPU algorithms
+
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display};
 use std::slice;

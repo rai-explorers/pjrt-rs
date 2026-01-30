@@ -1,6 +1,22 @@
+//! Basic PJRT Example
+//!
+//! This example demonstrates fundamental PJRT operations:
+//! 1. Loading the PJRT API from a plugin
+//! 2. Creating a client
+//! 3. Loading and compiling a program
+//! 4. Executing the program with input data
+//! 5. Retrieving the output
+//!
+//! To run this example:
+//! ```
+//! export PJRT_PLUGIN_PATH=/path/to/pjrt_c_api_cpu_plugin.so
+//! cargo run --example basic
+//! ```
+
 use pjrt::ProgramFormat::MLIR;
 use pjrt::{self, Buffer, Client, HostBuffer, LoadedExecutable, Result};
 
+// Simple MLIR program that performs an identity operation on a float32 scalar
 const CODE: &[u8] = include_bytes!("prog_f32.mlir");
 
 fn main() -> Result<()> {

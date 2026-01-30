@@ -1,3 +1,17 @@
+//! PJRT Error Handling
+//!
+//! This module provides comprehensive error handling for PJRT operations.
+//! It defines error types that map directly to PJRT's error codes and provides
+//! detailed error information including:
+//!
+//! - Error codes matching PJRT's canonical error space
+//! - Detailed error messages
+//! - Stack traces for debugging
+//! - Rust-style Result types for idiomatic error handling
+//!
+//! All PJRT operations return `Result<T>` which is either `Ok(T)` on success
+//! or `Err(Error)` on failure.
+
 #![allow(unused_assignments)]
 
 use pjrt_sys::{
@@ -252,7 +266,7 @@ mod tests {
         let null_fp_err = Error::NullFunctionPointer("test_fn");
         assert_eq!(null_fp_err.code(), ErrorCode::Internal);
 
-        let io_err = Error::IoError(std::io::Error::new(std::io::ErrorKind::Other, "io error"));
+        let io_err = Error::IoError(std::io::Error::other("io error"));
         assert_eq!(io_err.code(), ErrorCode::Internal);
     }
 

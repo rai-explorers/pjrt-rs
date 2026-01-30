@@ -1,3 +1,16 @@
+//! PJRT API Entry Point
+//!
+//! This module provides the main entry point to the PJRT runtime through the `Api` struct.
+//! The `Api` represents the loaded PJRT library and provides methods to:
+//!
+//! - Load PJRT plugins
+//! - Create runtime clients
+//! - Compile programs to executables
+//! - Create execution contexts
+//! - Manage topology descriptions
+//!
+//! The `Api` struct is thread-safe and can be cloned to share between threads.
+
 use std::backtrace::Backtrace;
 use std::sync::Arc;
 

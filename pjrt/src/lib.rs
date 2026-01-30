@@ -1,5 +1,66 @@
 #![deny(unused_must_use)]
 
+//! # PJRT-RS: Rust Bindings for PJRT
+//!
+//! This crate provides safe, idiomatic Rust bindings to the [PJRT](https://github.com/openxla/pjrt)
+//! (Plugin-based JAX Runtime) C API. PJRT is Google's abstraction layer that simplifies
+//! machine learning hardware and framework integration.
+//!
+//! ## Architecture
+//!
+//! This crate consists of two main components:
+//!
+//! 1. **High-level safe API** (this crate): Idiomatic Rust interfaces wrapped around the C API
+//! 2. **Low-level bindings** (`pjrt-sys` crate): Direct unsafe bindings to the PJRT C API
+//!
+//! ## Core Concepts
+//!
+//! - **Api**: Entry point for loading PJRT plugins and creating clients
+//! - **Client**: Represents a PJRT runtime instance for a specific plugin
+//! - **Device**: Hardware accelerator (CPU, GPU, TPU) available for computation
+//! - **Buffer**: Data storage on host or device memory
+//! - **Program**: Compiled computation (MLIR/HLO) that can be executed
+//! - **LoadedExecutable**: A compiled program ready for execution on specific devices
+//!
+//! ## Quick Start
+//!
+//! ```rust
+//! use pjrt::*;
+//!
+//! // Load the PJRT API
+//! let api = Api::new()?;
+//!
+//! // Load a plugin (e.g., CPU plugin)
+//! let plugin = api.load_plugin("libpjrt_cpu_plugin.so")?;
+//!
+//! // Create a client
+//! let client = plugin.create_client()?;
+//!
+//! // Get available devices
+//! let devices = client.devices();
+//!
+//! // Compile and execute a program
+//! // ... (see examples for full code)
+//! # Ok::<(), Error>(())
+//! ```
+//!
+//! ## Features
+//!
+//! - Memory-safe Rust bindings with proper error handling
+//! - Support for all major PJRT data types (f16, bf16, f32, f64, complex types, integers)
+//! - Async operations for non-blocking execution
+//! - Device memory management with automatic cleanup
+//! - Comprehensive error reporting with detailed error codes
+//!
+//! ## Platform Support
+//!
+//! The crate supports all platforms where PJRT is available:
+//! - Linux x86_64 (CPU, GPU, TPU)
+//! - macOS (CPU only)
+//! - Windows (CPU, GPU)
+//!
+//! For more detailed examples and advanced usage patterns, see the `examples/` directory.
+
 mod utils;
 
 mod error;

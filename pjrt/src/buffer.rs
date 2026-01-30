@@ -1,3 +1,16 @@
+//! PJRT Buffer Management
+//!
+//! This module provides the `Buffer` struct for managing data on PJRT devices.
+//! Buffers represent arrays of data stored either on host memory or device memory
+//! (GPU, TPU, etc.) and provide functionality to:
+//!
+//! - Transfer data between host and device
+//! - Query buffer properties (dimensions, element type, memory layout)
+//! - Copy buffers between devices
+//! - Handle asynchronous operations
+//!
+//! Buffers are the primary way to move data in and out of PJRT computations.
+
 use std::ffi::c_void;
 use std::future::Future;
 use std::pin::Pin;

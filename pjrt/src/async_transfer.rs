@@ -1,3 +1,20 @@
+//! Asynchronous Host-to-Device Transfers
+//!
+//! This module provides the `AsyncHostToDeviceTransferManager` for managing
+//! asynchronous data transfers from host to device memory. This enables overlapping
+//! data transfers with computation, improving performance for large workloads.
+//!
+//! Key features:
+//! - Stream data from host to device without blocking
+//! - Transfer multiple buffers concurrently
+//! - Handle dynamic shapes and metadata
+//! - Event-based synchronization
+//!
+//! Use async transfers when:
+//! - Working with large datasets that don't fit in device memory
+//! - Pipeline data transfer with computation
+//! - Need non-blocking I/O for responsive applications
+
 use std::ffi::c_void;
 
 use bon::bon;

@@ -1,3 +1,16 @@
+//! PJRT Type System
+//!
+//! This module defines the type system for PJRT buffers, providing type-safe
+//! representations of all supported PJRT data types. The type system includes:
+//!
+//! - Floating-point types: F16, BF16, F32, F64, and experimental F8 types
+//! - Integer types: Signed (S2, S4, S8, S16, S32, S64) and unsigned (U2-U64)
+//! - Complex types: C64 (complex float32) and C128 (complex float64)
+//! - Boolean and token types
+//!
+//! The type system uses Rust's type system to provide compile-time type safety
+//! while mapping to PJRT's runtime type system.
+
 use std::any::Any;
 use std::fmt::Debug;
 
@@ -278,9 +291,9 @@ pub enum PrimitiveType {
 
     /// Complex values of fixed width.
     ///
-    /// Paired F32 (real, imag), as in std::complex<float>.
+    /// Paired F32 (real, imag), as in `std::complex<float>`.
     C64 = PJRT_Buffer_Type_PJRT_Buffer_Type_C64 as i32,
-    /// Paired F64 (real, imag), as in std::complex<double>.
+    /// Paired F64 (real, imag), as in `std::complex<double>`.
     C128 = PJRT_Buffer_Type_PJRT_Buffer_Type_C128 as i32,
 
     /// Truncated 8 bit floating-point formats.

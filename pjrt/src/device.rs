@@ -1,3 +1,19 @@
+//! PJRT Device Management
+//!
+//! This module provides the `Device` struct and related types for managing PJRT devices.
+//! Devices represent hardware accelerators (CPU, GPU, TPU, etc.) available for computation.
+//! This module includes functionality to:
+//!
+//! - Query device properties and capabilities
+//! - Access device memory spaces
+//! - Monitor memory usage
+//! - Create async tracking events
+//!
+//! Each device has various IDs:
+//! - `GlobalDeviceId`: Unique across all devices of the same type
+//! - `LocalDeviceId`: Unique within a client (-1 if undefined)
+//! - `LocalHardwareId`: Physical device ID, shared by logical devices on the same hardware
+
 use std::slice;
 
 use pjrt_sys::{

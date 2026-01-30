@@ -1,3 +1,14 @@
+//! PJRT Program Representation
+//!
+//! This module provides the `Program` struct for representing PJRT programs
+//! that can be compiled and executed. Programs can be in either MLIR or HLO
+//! format and are the input to the compilation process.
+//!
+//! The module includes functionality to:
+//! - Load programs from files or strings
+//! - Convert between program formats
+//! - Serialize/deserialize programs
+
 use std::fs;
 use std::path::Path;
 

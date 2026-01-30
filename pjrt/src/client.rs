@@ -1,3 +1,17 @@
+//! PJRT Client
+//!
+//! This module provides the `Client` struct which represents a PJRT runtime instance.
+//! A client is the main interface for working with PJRT and provides functionality to:
+//!
+//! - Access available devices
+//! - Create and manage buffers
+//! - Compile programs to loaded executables
+//! - Manage device memory
+//! - Handle device assignments
+//!
+//! Each client is associated with a specific PJRT plugin and encapsulates the runtime
+//! state for that plugin.
+
 use std::borrow::Cow;
 use std::ffi::c_void;
 use std::rc::Rc;
