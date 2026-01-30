@@ -22,28 +22,6 @@
 //! - **Program**: Compiled computation (MLIR/HLO) that can be executed
 //! - **LoadedExecutable**: A compiled program ready for execution on specific devices
 //!
-//! ## Quick Start
-//!
-//! ```rust
-//! use pjrt::*;
-//!
-//! // Load the PJRT API
-//! let api = Api::new()?;
-//!
-//! // Load a plugin (e.g., CPU plugin)
-//! let plugin = api.load_plugin("libpjrt_cpu_plugin.so")?;
-//!
-//! // Create a client
-//! let client = plugin.create_client()?;
-//!
-//! // Get available devices
-//! let devices = client.devices();
-//!
-//! // Compile and execute a program
-//! // ... (see examples for full code)
-//! # Ok::<(), Error>(())
-//! ```
-//!
 //! ## Features
 //!
 //! - Memory-safe Rust bindings with proper error handling
