@@ -299,3 +299,238 @@ impl Default for CompilationEnvironments {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compile_options_new() {
+        let options = CompileOptions::new();
+        assert!(options.proto().executable_build_options.is_some());
+    }
+
+    #[test]
+    fn test_compile_options_default() {
+        let options: CompileOptions = Default::default();
+        assert!(options.proto().executable_build_options.is_some());
+    }
+
+    #[test]
+    fn test_compile_options_encode() {
+        let options = CompileOptions::new();
+        let encoded = options.encode();
+        assert!(!encoded.is_empty());
+        // Should be valid protobuf
+    }
+
+    #[test]
+    fn test_compile_options_executable_build_options() {
+        let build_options = ExecutableBuildOptions::new()
+            .device_ordinal(0)
+            .num_replicas(2);
+
+        let options = CompileOptions::new().executable_build_options(build_options);
+        let build_opts = options.proto().executable_build_options.as_ref().unwrap();
+        assert_eq!(build_opts.device_ordinal, 0);
+        assert_eq!(build_opts.num_replicas, 2);
+    }
+
+    #[test]
+    fn test_executable_build_options_new() {
+        let opts = ExecutableBuildOptions::new();
+        assert_eq!(opts.proto().device_ordinal, -1);
+        assert_eq!(opts.proto().num_partitions, 1);
+        assert_eq!(opts.proto().num_replicas, 1);
+    }
+
+    #[test]
+    fn test_executable_build_options_default() {
+        let opts: ExecutableBuildOptions = Default::default();
+        assert_eq!(opts.proto().device_ordinal, -1);
+        assert_eq!(opts.proto().num_partitions, 1);
+        assert_eq!(opts.proto().num_replicas, 1);
+    }
+
+    #[test]
+    fn test_executable_build_options_device_ordinal() {
+        let opts = ExecutableBuildOptions::new().device_ordinal(5);
+        assert_eq!(opts.proto().device_ordinal, 5);
+    }
+
+    #[test]
+    fn test_executable_build_options_num_partitions() {
+        let opts = ExecutableBuildOptions::new().num_partitions(4);
+        assert_eq!(opts.proto().num_partitions, 4);
+    }
+
+    #[test]
+    fn test_executable_build_options_num_replicas() {
+        let opts = ExecutableBuildOptions::new().num_replicas(8);
+        assert_eq!(opts.proto().num_replicas, 8);
+    }
+
+    #[test]
+    fn test_executable_build_options_use_spmd_partitioning() {
+        let opts = ExecutableBuildOptions::new().use_spmd_partitioning(true);
+        assert!(opts.proto().use_spmd_partitioning);
+    }
+
+    #[test]
+    fn test_executable_build_options_use_auto_spmd_partitioning() {
+        let opts = ExecutableBuildOptions::new().use_auto_spmd_partitioning(true);
+        assert!(opts.proto().use_auto_spmd_partitioning);
+    }
+
+    #[test]
+    fn test_executable_build_options_deduplicate_hlo() {
+        let opts = ExecutableBuildOptions::new().deduplicate_hlo(true);
+        assert!(opts.proto().deduplicate_hlo);
+    }
+
+    #[test]
+    fn test_executable_build_options_alias_passthrough_params() {
+        let opts = ExecutableBuildOptions::new().alias_passthrough_params(true);
+        assert!(opts.proto().alias_passthrough_params);
+    }
+
+    #[test]
+    fn test_executable_build_options_run_backend_only() {
+        let opts = ExecutableBuildOptions::new().run_backend_only(true);
+        assert!(opts.proto().run_backend_only);
+    }
+
+    #[test]
+    fn test_executable_build_options_device_memory_size() {
+        let opts = ExecutableBuildOptions::new().device_memory_size(16_000_000_000);
+        assert_eq!(opts.proto().device_memory_size, 16_000_000_000);
+    }
+
+    #[test]
+    fn test_executable_build_options_use_shardy_partitioner() {
+        let opts = ExecutableBuildOptions::new().use_shardy_partitioner(true);
+        assert!(opts.proto().use_shardy_partitioner);
+    }
+
+    #[test]
+    fn test_executable_build_options_spmd_sharding_propagation() {
+        let opts = ExecutableBuildOptions::new()
+            .allow_spmd_sharding_propagation_to_parameters(vec![true, false, true])
+            .allow_spmd_sharding_propagation_to_output(vec![false, true]);
+
+        assert_eq!(
+            opts.proto().allow_spmd_sharding_propagation_to_parameters,
+            vec![true, false, true]
+        );
+        assert_eq!(
+            opts.proto().allow_spmd_sharding_propagation_to_output,
+            vec![false, true]
+        );
+    }
+
+    #[test]
+    fn test_executable_build_options_auto_spmd_mesh() {
+        let opts = ExecutableBuildOptions::new()
+            .auto_spmd_partitioning_mesh_shape(vec![2, 4])
+            .auto_spmd_partitioning_mesh_ids(vec![0, 1, 2, 3, 4, 5, 6, 7]);
+
+        assert_eq!(opts.proto().auto_spmd_partitioning_mesh_shape, vec![2, 4]);
+        assert_eq!(
+            opts.proto().auto_spmd_partitioning_mesh_ids,
+            vec![0, 1, 2, 3, 4, 5, 6, 7]
+        );
+    }
+
+    #[test]
+    fn test_executable_build_options_encode() {
+        let opts = ExecutableBuildOptions::new()
+            .device_ordinal(1)
+            .num_replicas(2)
+            .num_partitions(4);
+
+        let encoded = opts.encode();
+        assert!(!encoded.is_empty());
+        // Should be valid protobuf
+    }
+
+    #[test]
+    fn test_executable_build_options_chaining() {
+        let opts = ExecutableBuildOptions::new()
+            .device_ordinal(0)
+            .num_replicas(2)
+            .num_partitions(4)
+            .use_spmd_partitioning(true)
+            .deduplicate_hlo(false)
+            .alias_passthrough_params(true);
+
+        assert_eq!(opts.proto().device_ordinal, 0);
+        assert_eq!(opts.proto().num_replicas, 2);
+        assert_eq!(opts.proto().num_partitions, 4);
+        assert!(opts.proto().use_spmd_partitioning);
+        assert!(!opts.proto().deduplicate_hlo);
+        assert!(opts.proto().alias_passthrough_params);
+    }
+
+    #[test]
+    fn test_debug_options_new() {
+        let opts = DebugOptions::new();
+        // Just verify it creates successfully
+        let _proto = opts.proto();
+    }
+
+    #[test]
+    fn test_debug_options_default() {
+        let opts: DebugOptions = Default::default();
+        let _proto = opts.proto();
+    }
+
+    #[test]
+    fn test_debug_options_encode() {
+        let opts = DebugOptions::new();
+        let encoded = opts.encode();
+        // An all-default proto may encode to empty bytes, which is valid
+        // Just verify the method works without panicking
+        let _ = encoded;
+    }
+
+    #[test]
+    fn test_compilation_environments_new() {
+        let envs = CompilationEnvironments::new();
+        let _proto = envs.proto();
+    }
+
+    #[test]
+    fn test_compilation_environments_default() {
+        let envs: CompilationEnvironments = Default::default();
+        let _proto = envs.proto();
+    }
+
+    #[test]
+    fn test_compilation_environments_encode() {
+        let envs = CompilationEnvironments::new();
+        let encoded = envs.encode();
+        // An all-default proto may encode to empty bytes, which is valid
+        // Just verify the method works without panicking
+        let _ = encoded;
+    }
+
+    #[test]
+    fn test_compile_options_proto_mut() {
+        let mut options = CompileOptions::new();
+        {
+            let proto = options.proto_mut();
+            proto.argument_layouts.push(Default::default());
+        }
+        assert_eq!(options.proto().argument_layouts.len(), 1);
+    }
+
+    #[test]
+    fn test_executable_build_options_proto_mut() {
+        let mut opts = ExecutableBuildOptions::new();
+        {
+            let proto = opts.proto_mut();
+            proto.device_ordinal = 42;
+        }
+        assert_eq!(opts.proto().device_ordinal, 42);
+    }
+}

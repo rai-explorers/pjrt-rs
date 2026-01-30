@@ -162,3 +162,180 @@ impl<'a> From<&'a MemoryLayoutStrides> for PJRT_Buffer_MemoryLayout {
         pjrt_layout
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_memory_layout_tiled_creation() {
+        let layout = MemoryLayout::from_tiled(vec![0, 1, 2]).build();
+        match layout {
+            MemoryLayout::Tiled(tiled) => {
+                assert_eq!(tiled.minor_to_major, vec![0, 1, 2]);
+                assert!(tiled.tile_dims.is_none());
+                assert!(tiled.tile_dim_sizes.is_none());
+            }
+            _ => panic!("Expected Tiled layout"),
+        }
+    }
+
+    #[test]
+    fn test_memory_layout_tiled_with_tile_dims() {
+        let layout = MemoryLayout::from_tiled(vec![0, 1])
+            .tile_dims(vec![8, 8])
+            .tile_dim_sizes(vec![64, 64])
+            .build();
+        match layout {
+            MemoryLayout::Tiled(tiled) => {
+                assert_eq!(tiled.minor_to_major, vec![0, 1]);
+                assert_eq!(tiled.tile_dims, Some(vec![8, 8]));
+                assert_eq!(tiled.tile_dim_sizes, Some(vec![64, 64]));
+            }
+            _ => panic!("Expected Tiled layout"),
+        }
+    }
+
+    #[test]
+    fn test_memory_layout_strides() {
+        let layout = MemoryLayout::from_strides(vec![32, 8, 4]);
+        match layout {
+            MemoryLayout::Strides(strides) => {
+                assert_eq!(strides.byte_strides, vec![32, 8, 4]);
+            }
+            _ => panic!("Expected Strides layout"),
+        }
+    }
+
+    #[test]
+    fn test_memory_layout_clone() {
+        let layout = MemoryLayout::from_strides(vec![16, 4]);
+        let cloned = layout.clone();
+        assert_eq!(format!("{:?}", layout), format!("{:?}", cloned));
+    }
+
+    #[test]
+    fn test_memory_layout_debug() {
+        let tiled = MemoryLayout::from_tiled(vec![0, 1]).build();
+        let debug = format!("{:?}", tiled);
+        assert!(debug.contains("Tiled"));
+
+        let strides = MemoryLayout::from_strides(vec![32, 8]);
+        let debug = format!("{:?}", strides);
+        assert!(debug.contains("Strides"));
+    }
+
+    #[test]
+    fn test_memory_layout_type_values() {
+        assert_eq!(
+            MemoryLayoutType::Tiled as i32,
+            PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled as i32
+        );
+        assert_eq!(
+            MemoryLayoutType::Strides as i32,
+            PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides as i32
+        );
+    }
+
+    #[test]
+    fn test_memory_layout_type_equality() {
+        assert_eq!(MemoryLayoutType::Tiled, MemoryLayoutType::Tiled);
+        assert_eq!(MemoryLayoutType::Strides, MemoryLayoutType::Strides);
+        assert_ne!(MemoryLayoutType::Tiled, MemoryLayoutType::Strides);
+    }
+
+    #[test]
+    fn test_memory_layout_type_ordering() {
+        assert!(MemoryLayoutType::Tiled < MemoryLayoutType::Strides);
+    }
+
+    #[test]
+    fn test_memory_layout_type_hash() {
+        use std::collections::HashSet;
+        let mut set = HashSet::new();
+        set.insert(MemoryLayoutType::Tiled);
+        set.insert(MemoryLayoutType::Strides);
+        set.insert(MemoryLayoutType::Tiled); // Duplicate
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn test_memory_layout_type_try_from_valid() {
+        use pjrt_sys::PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides;
+        use pjrt_sys::PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled;
+
+        let ty: MemoryLayoutType =
+            PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled
+                .try_into()
+                .unwrap();
+        assert_eq!(ty, MemoryLayoutType::Tiled);
+
+        let ty: MemoryLayoutType =
+            PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides
+                .try_into()
+                .unwrap();
+        assert_eq!(ty, MemoryLayoutType::Strides);
+    }
+
+    #[test]
+    fn test_memory_layout_type_try_from_invalid() {
+        // Test with an invalid value using the raw type
+        use pjrt_sys::PJRT_Buffer_MemoryLayout_Type;
+        let invalid_type: PJRT_Buffer_MemoryLayout_Type = 999;
+        let result: Result<MemoryLayoutType> = invalid_type.try_into();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_memory_layout_tiled_struct() {
+        let tiled = MemoryLayoutTiled {
+            minor_to_major: vec![0, 1, 2],
+            tile_dims: Some(vec![8, 8]),
+            tile_dim_sizes: Some(vec![64, 64]),
+        };
+        assert_eq!(tiled.minor_to_major, vec![0, 1, 2]);
+        assert_eq!(tiled.tile_dims, Some(vec![8, 8]));
+        assert_eq!(tiled.tile_dim_sizes, Some(vec![64, 64]));
+    }
+
+    #[test]
+    fn test_memory_layout_strides_struct() {
+        let strides = MemoryLayoutStrides {
+            byte_strides: vec![128, 64, 32, 16],
+        };
+        assert_eq!(strides.byte_strides, vec![128, 64, 32, 16]);
+    }
+
+    #[test]
+    fn test_memory_layout_strides_empty() {
+        let layout = MemoryLayout::from_strides(Vec::<i64>::new());
+        match layout {
+            MemoryLayout::Strides(strides) => {
+                assert!(strides.byte_strides.is_empty());
+            }
+            _ => panic!("Expected Strides layout"),
+        }
+    }
+
+    #[test]
+    fn test_memory_layout_tiled_clone() {
+        let tiled = MemoryLayoutTiled {
+            minor_to_major: vec![0, 1],
+            tile_dims: Some(vec![8, 8]),
+            tile_dim_sizes: Some(vec![64]),
+        };
+        let cloned = tiled.clone();
+        assert_eq!(tiled.minor_to_major, cloned.minor_to_major);
+        assert_eq!(tiled.tile_dims, cloned.tile_dims);
+        assert_eq!(tiled.tile_dim_sizes, cloned.tile_dim_sizes);
+    }
+
+    #[test]
+    fn test_memory_layout_strides_clone() {
+        let strides = MemoryLayoutStrides {
+            byte_strides: vec![32, 8, 4],
+        };
+        let cloned = strides.clone();
+        assert_eq!(strides.byte_strides, cloned.byte_strides);
+    }
+}

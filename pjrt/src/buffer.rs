@@ -317,12 +317,16 @@ impl Buffer {
     /// Returns a future that resolves when the copy is complete.
     ///
     /// # Example
-    /// ```
-    /// let (future, callback_data, future_ready) = buffer.copy_raw_to_host_future(0, 1024)?;
+    /// ```ignore
+    /// # async fn example() -> pjrt::Result<()> {
+    /// # let buffer: pjrt::Buffer = todo!(); // Obtain buffer from client
+    /// let (future, _callback_data, future_ready) = buffer.copy_raw_to_host_future(0, 1024)?;
     /// // Later, when ready to receive:
     /// let mut dst = vec![0u8; 1024];
-    /// future_ready(&dst, None, None)?;
+    /// future_ready(&dst, std::ptr::null_mut(), std::ptr::null_mut())?;
     /// future.await?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn copy_raw_to_host_future(
         &self,

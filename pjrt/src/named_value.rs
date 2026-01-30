@@ -206,3 +206,184 @@ impl<'a> From<&'a [PJRT_NamedValue]> for NamedValueMap {
         Self { inner: map }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_named_value_new() {
+        let nv = NamedValue::new("test", Value::I64(42));
+        assert_eq!(nv.name, "test");
+        assert_eq!(nv.value, Value::I64(42));
+    }
+
+    #[test]
+    fn test_named_value_i64() {
+        let nv = NamedValue::i64("count", 100);
+        assert_eq!(nv.name, "count");
+        assert_eq!(nv.value, Value::I64(100));
+    }
+
+    #[test]
+    fn test_named_value_f32() {
+        let nv = NamedValue::f32("threshold", 0.5);
+        assert_eq!(nv.name, "threshold");
+        assert_eq!(nv.value, Value::F32(0.5));
+    }
+
+    #[test]
+    fn test_named_value_bool() {
+        let nv = NamedValue::bool("enabled", true);
+        assert_eq!(nv.name, "enabled");
+        assert_eq!(nv.value, Value::Bool(true));
+
+        let nv = NamedValue::bool("disabled", false);
+        assert_eq!(nv.value, Value::Bool(false));
+    }
+
+    #[test]
+    fn test_named_value_string() {
+        let nv = NamedValue::string("name", "test_value");
+        assert_eq!(nv.name, "name");
+        assert_eq!(nv.value, Value::String("test_value".to_string()));
+    }
+
+    #[test]
+    fn test_named_value_i64_list() {
+        let list = vec![1i64, 2, 3, 4, 5];
+        let nv = NamedValue::i64_list("dims", list.clone());
+        assert_eq!(nv.name, "dims");
+        assert_eq!(nv.value, Value::I64List(list));
+    }
+
+    #[test]
+    fn test_named_value_equality() {
+        let nv1 = NamedValue::i64("x", 10);
+        let nv2 = NamedValue::i64("x", 10);
+        let nv3 = NamedValue::i64("x", 20);
+        let nv4 = NamedValue::f32("x", 10.0);
+
+        assert_eq!(nv1, nv2);
+        assert_ne!(nv1, nv3);
+        assert_ne!(nv1, nv4);
+    }
+
+    #[test]
+    fn test_value_equality() {
+        assert_eq!(Value::I64(42), Value::I64(42));
+        assert_ne!(Value::I64(42), Value::I64(43));
+        assert_eq!(Value::F32(1.5), Value::F32(1.5));
+        assert_eq!(Value::Bool(true), Value::Bool(true));
+        assert_eq!(
+            Value::String("a".to_string()),
+            Value::String("a".to_string())
+        );
+        assert_eq!(Value::I64List(vec![1, 2]), Value::I64List(vec![1, 2]));
+
+        // Different types should not be equal
+        assert_ne!(Value::I64(42), Value::F32(42.0));
+        assert_ne!(Value::Bool(true), Value::I64(1));
+    }
+
+    #[test]
+    fn test_named_value_map_new() {
+        let map = NamedValueMap::new();
+        assert!(map.inner.is_empty());
+    }
+
+    #[test]
+    fn test_named_value_map_default() {
+        let map: NamedValueMap = Default::default();
+        assert!(map.inner.is_empty());
+    }
+
+    #[test]
+    fn test_named_value_map_get() {
+        let nv1 = NamedValue::i64("x", 10);
+        let nv2 = NamedValue::f32("y", 0.5);
+        let map = NamedValueMap::from(vec![nv1, nv2]);
+
+        assert_eq!(map.get("x"), Some(&Value::I64(10)));
+        assert_eq!(map.get("y"), Some(&Value::F32(0.5)));
+        assert_eq!(map.get("z"), None);
+    }
+
+    #[test]
+    fn test_named_value_map_into_inner() {
+        let nv = NamedValue::i64("x", 10);
+        let map = NamedValueMap::from(vec![nv]);
+        let inner = map.into_inner();
+        assert_eq!(inner.len(), 1);
+        assert_eq!(inner.get("x"), Some(&Value::I64(10)));
+    }
+
+    #[test]
+    fn test_named_value_map_into_vec() {
+        let nv1 = NamedValue::i64("x", 10);
+        let nv2 = NamedValue::f32("y", 0.5);
+        let map = NamedValueMap::from(vec![nv1, nv2]);
+        let vec = map.into_vec();
+
+        assert_eq!(vec.len(), 2);
+        // Check that both values are present (order may vary due to HashMap)
+        let names: Vec<_> = vec.iter().map(|v| &v.name).collect();
+        assert!(names.contains(&&"x".to_string()));
+        assert!(names.contains(&&"y".to_string()));
+    }
+
+    #[test]
+    fn test_from_hashmap() {
+        let mut hashmap = HashMap::new();
+        hashmap.insert("a".to_string(), Value::I64(1));
+        hashmap.insert("b".to_string(), Value::Bool(true));
+
+        let map = NamedValueMap::from(hashmap);
+        assert_eq!(map.get("a"), Some(&Value::I64(1)));
+        assert_eq!(map.get("b"), Some(&Value::Bool(true)));
+    }
+
+    #[test]
+    fn test_from_array() {
+        let arr = [NamedValue::i64("x", 1), NamedValue::i64("y", 2)];
+        let map = NamedValueMap::from(arr);
+
+        assert_eq!(map.get("x"), Some(&Value::I64(1)));
+        assert_eq!(map.get("y"), Some(&Value::I64(2)));
+    }
+
+    #[test]
+    fn test_from_vec() {
+        let vec = vec![NamedValue::i64("x", 1), NamedValue::f32("y", 2.0)];
+        let map = NamedValueMap::from(vec);
+
+        assert_eq!(map.get("x"), Some(&Value::I64(1)));
+        assert_eq!(map.get("y"), Some(&Value::F32(2.0)));
+    }
+
+    #[test]
+    fn test_clone() {
+        let nv = NamedValue::i64("x", 10);
+        let cloned = nv.clone();
+        assert_eq!(nv, cloned);
+
+        let map = NamedValueMap::from(vec![nv]);
+        let cloned_map = map.clone();
+        assert_eq!(map.get("x"), cloned_map.get("x"));
+    }
+
+    #[test]
+    fn test_debug_output() {
+        let nv = NamedValue::i64("count", 42);
+        let debug = format!("{:?}", nv);
+        assert!(debug.contains("NamedValue"));
+        assert!(debug.contains("count"));
+        assert!(debug.contains("I64"));
+        assert!(debug.contains("42"));
+
+        let val = Value::String("test".to_string());
+        let debug = format!("{:?}", val);
+        assert!(debug.contains("String"));
+        assert!(debug.contains("test"));
+    }
+}

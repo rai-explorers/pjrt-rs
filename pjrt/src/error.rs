@@ -129,3 +129,210 @@ impl TryFrom<PJRT_Error_Code> for ErrorCode {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_code_from_pjrt_error_code() {
+        use pjrt_sys::{
+            PJRT_Error_Code_PJRT_Error_Code_CANCELLED, PJRT_Error_Code_PJRT_Error_Code_INTERNAL,
+            PJRT_Error_Code_PJRT_Error_Code_INVALID_ARGUMENT,
+            PJRT_Error_Code_PJRT_Error_Code_UNKNOWN,
+        };
+
+        let code: ErrorCode = PJRT_Error_Code_PJRT_Error_Code_CANCELLED
+            .try_into()
+            .unwrap();
+        assert_eq!(code, ErrorCode::Cancel);
+
+        let code: ErrorCode = PJRT_Error_Code_PJRT_Error_Code_UNKNOWN.try_into().unwrap();
+        assert_eq!(code, ErrorCode::Unknown);
+
+        let code: ErrorCode = PJRT_Error_Code_PJRT_Error_Code_INVALID_ARGUMENT
+            .try_into()
+            .unwrap();
+        assert_eq!(code, ErrorCode::InvalidArgument);
+
+        let code: ErrorCode = PJRT_Error_Code_PJRT_Error_Code_INTERNAL.try_into().unwrap();
+        assert_eq!(code, ErrorCode::Internal);
+    }
+
+    #[test]
+    fn test_error_code_from_invalid_pjrt_error_code() {
+        // Test with an invalid error code using the raw type
+        use pjrt_sys::PJRT_Error_Code;
+        let invalid_code: PJRT_Error_Code = 9999;
+        let result: Result<ErrorCode> = invalid_code.try_into();
+        assert!(result.is_err());
+        match result {
+            Err(Error::InvalidErrorCode(code)) => assert_eq!(code, 9999),
+            _ => panic!("Expected InvalidErrorCode error"),
+        }
+    }
+
+    #[test]
+    fn test_error_code_values() {
+        assert_eq!(
+            ErrorCode::Cancel as i32,
+            PJRT_Error_Code_PJRT_Error_Code_CANCELLED as i32
+        );
+        assert_eq!(
+            ErrorCode::Unknown as i32,
+            PJRT_Error_Code_PJRT_Error_Code_UNKNOWN as i32
+        );
+        assert_eq!(
+            ErrorCode::InvalidArgument as i32,
+            PJRT_Error_Code_PJRT_Error_Code_INVALID_ARGUMENT as i32
+        );
+        assert_eq!(
+            ErrorCode::DeadlineExceeded as i32,
+            PJRT_Error_Code_PJRT_Error_Code_DEADLINE_EXCEEDED as i32
+        );
+        assert_eq!(
+            ErrorCode::NotFound as i32,
+            PJRT_Error_Code_PJRT_Error_Code_NOT_FOUND as i32
+        );
+        assert_eq!(
+            ErrorCode::AlreadyExists as i32,
+            PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS as i32
+        );
+        assert_eq!(
+            ErrorCode::PermissionDenied as i32,
+            PJRT_Error_Code_PJRT_Error_Code_PERMISSION_DENIED as i32
+        );
+        assert_eq!(
+            ErrorCode::ResourceExhaused as i32,
+            PJRT_Error_Code_PJRT_Error_Code_RESOURCE_EXHAUSTED as i32
+        );
+        assert_eq!(
+            ErrorCode::FailedPrecondition as i32,
+            PJRT_Error_Code_PJRT_Error_Code_FAILED_PRECONDITION as i32
+        );
+        assert_eq!(
+            ErrorCode::Aborted as i32,
+            PJRT_Error_Code_PJRT_Error_Code_ABORTED as i32
+        );
+        assert_eq!(
+            ErrorCode::OutOfRange as i32,
+            PJRT_Error_Code_PJRT_Error_Code_OUT_OF_RANGE as i32
+        );
+        assert_eq!(
+            ErrorCode::Unimplemeted as i32,
+            PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED as i32
+        );
+        assert_eq!(
+            ErrorCode::Internal as i32,
+            PJRT_Error_Code_PJRT_Error_Code_INTERNAL as i32
+        );
+        assert_eq!(
+            ErrorCode::Unavaliable as i32,
+            PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE as i32
+        );
+        assert_eq!(
+            ErrorCode::DataLoss as i32,
+            PJRT_Error_Code_PJRT_Error_Code_DATA_LOSS as i32
+        );
+        assert_eq!(
+            ErrorCode::Unauthenticated as i32,
+            PJRT_Error_Code_PJRT_Error_Code_UNAUTHENTICATED as i32
+        );
+    }
+
+    #[test]
+    fn test_error_code_method() {
+        let pjrt_err = Error::PjrtError {
+            msg: "test error".to_string(),
+            code: ErrorCode::InvalidArgument,
+            backtrace: String::new(),
+        };
+        assert_eq!(pjrt_err.code(), ErrorCode::InvalidArgument);
+
+        let null_fp_err = Error::NullFunctionPointer("test_fn");
+        assert_eq!(null_fp_err.code(), ErrorCode::Internal);
+
+        let io_err = Error::IoError(std::io::Error::new(std::io::ErrorKind::Other, "io error"));
+        assert_eq!(io_err.code(), ErrorCode::Internal);
+    }
+
+    #[test]
+    fn test_error_display() {
+        let err = Error::InvalidArgument("bad arg".to_string());
+        let display = format!("{}", err);
+        assert!(display.contains("invalid argument: bad arg"));
+
+        let err = Error::NullFunctionPointer("PJRT_Test");
+        let display = format!("{}", err);
+        assert!(display.contains("null function pointer: PJRT_Test"));
+
+        let err = Error::NoAddressableDevice;
+        let display = format!("{}", err);
+        assert!(display.contains("no addressable device"));
+
+        let err = Error::InvalidPrimitiveType(999);
+        let display = format!("{}", err);
+        assert!(display.contains("invalid primitive type: 999"));
+
+        let err = Error::InvalidErrorCode(888);
+        let display = format!("{}", err);
+        assert!(display.contains("invalid errro code: 888"));
+
+        let err = Error::InvalidMemoryLayoutType(777);
+        let display = format!("{}", err);
+        assert!(display.contains("invalid memory layout type: 777"));
+
+        let err = Error::DeviceNotInDeviceAssignment(42i32);
+        let display = format!("{}", err);
+        assert!(display.contains("device not in device assignment: 42"));
+
+        let err = Error::InvalidProgramFormat("unknown".to_string());
+        let display = format!("{}", err);
+        assert!(display.contains("invalid program format: unknown"));
+
+        let err = Error::NotSupportedType(PrimitiveType::F8E5M2);
+        let display = format!("{}", err);
+        assert!(display.contains("not supported type"));
+
+        let err = Error::NullPointer;
+        let display = format!("{}", err);
+        assert!(display.contains("null pointer"));
+
+        let err = Error::PluginNotFound("test_plugin".to_string());
+        let display = format!("{}", err);
+        assert!(display.contains("plugin not found: test_plugin"));
+
+        let err = Error::Unimplemeted;
+        let display = format!("{}", err);
+        assert!(display.contains("unimplemented"));
+
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let err = Error::IoError(io_err);
+        let display = format!("{}", err);
+        assert!(display.contains("io error"));
+    }
+
+    #[test]
+    fn test_error_from_io_error() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "test");
+        let err: Error = io_err.into();
+        match err {
+            Error::IoError(_) => (),
+            _ => panic!("Expected IoError variant"),
+        }
+    }
+
+    #[test]
+    fn test_result_type() {
+        fn returns_ok() -> Result<i32> {
+            Ok(42)
+        }
+
+        fn returns_err() -> Result<i32> {
+            Err(Error::NullPointer)
+        }
+
+        assert_eq!(returns_ok().unwrap(), 42);
+        assert!(returns_err().is_err());
+    }
+}

@@ -430,3 +430,324 @@ impl<T: DType> AsDType for T {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use num_complex::Complex;
+
+    #[test]
+    fn test_bool_type_properties() {
+        assert_eq!(Bool::NAME, "bool");
+        assert_eq!(Bool::PRIMITIVE_TYPE, PrimitiveType::Pred);
+        assert_eq!(Bool::SIZE, 1);
+        assert_eq!(Bool::TYPE, Bool);
+        assert_eq!(std::mem::size_of::<bool>(), 1);
+    }
+
+    #[test]
+    fn test_f32_type_properties() {
+        assert_eq!(F32::NAME, "f32");
+        assert_eq!(F32::PRIMITIVE_TYPE, PrimitiveType::F32);
+        assert_eq!(F32::SIZE, 4);
+        assert_eq!(F32::TYPE, F32);
+        assert_eq!(std::mem::size_of::<f32>(), 4);
+    }
+
+    #[test]
+    fn test_f64_type_properties() {
+        assert_eq!(F64::NAME, "f64");
+        assert_eq!(F64::PRIMITIVE_TYPE, PrimitiveType::F64);
+        assert_eq!(F64::SIZE, 8);
+        assert_eq!(F64::TYPE, F64);
+        assert_eq!(std::mem::size_of::<f64>(), 8);
+    }
+
+    #[test]
+    fn test_i8_type_properties() {
+        assert_eq!(I8::NAME, "i8");
+        assert_eq!(I8::PRIMITIVE_TYPE, PrimitiveType::S8);
+        assert_eq!(I8::SIZE, 1);
+        assert_eq!(I8::TYPE, I8);
+    }
+
+    #[test]
+    fn test_i16_type_properties() {
+        assert_eq!(I16::NAME, "i16");
+        assert_eq!(I16::PRIMITIVE_TYPE, PrimitiveType::S16);
+        assert_eq!(I16::SIZE, 2);
+        assert_eq!(I16::TYPE, I16);
+    }
+
+    #[test]
+    fn test_i32_type_properties() {
+        assert_eq!(I32::NAME, "i32");
+        assert_eq!(I32::PRIMITIVE_TYPE, PrimitiveType::S32);
+        assert_eq!(I32::SIZE, 4);
+        assert_eq!(I32::TYPE, I32);
+    }
+
+    #[test]
+    fn test_i64_type_properties() {
+        assert_eq!(I64::NAME, "i64");
+        assert_eq!(I64::PRIMITIVE_TYPE, PrimitiveType::S64);
+        assert_eq!(I64::SIZE, 8);
+        assert_eq!(I64::TYPE, I64);
+    }
+
+    #[test]
+    fn test_u8_type_properties() {
+        assert_eq!(U8::NAME, "u8");
+        assert_eq!(U8::PRIMITIVE_TYPE, PrimitiveType::U8);
+        assert_eq!(U8::SIZE, 1);
+        assert_eq!(U8::TYPE, U8);
+    }
+
+    #[test]
+    fn test_u16_type_properties() {
+        assert_eq!(U16::NAME, "u16");
+        assert_eq!(U16::PRIMITIVE_TYPE, PrimitiveType::U16);
+        assert_eq!(U16::SIZE, 2);
+        assert_eq!(U16::TYPE, U16);
+    }
+
+    #[test]
+    fn test_u32_type_properties() {
+        assert_eq!(U32::NAME, "u32");
+        assert_eq!(U32::PRIMITIVE_TYPE, PrimitiveType::U32);
+        assert_eq!(U32::SIZE, 4);
+        assert_eq!(U32::TYPE, U32);
+    }
+
+    #[test]
+    fn test_u64_type_properties() {
+        assert_eq!(U64::NAME, "u64");
+        assert_eq!(U64::PRIMITIVE_TYPE, PrimitiveType::U64);
+        assert_eq!(U64::SIZE, 8);
+        assert_eq!(U64::TYPE, U64);
+    }
+
+    #[test]
+    fn test_f16_type_properties() {
+        assert_eq!(F16::NAME, "f16");
+        assert_eq!(F16::PRIMITIVE_TYPE, PrimitiveType::F16);
+        assert_eq!(F16::SIZE, 2);
+        assert_eq!(F16::TYPE, F16);
+    }
+
+    #[test]
+    fn test_bf16_type_properties() {
+        assert_eq!(BF16::NAME, "bf16");
+        assert_eq!(BF16::PRIMITIVE_TYPE, PrimitiveType::BF16);
+        assert_eq!(BF16::SIZE, 2);
+        assert_eq!(BF16::TYPE, BF16);
+    }
+
+    #[test]
+    fn test_c64_type_properties() {
+        assert_eq!(C64::NAME, "c64");
+        assert_eq!(C64::PRIMITIVE_TYPE, PrimitiveType::C64);
+        assert_eq!(C64::SIZE, 8);
+        assert_eq!(C64::TYPE, C64);
+    }
+
+    #[test]
+    fn test_c128_type_properties() {
+        assert_eq!(C128::NAME, "c128");
+        assert_eq!(C128::PRIMITIVE_TYPE, PrimitiveType::C128);
+        assert_eq!(C128::SIZE, 16);
+        assert_eq!(C128::TYPE, C128);
+    }
+
+    #[test]
+    fn test_elem_type_trait() {
+        fn check_elem_type<T: ElemType>() {}
+        check_elem_type::<bool>();
+        check_elem_type::<f32>();
+        check_elem_type::<f64>();
+        check_elem_type::<i8>();
+        check_elem_type::<i16>();
+        check_elem_type::<i32>();
+        check_elem_type::<i64>();
+        check_elem_type::<u8>();
+        check_elem_type::<u16>();
+        check_elem_type::<u32>();
+        check_elem_type::<u64>();
+        check_elem_type::<half::f16>();
+        check_elem_type::<half::bf16>();
+        check_elem_type::<Complex<f32>>();
+        check_elem_type::<Complex<f64>>();
+    }
+
+    #[test]
+    fn test_dtype_trait() {
+        let f32_dtype: Box<dyn DType> = F32.boxed_dtype();
+        assert_eq!(f32_dtype.name(), "f32");
+        assert_eq!(f32_dtype.primitive_type(), PrimitiveType::F32);
+        assert_eq!(f32_dtype.size(), 4);
+        assert_eq!(f32_dtype.alignment(), 4);
+
+        let f64_dtype: Box<dyn DType> = F64.boxed_dtype();
+        assert_eq!(f64_dtype.name(), "f64");
+        assert_eq!(f64_dtype.primitive_type(), PrimitiveType::F64);
+        assert_eq!(f64_dtype.size(), 8);
+
+        let i32_dtype: Box<dyn DType> = I32.boxed_dtype();
+        assert_eq!(i32_dtype.name(), "i32");
+        assert_eq!(i32_dtype.primitive_type(), PrimitiveType::S32);
+    }
+
+    #[test]
+    fn test_dtype_clone() {
+        let dtype1: Box<dyn DType> = F32.boxed_dtype();
+        let dtype2 = dtype1.clone();
+        assert_eq!(dtype1.name(), dtype2.name());
+        assert_eq!(dtype1.primitive_type(), dtype2.primitive_type());
+        assert_eq!(dtype1.size(), dtype2.size());
+    }
+
+    #[test]
+    fn test_primitive_type_try_into_dtype() {
+        let dtype: Box<dyn DType> = PrimitiveType::F32.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "f32");
+        assert_eq!(dtype.primitive_type(), PrimitiveType::F32);
+
+        let dtype: Box<dyn DType> = PrimitiveType::F64.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "f64");
+
+        let dtype: Box<dyn DType> = PrimitiveType::S32.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "i32");
+
+        let dtype: Box<dyn DType> = PrimitiveType::U8.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "u8");
+
+        let dtype: Box<dyn DType> = PrimitiveType::Pred.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "bool");
+
+        // Test unimplemented types
+        assert!(PrimitiveType::F8E5M2.try_into_dtype().is_err());
+        assert!(PrimitiveType::F8E4M3FN.try_into_dtype().is_err());
+        assert!(PrimitiveType::S4.try_into_dtype().is_err());
+        assert!(PrimitiveType::U4.try_into_dtype().is_err());
+        assert!(PrimitiveType::Invalid.try_into_dtype().is_err());
+    }
+
+    #[test]
+    fn test_primitive_type_from_pjrt_buffer_type() {
+        use pjrt_sys::{
+            PJRT_Buffer_Type_PJRT_Buffer_Type_F32, PJRT_Buffer_Type_PJRT_Buffer_Type_F64,
+            PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID, PJRT_Buffer_Type_PJRT_Buffer_Type_S32,
+        };
+
+        let primitive = PrimitiveType::try_from(PJRT_Buffer_Type_PJRT_Buffer_Type_F32).unwrap();
+        assert_eq!(primitive, PrimitiveType::F32);
+
+        let primitive = PrimitiveType::try_from(PJRT_Buffer_Type_PJRT_Buffer_Type_F64).unwrap();
+        assert_eq!(primitive, PrimitiveType::F64);
+
+        let primitive = PrimitiveType::try_from(PJRT_Buffer_Type_PJRT_Buffer_Type_S32).unwrap();
+        assert_eq!(primitive, PrimitiveType::S32);
+
+        // Invalid type should error
+        let result = PrimitiveType::try_from(PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID);
+        assert!(result.is_ok()); // Invalid is a valid enum variant
+    }
+
+    #[test]
+    fn test_as_dtype_trait() {
+        let f32_val = F32;
+        let dtype = f32_val.as_dtype();
+        assert_eq!(dtype.name(), "f32");
+
+        // Test that concrete types implement AsDType
+        fn check_as_dtype<T: AsDType>(val: T) -> &'static str {
+            val.as_dtype().name()
+        }
+        assert_eq!(check_as_dtype(F64), "f64");
+    }
+
+    #[test]
+    fn test_all_primitive_types() {
+        // Test that all primitive types have unique values
+        let types = vec![
+            PrimitiveType::Invalid,
+            PrimitiveType::Pred,
+            PrimitiveType::S8,
+            PrimitiveType::S16,
+            PrimitiveType::S32,
+            PrimitiveType::S64,
+            PrimitiveType::U8,
+            PrimitiveType::U16,
+            PrimitiveType::U32,
+            PrimitiveType::U64,
+            PrimitiveType::F16,
+            PrimitiveType::F32,
+            PrimitiveType::F64,
+            PrimitiveType::BF16,
+            PrimitiveType::C64,
+            PrimitiveType::C128,
+            PrimitiveType::F8E5M2,
+            PrimitiveType::F8E4M3FN,
+            PrimitiveType::F8E4M3B11FNUZ,
+            PrimitiveType::F8E5M2FNUZ,
+            PrimitiveType::F8E4M3FNUZ,
+            PrimitiveType::S4,
+            PrimitiveType::U4,
+            PrimitiveType::Token,
+            PrimitiveType::S2,
+            PrimitiveType::U2,
+        ];
+
+        let mut seen = std::collections::HashSet::new();
+        for t in &types {
+            let value = *t as i32;
+            assert!(
+                seen.insert(value),
+                "Duplicate primitive type value: {:?} = {}",
+                t,
+                value
+            );
+        }
+    }
+
+    #[test]
+    fn test_type_marker_traits() {
+        // Ensure all type markers implement required traits
+        fn check_traits<T: Type>() {}
+        check_traits::<Bool>();
+        check_traits::<F32>();
+        check_traits::<F64>();
+        check_traits::<I8>();
+        check_traits::<I16>();
+        check_traits::<I32>();
+        check_traits::<I64>();
+        check_traits::<U8>();
+        check_traits::<U16>();
+        check_traits::<U32>();
+        check_traits::<U64>();
+        check_traits::<F16>();
+        check_traits::<BF16>();
+        check_traits::<C64>();
+        check_traits::<C128>();
+    }
+
+    #[test]
+    fn test_complex_elem_type() {
+        let _complex_f32 = Complex::<f32>::new(1.0, 2.0);
+        assert_eq!(<Complex<f32> as ElemType>::Type::NAME, "c64");
+        assert_eq!(<Complex<f32> as ElemType>::Type::SIZE, 8);
+
+        let _complex_f64 = Complex::<f64>::new(1.0, 2.0);
+        assert_eq!(<Complex<f64> as ElemType>::Type::NAME, "c128");
+        assert_eq!(<Complex<f64> as ElemType>::Type::SIZE, 16);
+    }
+
+    #[test]
+    fn test_half_elem_type() {
+        assert_eq!(<half::f16 as ElemType>::Type::NAME, "f16");
+        assert_eq!(<half::f16 as ElemType>::Type::SIZE, 2);
+
+        assert_eq!(<half::bf16 as ElemType>::Type::NAME, "bf16");
+        assert_eq!(<half::bf16 as ElemType>::Type::SIZE, 2);
+    }
+}

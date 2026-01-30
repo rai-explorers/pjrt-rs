@@ -78,3 +78,120 @@ impl Program {
         Ok(Program::new(ProgramFormat::HLO, code))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_program_format_mlir() {
+        assert_eq!(ProgramFormat::MLIR.as_str(), "mlir");
+        assert_eq!(ProgramFormat::MLIR.as_bytes(), b"mlir");
+    }
+
+    #[test]
+    fn test_program_format_hlo() {
+        assert_eq!(ProgramFormat::HLO.as_str(), "hlo");
+        assert_eq!(ProgramFormat::HLO.as_bytes(), b"hlo");
+    }
+
+    #[test]
+    fn test_program_format_try_from_str() {
+        let format: ProgramFormat = "mlir".try_into().unwrap();
+        assert_eq!(format, ProgramFormat::MLIR);
+
+        let format: ProgramFormat = "hlo".try_into().unwrap();
+        assert_eq!(format, ProgramFormat::HLO);
+
+        let result: Result<ProgramFormat> = "invalid".try_into();
+        assert!(result.is_err());
+        match result {
+            Err(Error::InvalidProgramFormat(s)) => assert_eq!(s, "invalid"),
+            _ => panic!("Expected InvalidProgramFormat error"),
+        }
+    }
+
+    #[test]
+    fn test_program_new_mlir() {
+        let code = b"module { func.func @main() { return } }";
+        let program = Program::new(ProgramFormat::MLIR, code.to_vec());
+
+        assert_eq!(program.format(), ProgramFormat::MLIR);
+        assert_eq!(program.code(), code);
+
+        // Check that the internal PJRT_Program struct is properly initialized
+        assert!(!program.prog.code.is_null());
+        assert_eq!(program.prog.code_size, code.len());
+        assert!(!program.prog.format.is_null());
+        assert_eq!(program.prog.format_size, 4); // "mlir" is 4 bytes
+    }
+
+    #[test]
+    fn test_program_new_hlo() {
+        let code = b"HLO_BINARY_DATA";
+        let program = Program::new(ProgramFormat::HLO, code.to_vec());
+
+        assert_eq!(program.format(), ProgramFormat::HLO);
+        assert_eq!(program.code(), code);
+        assert_eq!(program.prog.format_size, 3); // "hlo" is 3 bytes
+    }
+
+    #[test]
+    fn test_program_new_empty_code() {
+        let code: Vec<u8> = vec![];
+        let program = Program::new(ProgramFormat::MLIR, code.clone());
+
+        assert_eq!(program.code(), &code);
+        assert_eq!(program.prog.code_size, 0);
+    }
+
+    #[test]
+    fn test_program_new_from_string() {
+        let code =
+            "func.func @main(%arg0: tensor<f32>) -> tensor<f32> { return %arg0 : tensor<f32> }";
+        let program = Program::new(ProgramFormat::MLIR, code.to_string());
+
+        assert_eq!(program.code(), code.as_bytes());
+        assert_eq!(program.prog.code_size, code.len());
+    }
+
+    #[test]
+    fn test_program_format_clone() {
+        let format = ProgramFormat::MLIR;
+        let cloned = format;
+        assert_eq!(format, cloned);
+    }
+
+    #[test]
+    fn test_program_format_debug() {
+        let format = ProgramFormat::MLIR;
+        let debug = format!("{:?}", format);
+        assert!(debug.contains("MLIR"));
+    }
+
+    #[test]
+    fn test_program_format_equality() {
+        assert_eq!(ProgramFormat::MLIR, ProgramFormat::MLIR);
+        assert_eq!(ProgramFormat::HLO, ProgramFormat::HLO);
+        assert_ne!(ProgramFormat::MLIR, ProgramFormat::HLO);
+    }
+
+    #[test]
+    fn test_program_format_ordering() {
+        // MLIR comes before HLO in the enum definition, so MLIR < HLO
+        assert!(ProgramFormat::MLIR < ProgramFormat::HLO);
+        assert!(ProgramFormat::HLO > ProgramFormat::MLIR);
+    }
+
+    #[test]
+    fn test_program_format_hash() {
+        use std::collections::HashSet;
+
+        let mut set = HashSet::new();
+        set.insert(ProgramFormat::MLIR);
+        set.insert(ProgramFormat::HLO);
+        set.insert(ProgramFormat::MLIR); // Duplicate
+
+        assert_eq!(set.len(), 2);
+    }
+}
