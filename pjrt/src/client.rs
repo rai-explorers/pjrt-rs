@@ -409,7 +409,7 @@ impl Client {
         args.num_dims = dims.len();
         args.element_type = element_type as pjrt_sys::PJRT_Buffer_Type;
 
-        let mut layout_c = layout.map(|l| pjrt_sys::PJRT_Buffer_MemoryLayout::from(l));
+        let mut layout_c = layout.map(pjrt_sys::PJRT_Buffer_MemoryLayout::from);
         if let Some(ref mut l) = layout_c {
             args.layout = l as *mut _;
         }
