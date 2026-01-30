@@ -1,5 +1,5 @@
 use pjrt::ProgramFormat::MLIR;
-use pjrt::{self, Client, HostBuffer, LoadedExecutable, Result};
+use pjrt::{self, Buffer, Client, HostBuffer, LoadedExecutable, Result};
 
 const CODE: &[u8] = include_bytes!("prog_f16.mlir");
 
@@ -19,12 +19,12 @@ fn main() -> Result<()> {
     let a = HostBuffer::from_scalar(half::f16::from_f32(1.25));
     println!("input = {:?}", a);
 
-    let inputs = a.to_sync(&client).copy()?;
+    let inputs: Buffer = a.to_sync(&client).copy()?;
 
     let result = loaded_executable.execution(inputs).run_sync()?;
 
     let ouput = &result[0][0];
-    let output = ouput.to_host_sync().copy()?;
+    let output: HostBuffer = ouput.to_host_sync(None)?;
     println!("output= {:?}", output);
 
     Ok(())

@@ -20,8 +20,8 @@ impl MemoryLayout {
     #[builder(finish_fn = build)]
     pub fn from_tiled(
         #[builder(start_fn, into)] minor_to_major: Vec<i64>,
-        #[builder] tile_dims: Option<Vec<i64>>,
-        #[builder] tile_dim_sizes: Option<Vec<usize>>,
+        tile_dims: Option<Vec<i64>>,
+        tile_dim_sizes: Option<Vec<usize>>,
     ) -> MemoryLayout {
         MemoryLayout::Tiled(MemoryLayoutTiled {
             minor_to_major,

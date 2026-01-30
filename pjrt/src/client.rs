@@ -62,7 +62,7 @@ impl Client {
     pub fn builder(
         #[builder(start_fn)] api: &Api,
         #[builder(default = bon::vec![], into)] options: Vec<NamedValue>,
-        #[builder] kv_store: Option<&Box<dyn KeyValueStore>>,
+        kv_store: Option<&Box<dyn KeyValueStore>>,
     ) -> Result<Self> {
         api.create_client(options, kv_store)
     }
@@ -311,7 +311,7 @@ impl Client {
         #[builder(start_fn)] memory: &Memory,
         dims: &[i64],
         element_type: PrimitiveType,
-        #[builder] layout: Option<&MemoryLayout>,
+        layout: Option<&MemoryLayout>,
     ) -> Result<(Buffer, FulfillAliasBufferCallback)> {
         let mut args = PJRT_Client_CreateAliasBuffer_Args::new();
         args.client = self.ptr();
@@ -395,10 +395,10 @@ impl Client {
         #[builder(start_fn)] device_buffer_ptr: *mut c_void,
         #[builder(start_fn)] element_type: PrimitiveType,
         #[builder(into)] dims: Vec<i64>,
-        #[builder] layout: Option<&MemoryLayout>,
-        #[builder] memory: Option<&Memory>,
-        #[builder] device: Option<&Device>,
-        #[builder] stream: Option<isize>,
+        layout: Option<&MemoryLayout>,
+        memory: Option<&Memory>,
+        device: Option<&Device>,
+        stream: Option<isize>,
     ) -> Result<Buffer> {
         use pjrt_sys::PJRT_Client_CreateViewOfDeviceBuffer_Args;
 

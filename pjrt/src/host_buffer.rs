@@ -27,11 +27,10 @@ pub struct TypedHostBuffer<T: Type> {
 
 #[bon]
 impl<T: Type> TypedHostBuffer<T> {
-    #[builder(finish_fn = build)]
     pub fn from_data(
-        #[builder(start_fn, into)] data: Vec<T::ElemType>,
-        #[builder(into)] dims: Option<Vec<i64>>,
-        #[builder] layout: Option<MemoryLayout>,
+        data: Vec<T::ElemType>,
+        dims: Option<Vec<i64>>,
+        layout: Option<MemoryLayout>,
     ) -> Self {
         let dims = dims.unwrap_or_else(|| vec![data.len() as i64]);
         let layout = layout
@@ -43,11 +42,10 @@ impl<T: Type> TypedHostBuffer<T> {
         }
     }
 
-    #[builder(finish_fn = build)]
     pub fn from_bytes(
-        #[builder(start_fn, into)] bytes: Vec<u8>,
-        #[builder(into)] dims: Option<Vec<i64>>,
-        #[builder] layout: Option<MemoryLayout>,
+        bytes: Vec<u8>,
+        dims: Option<Vec<i64>>,
+        layout: Option<MemoryLayout>,
     ) -> Self {
         let length = bytes.len() / T::SIZE;
         let capacity = bytes.capacity() / T::SIZE;
@@ -202,115 +200,36 @@ pub enum HostBuffer {
 
 #[bon]
 impl HostBuffer {
-    #[builder(finish_fn = build)]
-    pub fn from_data<E>(
-        #[builder(start_fn, into)] data: Vec<E>,
-        #[builder(into)] dims: Option<Vec<i64>>,
-        #[builder] layout: Option<MemoryLayout>,
-    ) -> Self
+    pub fn from_data<E>(data: Vec<E>, dims: Option<Vec<i64>>, layout: Option<MemoryLayout>) -> Self
     where
         E: ElemType,
         Self: From<TypedHostBuffer<E::Type>>,
     {
-        let buf = TypedHostBuffer::<E::Type>::from_data(data)
-            .maybe_dims(dims)
-            .maybe_layout(layout)
-            .build();
+        let buf = TypedHostBuffer::<E::Type>::from_data(data, dims, layout);
         Self::from(buf)
     }
 
-    #[builder(finish_fn = build)]
     pub fn from_bytes(
-        #[builder(start_fn)] bytes: Vec<u8>,
-        #[builder(start_fn)] ty: PrimitiveType,
-        #[builder(into)] dims: Option<Vec<i64>>,
-        #[builder] layout: Option<MemoryLayout>,
+        bytes: Vec<u8>,
+        ty: PrimitiveType,
+        dims: Option<Vec<i64>>,
+        layout: Option<MemoryLayout>,
     ) -> Result<Self> {
         match ty {
-            PrimitiveType::BF16 => Ok(Self::BF16(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::F16 => Ok(Self::F16(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::F32 => Ok(Self::F32(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::F64 => Ok(Self::F64(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::S8 => Ok(Self::I8(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::S16 => Ok(Self::I16(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::S32 => Ok(Self::I32(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::S64 => Ok(Self::I64(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::U8 => Ok(Self::U8(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::U16 => Ok(Self::U16(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::U32 => Ok(Self::U32(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::U64 => Ok(Self::U64(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::C64 => Ok(Self::C64(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
-            PrimitiveType::C128 => Ok(Self::C128(
-                TypedHostBuffer::from_bytes(bytes)
-                    .maybe_dims(dims)
-                    .maybe_layout(layout)
-                    .build(),
-            )),
+            PrimitiveType::BF16 => Ok(Self::BF16(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::F16 => Ok(Self::F16(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::F32 => Ok(Self::F32(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::F64 => Ok(Self::F64(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::S8 => Ok(Self::I8(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::S16 => Ok(Self::I16(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::S32 => Ok(Self::I32(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::S64 => Ok(Self::I64(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::U8 => Ok(Self::U8(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::U16 => Ok(Self::U16(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::U32 => Ok(Self::U32(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::U64 => Ok(Self::U64(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::C64 => Ok(Self::C64(TypedHostBuffer::from_bytes(bytes, dims, layout))),
+            PrimitiveType::C128 => Ok(Self::C128(TypedHostBuffer::from_bytes(bytes, dims, layout))),
             _ => Err(Error::NotSupportedType(ty)),
         }
     }
@@ -469,7 +388,7 @@ pub enum HostBufferSemantics {
     MutableZeroCopy = PJRT_HostBufferSemantics_PJRT_HostBufferSemantics_kMutableZeroCopy as i32,
 }
 
-pub(crate) trait HostBufferCopyToDest {
+pub trait HostBufferCopyToDest {
     fn client(&self) -> &Client;
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()>;
 }

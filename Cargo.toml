@@ -15,14 +15,14 @@ categories = ["science"]
 [workspace.dependencies]
 pjrt-sys = { path = "pjrt-sys", version = "0.2.0" }
 pjrt = { path = "pjrt", version = "0.2.0" }
-bindgen = "0.69"
+bindgen = "0.72"
 bytes = "1"
-libloading = "0.8"
-prost = "0.13"
-prost-build = "0.13"
-prost-types = "0.13"
+libloading = "0.9"
+prost = "0.14"
+prost-build = "0.14"
+prost-types = "0.14"
 thiserror = "1"
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
-bon = "2.3"
-half = "2.4"
+bon = "3.8.2"
+half = "2.7"
 num-complex = "0.4"

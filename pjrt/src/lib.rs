@@ -30,7 +30,9 @@ mod compile;
 pub use compile::{CompileOptions, CompileToExecutable, CompileToLoadedExecutable};
 
 mod device;
-pub use device::{AsyncTrackingEvent, Device, GlobalDeviceId, LocalDeviceId, LocalHardwareId, MemoryStats};
+pub use device::{
+    AsyncTrackingEvent, Device, GlobalDeviceId, LocalDeviceId, LocalHardwareId, MemoryStats,
+};
 
 mod device_description;
 pub use device_description::DeviceDescription;

@@ -9,9 +9,7 @@ async fn main() -> Result<()> {
 
     let client = Client::builder(&api).build()?;
 
-    let host_buf = HostBuffer::from_data([1.0f32, 2.0, 3.0, 4.0])
-        .dims([2, 2])
-        .build();
+    let host_buf = HostBuffer::from_data(vec![1.0f32, 2.0, 3.0, 4.0], Some(vec![2, 2]), None);
     println!("{:?}", host_buf);
 
     let dev1 = client.lookup_addressable_device(0)?;
@@ -21,7 +19,7 @@ async fn main() -> Result<()> {
     let dev_buf = host_buf.to(&dev1).copy().await?;
     println!("to {:?}, {:?}", dev_buf.dims(), dev_buf.layout());
 
-    let b = dev_buf.to_host().copy().await?;
+    let b = dev_buf.to_host(None).await?;
     println!("to_host {:?}", b);
 
     let b = dev_buf.to_device(&dev2).copy().await?;
@@ -31,7 +29,7 @@ async fn main() -> Result<()> {
     let dev_buf = host_buf.to_sync(&dev1).copy()?;
     println!("to_sync {:?}, {:?}", dev_buf.dims(), dev_buf.layout());
 
-    let b = dev_buf.to_host_sync().copy()?;
+    let b = dev_buf.to_host_sync(None)?;
     println!("to_host_sync {:?}", b);
 
     let b = dev_buf.to_device_sync(&dev2).copy()?;

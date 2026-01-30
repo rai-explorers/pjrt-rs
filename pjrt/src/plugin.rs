@@ -57,7 +57,7 @@ impl PluginManager {
 
 static PLUGIN_MANAGER: OnceLock<PluginManager> = OnceLock::new();
 
-#[builder(finish_fn = "load")]
+#[builder(finish_fn = load)]
 pub fn plugin(
     #[builder(start_fn, into)] library: String,
     #[builder(into)] alias: Option<String>,

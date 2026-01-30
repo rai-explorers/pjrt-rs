@@ -10,12 +10,12 @@ use pjrt_sys::{
     PJRT_Buffer_Device_Args, PJRT_Buffer_Dimensions_Args, PJRT_Buffer_DynamicDimensionIndices_Args,
     PJRT_Buffer_ElementType_Args, PJRT_Buffer_GetMemoryLayout_Args, PJRT_Buffer_IsDeleted_Args,
     PJRT_Buffer_IsOnCpu_Args, PJRT_Buffer_MemoryLayout, PJRT_Buffer_Memory_Args,
-    PJRT_Buffer_OnDeviceSizeInBytes_Args, PJRT_Buffer_ReadyEvent_Args, PJRT_Buffer_ToHostBuffer_Args,
-    PJRT_Buffer_UnpaddedDimensions_Args,
+    PJRT_Buffer_OnDeviceSizeInBytes_Args, PJRT_Buffer_ReadyEvent_Args,
+    PJRT_Buffer_ToHostBuffer_Args, PJRT_Buffer_UnpaddedDimensions_Args,
 };
 
 use crate::event::Event;
-use crate::{Client, Device, HostBuffer, Memory, MemoryLayout, PrimitiveType, Result, ErrorCode};
+use crate::{Client, Device, ErrorCode, HostBuffer, Memory, MemoryLayout, PrimitiveType, Result};
 
 pub struct Buffer {
     client: Client,
@@ -250,7 +250,6 @@ impl Buffer {
         Ok((args, buf))
     }
 
-    #[builder(finish_fn = copy)]
     pub async fn to_host(&self, host_layout: Option<MemoryLayout>) -> Result<HostBuffer> {
         let (args, data) = self.call_copy_to_host(host_layout.as_ref())?;
         let event = Event::wrap(self.client.api(), args.event);
@@ -258,13 +257,9 @@ impl Buffer {
         let ty = self.primitive_type();
         let dims = self.dims();
         let layout = host_layout.unwrap_or_else(|| self.layout());
-        HostBuffer::from_bytes(data, ty)
-            .dims(dims)
-            .layout(layout)
-            .build()
+        HostBuffer::from_bytes(data, ty, Some(dims), Some(layout))
     }
 
-    #[builder(finish_fn = copy)]
     pub fn to_host_sync(&self, host_layout: Option<MemoryLayout>) -> Result<HostBuffer> {
         let (args, data) = self.call_copy_to_host(host_layout.as_ref())?;
         let event = Event::wrap(self.client.api(), args.event);
@@ -272,14 +267,11 @@ impl Buffer {
         let ty = self.primitive_type();
         let dims = self.dims();
         let layout = host_layout.unwrap_or_else(|| self.layout());
-        HostBuffer::from_bytes(data, ty)
-            .dims(dims)
-            .layout(layout)
-            .build()
+        HostBuffer::from_bytes(data, ty, Some(dims), Some(layout))
     }
 
     /// Copies raw data from the buffer to host memory.
-    /// 
+    ///
     /// This is a lower-level API that copies raw bytes without type conversion.
     #[builder(finish_fn = copy)]
     pub async fn copy_raw_to_host(
@@ -337,9 +329,7 @@ impl Buffer {
         offset: usize,
         transfer_size: usize,
     ) -> Result<CopyRawToHostFuture> {
-        use pjrt_sys::{
-            PJRT_Buffer_CopyRawToHostFuture_Args,
-        };
+        use pjrt_sys::PJRT_Buffer_CopyRawToHostFuture_Args;
 
         let mut args = PJRT_Buffer_CopyRawToHostFuture_Args::new();
         args.buffer = self.ptr;
@@ -371,7 +361,10 @@ impl Buffer {
         let mut args = PJRT_Buffer_DonateWithControlDependency_Args::new();
         args.buffer = self.ptr;
 
-        let args = self.client.api().PJRT_Buffer_DonateWithControlDependency(args)?;
+        let args = self
+            .client
+            .api()
+            .PJRT_Buffer_DonateWithControlDependency(args)?;
 
         let out_buffer = Buffer::wrap(&self.client, args.out_buffer);
 
@@ -390,9 +383,8 @@ impl Buffer {
 pub struct CopyRawToHostFuture {
     event: Event,
     callback_data: *mut c_void,
-    future_ready_callback: Option<
-        unsafe extern "C" fn(*mut pjrt_sys::PJRT_Buffer_CopyRawToHostFuture_Callback_Args),
-    >,
+    future_ready_callback:
+        Option<unsafe extern "C" fn(*mut pjrt_sys::PJRT_Buffer_CopyRawToHostFuture_Callback_Args)>,
     transfer_size: usize,
 }
 
@@ -435,9 +427,9 @@ impl CopyRawToHostFuture {
         }
         args.dst = dst.as_mut_ptr() as *mut _;
 
-        let callback = self.future_ready_callback.ok_or_else(|| {
-            crate::Error::NullFunctionPointer("future_ready_callback")
-        })?;
+        let callback = self
+            .future_ready_callback
+            .ok_or_else(|| crate::Error::NullFunctionPointer("future_ready_callback"))?;
 
         unsafe { callback(&mut args) };
         Ok(())
@@ -497,9 +489,9 @@ impl DonateWithControlDependency {
             args.error_message_size = msg.len();
         }
 
-        let callback = self.dependency_ready_callback.ok_or_else(|| {
-            crate::Error::NullFunctionPointer("dependency_ready_callback")
-        })?;
+        let callback = self
+            .dependency_ready_callback
+            .ok_or_else(|| crate::Error::NullFunctionPointer("dependency_ready_callback"))?;
 
         unsafe { callback(&mut args) };
         Ok(())

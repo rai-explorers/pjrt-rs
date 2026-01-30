@@ -133,7 +133,7 @@ impl AsyncHostToDeviceTransferManager {
         #[builder(start_fn)] buffer_index: i32,
         data: &[T::ElemType],
         dims: &[i64],
-        #[builder] layout: Option<&MemoryLayout>,
+        layout: Option<&MemoryLayout>,
     ) -> Result<Event> {
         let mut args = PJRT_AsyncHostToDeviceTransferManager_TransferLiteral_Args::new();
         args.transfer_manager = self.ptr;
