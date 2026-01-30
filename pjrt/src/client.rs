@@ -378,8 +378,55 @@ impl Client {
         self.api().PJRT_Client_DmaUnmap(args).map(|_| ())
     }
 
-    // TODO:
-    // PJRT_Client_CreateViewOfDeviceBuffer
+    /// Creates a buffer that is a non-owned view of existing device memory.
+    ///
+    /// This creates a PJRT buffer that wraps existing device memory allocated
+    /// by another library (e.g., via dlpack). The buffer may be mutated, for
+    /// example if donated to an Execute operation.
+    ///
+    /// # Safety
+    ///
+    /// - `device_buffer_ptr` must point to valid device memory
+    /// - The memory must outlive the returned Buffer
+    /// - If `on_delete` is provided, it will be called when the buffer is destroyed
+    #[builder(finish_fn = build)]
+    pub unsafe fn create_view_of_device_buffer(
+        &self,
+        #[builder(start_fn)] device_buffer_ptr: *mut c_void,
+        #[builder(start_fn)] element_type: PrimitiveType,
+        #[builder(into)] dims: Vec<i64>,
+        #[builder] layout: Option<&MemoryLayout>,
+        #[builder] memory: Option<&Memory>,
+        #[builder] device: Option<&Device>,
+        #[builder] stream: Option<isize>,
+    ) -> Result<Buffer> {
+        use pjrt_sys::PJRT_Client_CreateViewOfDeviceBuffer_Args;
+
+        let mut args = PJRT_Client_CreateViewOfDeviceBuffer_Args::new();
+        args.client = self.ptr();
+        args.device_buffer_ptr = device_buffer_ptr;
+        args.dims = dims.as_ptr();
+        args.num_dims = dims.len();
+        args.element_type = element_type as pjrt_sys::PJRT_Buffer_Type;
+
+        let mut layout_c = layout.map(|l| pjrt_sys::PJRT_Buffer_MemoryLayout::from(l));
+        if let Some(ref mut l) = layout_c {
+            args.layout = l as *mut _;
+        }
+
+        if let Some(memory) = memory {
+            args.memory = memory.ptr;
+        } else if let Some(device) = device {
+            args.device = device.ptr;
+        }
+
+        if let Some(stream) = stream {
+            args.stream = stream;
+        }
+
+        let args = self.api().PJRT_Client_CreateViewOfDeviceBuffer(args)?;
+        Ok(Buffer::wrap(self, args.buffer))
+    }
 }
 
 impl CompileToLoadedExecutable<Program> for Client {

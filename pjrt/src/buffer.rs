@@ -1,3 +1,8 @@
+use std::ffi::c_void;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
 use bon::bon;
 use pjrt_sys::{
     PJRT_Buffer, PJRT_Buffer_CopyRawToHost_Args, PJRT_Buffer_CopyToDevice_Args,
@@ -10,7 +15,7 @@ use pjrt_sys::{
 };
 
 use crate::event::Event;
-use crate::{Client, Device, HostBuffer, Memory, MemoryLayout, PrimitiveType, Result};
+use crate::{Client, Device, HostBuffer, Memory, MemoryLayout, PrimitiveType, Result, ErrorCode};
 
 pub struct Buffer {
     client: Client,
@@ -311,12 +316,192 @@ impl Buffer {
         event.wait()
     }
 
-    // TODO: PJRT_Buffer_CopyRawToHostFuture - needs callback handling
-    // TODO: PJRT_Buffer_DonateWithControlDependency - complex callback-based API
+    /// Copies raw data from the buffer to host memory using a future callback.
+    ///
+    /// This is similar to `copy_raw_to_host`, but the transfer only happens when
+    /// the `future_ready` callback is invoked. The callback provides a destination
+    /// buffer that the PJRT runtime will fill.
+    ///
+    /// Returns a future that resolves when the copy is complete.
+    ///
+    /// # Example
+    /// ```
+    /// let (future, callback_data, future_ready) = buffer.copy_raw_to_host_future(0, 1024)?;
+    /// // Later, when ready to receive:
+    /// let mut dst = vec![0u8; 1024];
+    /// future_ready(&dst, None, None)?;
+    /// future.await?;
+    /// ```
+    pub fn copy_raw_to_host_future(
+        &self,
+        offset: usize,
+        transfer_size: usize,
+    ) -> Result<CopyRawToHostFuture> {
+        use pjrt_sys::{
+            PJRT_Buffer_CopyRawToHostFuture_Args,
+        };
 
-    // TODO:
-    // PJRT_Buffer_UnsafePointer
-    // PJRT_Buffer_IncreaseExternalReferenceCount
-    // PJRT_Buffer_DecreaseExternalReferenceCount
-    // PJRT_Buffer_OpaqueDeviceMemoryDataPointer
+        let mut args = PJRT_Buffer_CopyRawToHostFuture_Args::new();
+        args.buffer = self.ptr;
+        args.offset = offset as i64;
+        args.transfer_size = transfer_size as i64;
+
+        let args = self.client.api().PJRT_Buffer_CopyRawToHostFuture(args)?;
+
+        let event = Event::wrap(self.client.api(), args.event);
+
+        Ok(CopyRawToHostFuture {
+            event,
+            callback_data: args.callback_data,
+            future_ready_callback: args.future_ready_callback,
+            transfer_size,
+        })
+    }
+
+    /// Donates this buffer with a control dependency.
+    ///
+    /// This is used to donate a buffer for an execute call while maintaining
+    /// control over when the donation completes via a callback.
+    ///
+    /// Returns the donated buffer along with a callback that must be invoked
+    /// before the dependency is considered ready.
+    pub fn donate_with_control_dependency(&self) -> Result<DonateWithControlDependency> {
+        use pjrt_sys::PJRT_Buffer_DonateWithControlDependency_Args;
+
+        let mut args = PJRT_Buffer_DonateWithControlDependency_Args::new();
+        args.buffer = self.ptr;
+
+        let args = self.client.api().PJRT_Buffer_DonateWithControlDependency(args)?;
+
+        let out_buffer = Buffer::wrap(&self.client, args.out_buffer);
+
+        Ok(DonateWithControlDependency {
+            buffer: out_buffer,
+            callback_data: args.callback_data,
+            dependency_ready_callback: args.dependency_ready_callback,
+        })
+    }
+}
+
+/// A future for copying raw buffer data to host memory.
+///
+/// This struct is returned by [`Buffer::copy_raw_to_host_future`] and provides
+/// a callback-based interface for asynchronously receiving data.
+pub struct CopyRawToHostFuture {
+    event: Event,
+    callback_data: *mut c_void,
+    future_ready_callback: Option<
+        unsafe extern "C" fn(*mut pjrt_sys::PJRT_Buffer_CopyRawToHostFuture_Callback_Args),
+    >,
+    transfer_size: usize,
+}
+
+impl CopyRawToHostFuture {
+    /// Returns the underlying event that signals completion.
+    pub fn event(&self) -> &Event {
+        &self.event
+    }
+
+    /// Signals that the host is ready to receive data.
+    ///
+    /// # Safety
+    ///
+    /// - `dst` must be a mutable slice of at least `transfer_size` bytes
+    /// - This must be called exactly once before awaiting the future
+    pub unsafe fn future_ready(
+        &self,
+        dst: &mut [u8],
+        error_code: Option<ErrorCode>,
+        error_message: Option<&str>,
+    ) -> Result<()> {
+        use pjrt_sys::PJRT_Buffer_CopyRawToHostFuture_Callback_Args;
+
+        if dst.len() < self.transfer_size {
+            return Err(crate::Error::InvalidArgument(format!(
+                "destination buffer too small: got {} bytes, need {}",
+                dst.len(),
+                self.transfer_size
+            )));
+        }
+
+        let mut args = PJRT_Buffer_CopyRawToHostFuture_Callback_Args::new();
+        args.callback_data = self.callback_data;
+        if let Some(code) = error_code {
+            args.error_code = code as pjrt_sys::PJRT_Error_Code;
+        }
+        if let Some(msg) = error_message {
+            args.error_message = msg.as_ptr() as *const i8;
+            args.error_message_size = msg.len();
+        }
+        args.dst = dst.as_mut_ptr() as *mut _;
+
+        let callback = self.future_ready_callback.ok_or_else(|| {
+            crate::Error::NullFunctionPointer("future_ready_callback")
+        })?;
+
+        unsafe { callback(&mut args) };
+        Ok(())
+    }
+}
+
+impl Future for CopyRawToHostFuture {
+    type Output = Result<()>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // Delegate to the underlying event
+        Pin::new(&mut self.event).poll(cx)
+    }
+}
+
+/// A donated buffer with a control dependency callback.
+///
+/// This struct is returned by [`Buffer::donate_with_control_dependency`] and
+/// wraps a buffer that has been donated for execution with a pending control
+/// dependency.
+pub struct DonateWithControlDependency {
+    buffer: Buffer,
+    callback_data: *mut c_void,
+    dependency_ready_callback: Option<
+        unsafe extern "C" fn(*mut pjrt_sys::PJRT_Buffer_DonateWithControlDependency_Callback_Args),
+    >,
+}
+
+impl DonateWithControlDependency {
+    /// Returns the donated buffer.
+    pub fn buffer(&self) -> &Buffer {
+        &self.buffer
+    }
+
+    /// Consumes this struct and returns the donated buffer.
+    pub fn into_buffer(self) -> Buffer {
+        self.buffer
+    }
+
+    /// Signals that the dependency is ready.
+    ///
+    /// This must be called before the donated buffer can be used in execution.
+    pub fn dependency_ready(
+        &self,
+        error_code: Option<ErrorCode>,
+        error_message: Option<&str>,
+    ) -> Result<()> {
+        use pjrt_sys::PJRT_Buffer_DonateWithControlDependency_Callback_Args;
+
+        let mut args = PJRT_Buffer_DonateWithControlDependency_Callback_Args::new();
+        args.callback_data = self.callback_data;
+        if let Some(code) = error_code {
+            args.error_code = code as pjrt_sys::PJRT_Error_Code;
+        }
+        if let Some(msg) = error_message {
+            args.error_message = msg.as_ptr() as *const i8;
+            args.error_message_size = msg.len();
+        }
+
+        let callback = self.dependency_ready_callback.ok_or_else(|| {
+            crate::Error::NullFunctionPointer("dependency_ready_callback")
+        })?;
+
+        unsafe { callback(&mut args) };
+        Ok(())
+    }
 }

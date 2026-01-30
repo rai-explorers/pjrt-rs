@@ -18,7 +18,7 @@ mod client;
 pub use client::{Client, FulfillAliasBufferCallback, ProcessInfo, ProcessState};
 
 mod buffer;
-pub use buffer::Buffer;
+pub use buffer::{Buffer, CopyRawToHostFuture, DonateWithControlDependency};
 
 mod host_buffer;
 pub use host_buffer::{HostBuffer, TypedHostBuffer};

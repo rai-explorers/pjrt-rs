@@ -28,6 +28,9 @@ pub enum Error {
     #[error("null function pointer: {0}")]
     NullFunctionPointer(&'static str),
 
+    #[error("invalid argument: {0}")]
+    InvalidArgument(String),
+
     #[error("no addressable device")]
     NoAddressableDevice,
 
