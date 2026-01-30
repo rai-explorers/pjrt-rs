@@ -91,7 +91,7 @@ impl Event {
     ///
     /// This creates an event that can be set later to signal completion.
     pub fn create(api: &Api) -> Result<Self> {
-        let mut args = PJRT_Event_Create_Args::new();
+        let args = PJRT_Event_Create_Args::new();
         let args = api.PJRT_Event_Create(args)?;
         Ok(Self::wrap(api, args.event))
     }

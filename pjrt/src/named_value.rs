@@ -72,7 +72,7 @@ impl<'a> From<&'a NamedValue> for PJRT_NamedValue {
     fn from(v: &'a NamedValue) -> Self {
         let mut out = PJRT_NamedValue::new();
         out.name = v.name.as_ptr() as *const i8;
-        out.name_size = v.name.as_bytes().len();
+        out.name_size = v.name.len();
         match &v.value {
             Value::I64(i) => {
                 out.type_ = PJRT_NamedValue_Type_PJRT_NamedValue_kInt64;
@@ -89,7 +89,7 @@ impl<'a> From<&'a NamedValue> for PJRT_NamedValue {
             Value::String(s) => {
                 out.type_ = PJRT_NamedValue_Type_PJRT_NamedValue_kString;
                 out.__bindgen_anon_1.string_value = s.as_ptr() as *const i8;
-                out.value_size = s.as_bytes().len();
+                out.value_size = s.len();
             }
             Value::I64List(l) => {
                 out.type_ = PJRT_NamedValue_Type_PJRT_NamedValue_kInt64List;

@@ -51,6 +51,7 @@ impl AsyncHostToDeviceTransferManager {
         &self.client
     }
 
+    #[allow(dead_code)]
     pub(crate) fn ptr(&self) -> *mut PJRT_AsyncHostToDeviceTransferManager {
         self.ptr
     }
@@ -133,7 +134,6 @@ impl AsyncHostToDeviceTransferManager {
         data: &[T::ElemType],
         dims: &[i64],
         #[builder] layout: Option<&MemoryLayout>,
-        #[builder(default = false)] is_last_transfer: bool,
     ) -> Result<Event> {
         let mut args = PJRT_AsyncHostToDeviceTransferManager_TransferLiteral_Args::new();
         args.transfer_manager = self.ptr;
@@ -143,13 +143,11 @@ impl AsyncHostToDeviceTransferManager {
         args.shape_num_dims = dims.len();
         args.shape_element_type = T::PRIMITIVE_TYPE as PJRT_Buffer_Type;
 
-        let mut layout_c = layout.map(|l| pjrt_sys::PJRT_Buffer_MemoryLayout::from(l));
+        let mut layout_c = layout.map(pjrt_sys::PJRT_Buffer_MemoryLayout::from);
         if let Some(ref mut l) = layout_c {
             args.shape_layout = l as *mut _;
         }
 
-        // Note: is_last_transfer is not directly in the args struct,
-        // but we pass it through the TransferData path or handle it differently
         let args = self
             .client
             .api()

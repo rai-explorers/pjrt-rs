@@ -104,6 +104,7 @@ impl Api {
         CompileToExecutable::<T>::compile(self, program, topology, &options, client)
     }
 
+    #[allow(unused_assignments)]
     pub(crate) fn err_or<T>(&self, err: *mut PJRT_Error, value: T) -> Result<T> {
         if err.is_null() {
             Ok(value)

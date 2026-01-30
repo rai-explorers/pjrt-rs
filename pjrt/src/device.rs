@@ -165,6 +165,7 @@ impl AsyncTrackingEvent {
         &self.api
     }
 
+    #[allow(dead_code)]
     pub(crate) fn ptr(&self) -> *mut pjrt_sys::PJRT_AsyncTrackingEvent {
         self.ptr
     }

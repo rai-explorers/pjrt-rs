@@ -173,7 +173,10 @@ impl Executable {
         // prepare the code buffer
         let mut prog = unsafe { *args.program };
         let mut code: Vec<u8> = vec![0; prog.code_size];
-        prog.code = code.as_mut_ptr() as *mut _;
+        #[allow(unused_assignments)]
+        {
+            prog.code = code.as_mut_ptr() as *mut _;
+        }
         // second call to get the code
         args = self.api.PJRT_Executable_OptimizedProgram(args)?;
         let prog = unsafe { *args.program };

@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use pjrt_sys::{
     PJRT_Error_Code, PJRT_Error_Code_PJRT_Error_Code_ABORTED,
     PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS, PJRT_Error_Code_PJRT_Error_Code_CANCELLED,
@@ -16,6 +18,7 @@ use crate::{GlobalDeviceId, PrimitiveType};
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("pjrt error {msg}\n{backtrace}")]
+    #[allow(unused_assignments)]
     PjrtError {
         msg: String,
         code: ErrorCode,

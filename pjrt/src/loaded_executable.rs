@@ -174,7 +174,7 @@ impl LoadedExecutable {
         Ok(outputs)
     }
 
-    pub fn execution<I>(&self, inputs: I) -> Execution<I>
+    pub fn execution<I>(&self, inputs: I) -> Execution<'_, I>
     where
         I: ExecutionInputs,
     {
