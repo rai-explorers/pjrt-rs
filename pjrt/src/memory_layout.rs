@@ -321,8 +321,10 @@ mod tests {
 
     #[test]
     fn test_memory_layout_type_try_from_valid() {
-        use pjrt_sys::PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides;
-        use pjrt_sys::PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled;
+        use pjrt_sys::{
+            PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Strides,
+            PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled,
+        };
 
         let ty: MemoryLayoutType =
             PJRT_Buffer_MemoryLayout_Type_PJRT_Buffer_MemoryLayout_Type_Tiled

@@ -116,7 +116,7 @@ mod extension;
 pub use extension::{Extension, ExtensionType};
 
 mod stream_ext;
-pub use stream_ext::{DeviceStream, StreamExtension, StreamExt};
+pub use stream_ext::{DeviceStream, StreamExt, StreamExtension};
 
 mod layouts_ext;
 pub use layouts_ext::{LayoutsExtension, LayoutsMemoryLayout, SerializedLayout};
@@ -143,10 +143,12 @@ mod callback_ext;
 pub use callback_ext::CallbackExtension;
 
 mod memory_descriptions_ext;
-pub use memory_descriptions_ext::{MemoryDescriptionsExtension, MemoryDescription, MemoryKind, DeviceMemoryDescriptions};
+pub use memory_descriptions_ext::{
+    DeviceMemoryDescriptions, MemoryDescription, MemoryDescriptionsExtension, MemoryKind,
+};
 
 mod phase_compile_ext;
-pub use phase_compile_ext::{PhaseCompileExtension, PhaseCompiler, PhaseCompileOutput};
+pub use phase_compile_ext::{PhaseCompileExtension, PhaseCompileOutput, PhaseCompiler};
 
 mod async_transfer;
 pub use async_transfer::{AsyncHostToDeviceTransferManager, BufferShape};

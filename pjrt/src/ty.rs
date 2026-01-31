@@ -446,8 +446,9 @@ impl<T: DType> AsDType for T {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use num_complex::Complex;
+
+    use super::*;
 
     #[test]
     fn test_bool_type_properties() {

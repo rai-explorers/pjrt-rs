@@ -1,11 +1,11 @@
 use std::ffi::CString;
 use std::mem;
+use std::os::raw::c_char;
 
 use pjrt_sys::{
     PJRT_Error, PJRT_Error_Code, PJRT_Error_Code_PJRT_Error_Code_NOT_FOUND,
     PJRT_KeyValueGetCallback_Args, PJRT_KeyValuePutCallback_Args, PJRT_KeyValueTryGetCallback_Args,
 };
-use std::os::raw::c_char;
 
 use crate::{utils, Result};
 

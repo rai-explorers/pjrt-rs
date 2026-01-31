@@ -652,7 +652,7 @@ mod tests {
     #[test]
     fn test_external_ref_count_api_safety_docs() {
         // This test documents the safety invariants for external ref counting
-        // 
+        //
         // Safety invariants:
         // 1. increase_external_ref_count must be paired with decrease_external_ref_count
         // 2. unsafe_pointer may return invalid pointer if ref count is 0
