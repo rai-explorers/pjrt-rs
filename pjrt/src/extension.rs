@@ -218,79 +218,10 @@ pub(crate) unsafe fn has_extension(
     find_extension(start, ext_type).is_some()
 }
 
-/// Placeholder for Profiler extension
-///
-/// This will be fully implemented when the profiler extension header is available.
-#[derive(Debug)]
-pub struct ProfilerExtension {
-    // TODO: Add fields when extension header is available
-    _private: (),
-}
-
-impl ProfilerExtension {
-    /// Start profiling
-    pub fn start(&self) {
-        // TODO: Implement when extension header is available
-        unimplemented!("Profiler extension not yet implemented - waiting for extension header")
-    }
-
-    /// Stop profiling and return profiling data
-    pub fn stop(&self) -> Vec<u8> {
-        // TODO: Implement when extension header is available
-        unimplemented!("Profiler extension not yet implemented - waiting for extension header")
-    }
-}
-
-/// Placeholder for Stream extension
-///
-/// This will be fully implemented when the stream extension header is available.
-#[derive(Debug)]
-pub struct StreamExtension {
-    // TODO: Add fields when extension header is available
-    _private: (),
-}
-
-impl StreamExtension {
-    /// Create a new stream
-    pub fn create_stream(&self) {
-        // TODO: Implement when extension header is available
-        unimplemented!("Stream extension not yet implemented - waiting for extension header")
-    }
-}
-
-/// Placeholder for Layouts extension
-///
-/// This will be fully implemented when the layouts extension header is available.
-#[derive(Debug)]
-pub struct LayoutsExtension {
-    // TODO: Add fields when extension header is available
-    _private: (),
-}
-
-/// Placeholder for FFI extension
-///
-/// This will be fully implemented when the FFI extension header is available.
-#[derive(Debug)]
-pub struct FfiExtension {
-    // TODO: Add fields when extension header is available
-    _private: (),
-}
-
-/// Placeholder for Cross-Host Transfers extension
-///
-/// This will be fully implemented when the cross-host transfers extension header is available.
-#[derive(Debug)]
-pub struct CrossHostTransfersExtension {
-    // TODO: Add fields when extension header is available
-    _private: (),
-}
-
-impl CrossHostTransfersExtension {
-    /// Transfer a buffer to another host
-    pub fn transfer_to_host(&self, _buffer_id: u64) {
-        // TODO: Implement when extension header is available
-        unimplemented!(
-            "Cross-host transfers extension not yet implemented - waiting for extension header"
-        )
-    }
-}
+// Note: Real extension implementations are in separate modules:
+// - stream_ext.rs: StreamExtension implementation
+// - layouts_ext.rs: LayoutsExtension implementation
+// - ffi_ext.rs: FfiExtension implementation (TODO)
+// - raw_buffer_ext.rs: RawBufferExtension implementation (TODO)
+// - gpu_ext.rs: GpuExtension implementation (TODO)
+// - profiler_ext.rs: ProfilerExtension implementation (TODO)

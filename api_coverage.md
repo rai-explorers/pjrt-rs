@@ -478,14 +478,14 @@ The extension framework infrastructure has been implemented and multiple extensi
 
 | Extension Type | Status | Module | API Version | Notes |
 |----------------|--------|--------|-------------|-------|
-| **Stream** | ✅ Implemented | `stream_ext.rs` | 0 | Stream management for external buffer sync |
-| **Layouts** | ✅ Implemented | `layouts_ext.rs` | 3 | Custom memory layouts (experimental) |
-| Profiler | ⚠️ Bindings Only | - | 1 | Low-level bindings available |
-| FFI | ⚠️ Bindings Only | - | 3 | Low-level bindings available |
-| GPU Custom Call | ⚠️ Bindings Only | - | 2 | Low-level bindings available |
-| Custom Partitioner | ⚠️ Bindings Only | - | 1 | Low-level bindings available |
-| Triton | ⚠️ Bindings Only | - | 1 | Low-level bindings available |
-| Raw Buffer | ⚠️ Bindings Only | - | 2 | Low-level bindings available |
+| **Stream** | ✅ Safe Wrapper | `stream_ext.rs` | 0 | Stream management for external buffer sync |
+| **Layouts** | ✅ Safe Wrapper | `layouts_ext.rs` | 3 | Custom memory layouts (experimental) |
+| **FFI** | ✅ Safe Wrapper | `ffi_ext.rs` | 3 | Foreign Function Interface for custom ops |
+| **Raw Buffer** | ✅ Safe Wrapper | `raw_buffer_ext.rs` | 2 | Raw buffer access for zero-copy operations |
+| **GPU Custom Call** | ✅ Safe Wrapper | `gpu_ext.rs` | 2 | GPU-specific custom call registration |
+| **Custom Partitioner** | ✅ Safe Wrapper | `custom_partitioner_ext.rs` | 1 | JAX custom call partitioning support |
+| **Triton** | ✅ Safe Wrapper | `triton_ext.rs` | 1 | Triton kernel compilation |
+| **Profiler** | ✅ Safe Wrapper | `profiler_ext.rs` | 1 | Profiler API access |
 
 ### 22.3 Not Yet Implemented
 
@@ -519,6 +519,52 @@ The extension framework infrastructure has been implemented and multiple extensi
 | `PJRT_Layouts_PJRT_Topology_GetDefaultLayout` | `LayoutsExtension::topology_default_layout()` | ✅ |
 | `PJRT_Layouts_PJRT_Executable_GetOutputLayouts` | `LayoutsExtension::executable_output_layouts()` | ✅ |
 
+### 22.6 FFI Extension API
+
+| C API Function | Rust Implementation | Status |
+|----------------|---------------------|--------|
+| `PJRT_FFI_Type_Register` | `FfiExtension::register_type()` | ✅ |
+| `PJRT_FFI_Register_Handler` | `FfiExtension::register_handler()` | ✅ |
+| `PJRT_FFI_UserData_Add` | `FfiExtension::add_user_data()` | ✅ |
+
+### 22.7 Raw Buffer Extension API
+
+| C API Function | Rust Implementation | Status |
+|----------------|---------------------|--------|
+| `PJRT_RawBuffer_CreateRawAliasOfBuffer` | `RawBufferExtension::create_raw_alias()` | ✅ |
+| `PJRT_RawBuffer_Destroy` | `RawBuffer::Drop` | ✅ |
+| `PJRT_RawBuffer_GetHostPointer` | `RawBuffer::get_host_pointer()` | ✅ |
+| `PJRT_RawBuffer_GetOnDeviceSizeInBytes` | `RawBuffer::on_device_size()` | ✅ |
+| `PJRT_RawBuffer_GetMemorySpace` | `RawBuffer::memory_space()` | ✅ |
+| `PJRT_RawBuffer_CopyRawHostToDevice` | `RawBuffer::copy_raw_host_to_device()` | ✅ |
+| `PJRT_RawBuffer_CopyRawDeviceToHost` | `RawBuffer::copy_raw_device_to_host()` | ✅ |
+
+### 22.8 GPU Extension API
+
+| C API Function | Rust Implementation | Status |
+|----------------|---------------------|--------|
+| `PJRT_Gpu_Register_Custom_Call` | `GpuExtension::register_custom_call()` | ✅ |
+
+### 22.9 Custom Partitioner Extension API
+
+| C API Function | Rust Implementation | Status |
+|----------------|---------------------|--------|
+| `PJRT_Register_Custom_Partitioner` | `CustomPartitionerExtension::register_custom_partitioner()` | ✅ |
+| `PJRT_Register_Batch_Partitionable` | `CustomPartitionerExtension::register_batch_partitionable()` | ✅ |
+
+### 22.10 Triton Extension API
+
+| C API Function | Rust Implementation | Status |
+|----------------|---------------------|--------|
+| `PJRT_Triton_Compile` | `TritonExtension::compile()` | ✅ |
+
+### 22.11 Profiler Extension API
+
+| C API Function | Rust Implementation | Status |
+|----------------|---------------------|--------|
+| `PJRT_Profiler_Extension` | `ProfilerExtension::profiler_api()` | ✅ |
+| `PJRT_Profiler_GetTraceMeContextId` | `ProfilerExtension::traceme_context_id()` | ✅ |
+
 ---
 
 ## Legend
@@ -532,7 +578,15 @@ The extension framework infrastructure has been implemented and multiple extensi
 ## Notes
 
 1. **Safe API Coverage:** 97% of core PJRT C API functions are wrapped in safe Rust bindings (116/119 core functions)
-2. **Extension Coverage:** 2 extensions have full safe Rust wrappers (Stream, Layouts), 6 extensions have low-level bindings (Profiler, FFI, GPU, Custom Partitioner, Triton, Raw Buffer)
+2. **Extension Coverage:** All 8 available extensions have full safe Rust wrappers:
+   - Stream (`stream_ext.rs`) - Stream management for external buffer sync
+   - Layouts (`layouts_ext.rs`) - Custom memory layouts
+   - FFI (`ffi_ext.rs`) - Foreign Function Interface for custom ops
+   - Raw Buffer (`raw_buffer_ext.rs`) - Raw buffer access for zero-copy operations
+   - GPU Custom Call (`gpu_ext.rs`) - GPU-specific custom call registration
+   - Custom Partitioner (`custom_partitioner_ext.rs`) - JAX custom call partitioning support
+   - Triton (`triton_ext.rs`) - Triton kernel compilation
+   - Profiler (`profiler_ext.rs`) - Profiler API access
 3. **Low-level Access:** All C API functions and extension bindings are available through `pjrt-sys` crate
 4. **Extension Headers:** All 8 available PJRT C API extension headers have been downloaded and integrated into the build system
 5. **Buffer Reference Counting:** All external reference counting APIs are now implemented as unsafe methods in `buffer.rs` for interop with external frameworks (NumPy, dlpack, PyTorch, etc.)

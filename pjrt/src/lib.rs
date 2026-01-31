@@ -121,6 +121,24 @@ pub use stream_ext::{DeviceStream, StreamExtension, StreamExt};
 mod layouts_ext;
 pub use layouts_ext::{LayoutsExtension, LayoutsMemoryLayout, SerializedLayout};
 
+mod ffi_ext;
+pub use ffi_ext::{FfiExtension, FfiHandler, FfiHandlerTraits, FfiTypeInfo};
+
+mod raw_buffer_ext;
+pub use raw_buffer_ext::{RawBuffer, RawBufferExtension};
+
+mod gpu_ext;
+pub use gpu_ext::{CustomCallApiVersion, CustomCallHandler, GpuExtension};
+
+mod custom_partitioner_ext;
+pub use custom_partitioner_ext::CustomPartitionerExtension;
+
+mod triton_ext;
+pub use triton_ext::{TritonCompileResult, TritonExtension};
+
+mod profiler_ext;
+pub use profiler_ext::ProfilerExtension;
+
 mod async_transfer;
 pub use async_transfer::{AsyncHostToDeviceTransferManager, BufferShape};
 // re-export pjrt-sys
