@@ -1,3 +1,32 @@
+//! PJRT Memory Layout
+//!
+//! This module provides types for describing how data is laid out in memory.
+//! Memory layout is crucial for:
+//!
+//! - Optimizing data access patterns on accelerators
+//! - Handling different memory formats (row-major, column-major, tiled)
+//! - Converting between host and device memory layouts
+//!
+//! The module provides:
+//!
+//! - `MemoryLayout`: An enum representing different layout types
+//! - `MemoryLayoutTiled`: Tiled memory layout for optimized accelerator access
+//! - `MemoryLayoutStrides`: Strided layout with custom byte strides
+//! - `MemoryLayoutType`: Enum discriminant for layout types
+//!
+//! # Example
+//!
+//! ```rust,ignore
+//! // Create a tiled layout for accelerator-optimized access
+//! let layout = MemoryLayout::from_tiled(vec![0, 1, 2])
+//!     .tile_dims(vec![8, 8])
+//!     .tile_dim_sizes(vec![64, 64])
+//!     .build();
+//!
+//! // Create a strided layout
+//! let layout = MemoryLayout::from_strides(vec![32, 8, 4]);
+//! ```
+
 use std::vec;
 
 use bon::bon;
@@ -9,6 +38,15 @@ use pjrt_sys::{
 
 use crate::error::{Error, Result};
 
+/// Represents different memory layout strategies for PJRT buffers.
+///
+/// Memory layout describes how multi-dimensional data is organized in memory.
+/// Different layouts can significantly impact performance on different hardware.
+///
+/// # Variants
+///
+/// - `Tiled`: Tiled layout optimized for accelerator memory access patterns
+/// - `Strides`: Strided layout with custom byte strides for each dimension
 #[derive(Debug, Clone)]
 pub enum MemoryLayout {
     Tiled(MemoryLayoutTiled),
@@ -37,6 +75,16 @@ impl MemoryLayout {
     }
 }
 
+/// Tiled memory layout for optimized accelerator access.
+///
+/// Tiled layouts organize data in tiles (blocks) that match the access patterns
+/// of accelerators like GPUs and TPUs, improving cache locality and performance.
+///
+/// # Fields
+///
+/// - `minor_to_major`: Dimension ordering from minor (fastest changing) to major
+/// - `tile_dims`: Optional tile dimensions for each axis
+/// - `tile_dim_sizes`: Optional sizes for each tile dimension
 #[derive(Debug, Clone)]
 pub struct MemoryLayoutTiled {
     pub minor_to_major: Vec<i64>,
@@ -44,11 +92,23 @@ pub struct MemoryLayoutTiled {
     pub tile_dim_sizes: Option<Vec<usize>>,
 }
 
+/// Strided memory layout with custom byte strides.
+///
+/// Strided layouts specify the number of bytes between consecutive elements
+/// in each dimension, allowing for flexible data organization including
+/// row-major, column-major, and arbitrary strided layouts.
+///
+/// # Fields
+///
+/// - `byte_strides`: The byte stride for each dimension
 #[derive(Debug, Clone)]
 pub struct MemoryLayoutStrides {
     pub byte_strides: Vec<i64>,
 }
 
+/// Enum discriminant for memory layout types.
+///
+/// Used to identify whether a memory layout is tiled or strided.
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MemoryLayoutType {

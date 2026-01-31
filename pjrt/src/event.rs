@@ -1,3 +1,16 @@
+//! PJRT Event Handling
+//!
+//! This module provides the `Event` struct for managing asynchronous operations in PJRT.
+//! Events are used to track the completion of asynchronous device operations such as:
+//!
+//! - Buffer transfers between host and device
+//! - Buffer copies between devices
+//! - Program execution
+//! - Compilation operations
+//!
+//! The `Event` struct implements Rust's `Future` trait, allowing it to be used with
+//! async/await syntax for convenient asynchronous programming.
+
 use std::ffi::c_void;
 use std::future::Future;
 use std::mem;
@@ -22,6 +35,19 @@ extern "C" fn on_ready_callback(err: *mut PJRT_Error, cb_data: *mut c_void) {
     waker.wake();
 }
 
+/// An asynchronous event that signals completion of a PJRT operation.
+///
+/// Events are used throughout PJRT to track the completion of asynchronous
+/// operations such as buffer transfers, device copies, and executions.
+///
+/// This struct implements `Future`, allowing it to be awaited in async code:
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let event = buffer.ready_event()?;
+/// event.await?; // Wait for the buffer to be ready
+/// ```
 pub struct Event {
     api: Api,
     ptr: *mut PJRT_Event,
@@ -35,6 +61,15 @@ impl Drop for Event {
         self.api
             .PJRT_Event_Destroy(args)
             .expect("PJRT_Event_Destroy");
+    }
+}
+
+impl std::fmt::Debug for Event {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Event")
+            .field("ptr", &self.ptr)
+            .field("registered_callback", &self.registered_callback)
+            .finish()
     }
 }
 

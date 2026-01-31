@@ -1,3 +1,19 @@
+//! PJRT Executable
+//!
+//! This module provides the `Executable` struct and related types for managing
+//! compiled PJRT programs. An executable represents a fully compiled program
+//! that can be loaded onto devices for execution.
+//!
+//! The module provides:
+//!
+//! - `Executable`: A compiled program ready to be loaded
+//! - `SerializedExecutable`: A serialized form of an executable
+//! - `SerializedCompileOptions`: Serialized compilation options
+//! - `CompiledMemoryStats`: Memory usage statistics for compiled executables
+//!
+//! Executables are created by compiling programs through the `Api::compile` or
+//! `Client::compile` methods.
+
 use std::borrow::{Borrow, Cow};
 
 use bon::bon;
@@ -19,6 +35,28 @@ use crate::{
     Result, TopologyDescription,
 };
 
+/// A compiled PJRT program ready to be loaded onto devices.
+///
+/// An `Executable` represents the result of compiling a `Program`. It contains
+/// the compiled code and metadata about the compilation, but is not yet loaded
+/// onto specific devices for execution.
+///
+/// To execute a program, an `Executable` must first be loaded to create a
+/// `LoadedExecutable`.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// // Compile a program to an executable
+/// let executable = api.compile(&program, &topology, options, None)?;
+///
+/// // Query compilation metadata
+/// println!("Name: {}", executable.name());
+/// println!("Code size: {} bytes", executable.code_size());
+///
+/// // Serialize for later use
+/// let serialized = executable.serialize();
+/// ```
 pub struct Executable {
     api: Api,
     pub(crate) ptr: *mut PJRT_Executable,
@@ -256,6 +294,11 @@ impl Executable {
     }
 }
 
+/// Serialized compilation options from an executable.
+///
+/// This struct holds the serialized form of the `CompileOptions` that were
+/// used to create an `Executable`. The data can be deserialized to inspect
+/// the compilation configuration.
 pub struct SerializedCompileOptions {
     ptr: *mut PJRT_SerializedCompileOptions,
     deleter: unsafe extern "C" fn(options: *mut PJRT_SerializedCompileOptions),
@@ -279,6 +322,23 @@ impl SerializedCompileOptions {
     }
 }
 
+/// A serialized PJRT executable.
+///
+/// This struct holds the serialized form of an `Executable`, which can be
+/// saved to disk or transferred to another process. The executable can later
+/// be deserialized using `Client::load_executable`.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// // Serialize an executable
+/// let serialized = executable.serialize();
+/// std::fs::write("model.pjrt", serialized.bytes())?;
+///
+/// // Later, load it back
+/// let bytes = std::fs::read("model.pjrt")?;
+/// let loaded_executable = client.load_executable(&bytes)?;
+/// ```
 pub struct SerializedExecutable {
     ptr: *mut PJRT_SerializedExecutable,
     deleter: unsafe extern "C" fn(exec: *mut PJRT_SerializedExecutable),
@@ -298,16 +358,30 @@ impl SerializedExecutable {
     }
 }
 
+/// Memory usage statistics for a compiled executable.
+///
+/// This struct provides detailed information about memory requirements for
+/// both device and host memory when executing a compiled program.
 pub struct CompiledMemoryStats {
+    /// Size of generated device code in bytes.
     pub generated_code_size_in_bytes: i64,
+    /// Size of argument buffers on device in bytes.
     pub argument_size_in_bytes: i64,
+    /// Size of output buffers on device in bytes.
     pub output_size_in_bytes: i64,
+    /// Size of aliased buffers on device in bytes.
     pub alias_size_in_bytes: i64,
+    /// Size of temporary buffers on device in bytes.
     pub temp_size_in_bytes: i64,
+    /// Size of generated host code in bytes.
     pub host_generated_code_size_in_bytes: i64,
+    /// Size of argument buffers on host in bytes.
     pub host_argument_size_in_bytes: i64,
+    /// Size of output buffers on host in bytes.
     pub host_output_size_in_bytes: i64,
+    /// Size of aliased buffers on host in bytes.
     pub host_alias_size_in_bytes: i64,
+    /// Size of temporary buffers on host in bytes.
     pub host_temp_size_in_bytes: i64,
 }
 

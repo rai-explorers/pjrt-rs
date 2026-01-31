@@ -1,3 +1,16 @@
+//! PJRT Execution Context
+//!
+//! This module provides types and traits for executing compiled PJRT programs.
+//! It includes:
+//!
+//! - `ExecuteContext`: Context for execution operations
+//! - `ExecuteOptions`: Configuration options for execution
+//! - `Execution`: A builder pattern for configuring and running executions
+//! - `ExecutionInputs`: Trait for types that can be used as execution inputs
+//!
+//! The module provides both synchronous and asynchronous execution patterns,
+//! supporting various input types including single buffers, arrays, and vectors.
+
 use std::collections::HashSet;
 
 use pjrt_sys::{
@@ -6,6 +19,11 @@ use pjrt_sys::{
 
 use crate::{Api, Buffer, LoadedExecutable, Result};
 
+/// Context for PJRT execution operations.
+///
+/// An `ExecuteContext` provides the environment for executing compiled programs.
+/// It can be used to share state across multiple executions and manage
+/// resources for execution operations.
 pub struct ExecuteContext {
     api: Api,
     pub(crate) ptr: *mut PJRT_ExecuteContext,
@@ -35,6 +53,10 @@ impl ExecuteContext {
     }
 }
 
+/// Options for configuring PJRT execution.
+///
+/// `ExecuteOptions` allows you to configure various aspects of execution,
+/// including launch identifiers and input donation behavior.
 pub struct ExecuteOptions {
     launch_id: i32,
     non_donatable_input_indices: Vec<i64>,
@@ -78,6 +100,24 @@ impl<'a> From<&'a ExecuteOptions> for PJRT_ExecuteOptions {
     }
 }
 
+/// A builder for configuring and running PJRT executions.
+///
+/// `Execution` provides a fluent interface for configuring execution options
+/// and then running the execution either synchronously or asynchronously.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let execution = loaded_executable.execution(inputs)
+///     .launch_id(1)
+///     .non_donatable_input_indices(vec![0]);
+///
+/// // Run asynchronously
+/// let outputs = execution.run().await?;
+///
+/// // Or run synchronously
+/// let outputs = execution.run_sync()?;
+/// ```
 pub struct Execution<'a, T> {
     pub loaded_executable: &'a LoadedExecutable,
     pub inputs: T,
@@ -131,6 +171,19 @@ where
     }
 }
 
+/// Trait for types that can be used as inputs to PJRT executions.
+///
+/// This trait is implemented for various buffer collection types, allowing
+/// them to be used directly as execution inputs.
+///
+/// # Implementors
+///
+/// - `()`: Empty input (no arguments)
+/// - `Buffer`: Single buffer input
+/// - `[Buffer; N]`: Array of buffers
+/// - `[[Buffer; A]; D]`: 2D array of buffers (multi-device)
+/// - `Vec<Buffer>`: Vector of buffers
+/// - `Vec<Vec<Buffer>>`: Vector of vectors (multi-device)
 pub trait ExecutionInputs {
     fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>>;
     fn non_donatable_input_indices(&self) -> Vec<i64> {

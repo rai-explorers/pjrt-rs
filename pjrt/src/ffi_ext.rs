@@ -155,7 +155,7 @@ impl FfiExtension {
         &self,
         type_name: &str,
         type_info: &FfiTypeInfo,
-        mut type_id: i64,
+        type_id: i64,
     ) -> Result<i64> {
         let name = CString::new(type_name).expect("type_name contains null bytes");
 
@@ -180,7 +180,8 @@ impl FfiExtension {
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
 
-        Ok(args.type_id)
+        let new_type_id = args.type_id;
+        Ok(new_type_id)
     }
 
     /// Register an FFI call handler for a specific platform

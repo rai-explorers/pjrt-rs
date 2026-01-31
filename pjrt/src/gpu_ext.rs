@@ -24,7 +24,6 @@
 //! ```
 
 use std::ffi::CString;
-use std::marker::PhantomData;
 use std::rc::Rc;
 
 use pjrt_sys::{PJRT_Gpu_Custom_Call, PJRT_Gpu_Register_Custom_Call_Args};

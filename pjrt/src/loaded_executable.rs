@@ -1,3 +1,16 @@
+//! PJRT Loaded Executable
+//!
+//! This module provides the `LoadedExecutable` struct for managing executables
+//! that have been loaded onto devices and are ready for execution.
+//!
+//! A `LoadedExecutable` represents the final stage in the compilation pipeline:
+//! 1. Compile a `Program` to an `Executable`
+//! 2. Load the `Executable` to create a `LoadedExecutable`
+//! 3. Execute the `LoadedExecutable` with input buffers
+//!
+//! The loaded executable can be executed multiple times with different inputs,
+//! making it efficient for inference and training loops.
+
 use std::mem::MaybeUninit;
 use std::slice;
 
@@ -14,6 +27,27 @@ use crate::{
     Executable, ExecuteOptions, Execution, ExecutionInputs, Result,
 };
 
+/// An executable loaded onto devices and ready for execution.
+///
+/// A `LoadedExecutable` represents a compiled program that has been loaded
+/// onto one or more devices and is ready to execute. Unlike `Executable`,
+/// which is device-agnostic, a `LoadedExecutable` is bound to specific devices.
+///
+/// The loaded executable can be executed multiple times with different inputs,
+/// making it efficient for repeated inference or training steps.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// // Compile and load a program
+/// let loaded_exec = client.compile(&program, options)?;
+///
+/// // Execute with inputs
+/// let outputs = loaded_exec.execute(&input_buffers, &options).await?;
+///
+/// // Execute again with different inputs
+/// let more_outputs = loaded_exec.execute(&other_inputs, &options).await?;
+/// ```
 pub struct LoadedExecutable {
     client: Client,
     pub(crate) ptr: *mut PJRT_LoadedExecutable,

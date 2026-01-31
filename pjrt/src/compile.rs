@@ -1,3 +1,16 @@
+//! PJRT Compilation
+//!
+//! This module provides types and traits for compiling PJRT programs.
+//! It includes:
+//!
+//! - `CompileOptions`: Configuration for the compilation process
+//! - `ExecutableBuildOptions`: Device-specific build options
+//! - `CompileToExecutable`: Trait for compiling to executables
+//! - `CompileToLoadedExecutable`: Trait for compiling to loaded executables
+//!
+//! The module provides both compile-time and runtime configuration options
+//! for controlling how programs are compiled to device executables.
+
 use pjrt_sys::protos::xla::{
     CompilationEnvironmentsProto, CompileOptionsProto, ExecutableBuildOptionsProto,
 };
@@ -5,6 +18,10 @@ use prost::Message;
 
 use crate::{Client, Executable, LoadedExecutable, Result, TopologyDescription};
 
+/// Trait for types that can compile programs to executables.
+///
+/// This trait is implemented by `Api` and allows compiling programs
+/// without a client, using only a topology description.
 pub trait CompileToExecutable<T> {
     fn compile(
         &self,
@@ -15,10 +32,19 @@ pub trait CompileToExecutable<T> {
     ) -> Result<Executable>;
 }
 
+/// Trait for types that can compile programs to loaded executables.
+///
+/// This trait is implemented by `Client` and allows compiling programs
+/// directly to loaded executables that are ready for execution.
 pub trait CompileToLoadedExecutable<T> {
     fn compile(&self, program: &T, options: &CompileOptions) -> Result<LoadedExecutable>;
 }
 
+/// Configuration options for PJRT compilation.
+///
+/// `CompileOptions` provides a high-level interface for configuring the
+/// compilation process. It wraps XLA's `CompileOptionsProto` and provides
+/// convenient builder methods.
 #[derive(Debug, Clone)]
 pub struct CompileOptions {
     proto: CompileOptionsProto,
@@ -59,6 +85,11 @@ impl CompileOptions {
     }
 }
 
+/// Device-specific options for building executables.
+///
+/// `ExecutableBuildOptions` configures how a compiled program is built
+/// for specific devices, including device selection, partitioning,
+/// and various optimization options.
 #[derive(Debug, Clone)]
 pub struct ExecutableBuildOptions {
     proto: ExecutableBuildOptionsProto,

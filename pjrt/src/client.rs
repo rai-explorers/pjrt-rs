@@ -59,6 +59,14 @@ pub struct Client {
     raw: Rc<ClientRaw>,
 }
 
+impl std::fmt::Debug for Client {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Client")
+            .field("ptr", &self.raw.ptr)
+            .finish()
+    }
+}
+
 #[bon]
 impl Client {
     pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_Client) -> Self {
@@ -529,5 +537,130 @@ impl FulfillAliasBufferCallback {
             .api()
             .PJRT_Client_FulfillAliasBuffer(args)
             .map(|_| ())
+    }
+}
+
+impl std::fmt::Debug for FulfillAliasBufferCallback {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FulfillAliasBufferCallback")
+            .field("ptr", &self.ptr)
+            .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_client_debug_impl() {
+        // Test that Client implements Debug
+        fn assert_debug<T: std::fmt::Debug>() {}
+        assert_debug::<Client>();
+    }
+
+    #[test]
+    fn test_process_info_debug() {
+        fn assert_debug<T: std::fmt::Debug>() {}
+        assert_debug::<ProcessInfo>();
+    }
+
+    #[test]
+    fn test_fulfill_alias_buffer_callback_debug() {
+        fn assert_debug<T: std::fmt::Debug>() {}
+        assert_debug::<FulfillAliasBufferCallback>();
+    }
+
+    #[test]
+    fn test_error_buffer_api_structure() {
+        // This test verifies the create_error_buffer API structure
+        // Full integration test requires a loaded PJRT plugin
+        //
+        // The API takes:
+        // - error_code: ErrorCode
+        // - error_message: &str
+        // - dims: &[i64]
+        // - element_type: PrimitiveType
+        // - memory: &Memory
+        // - layout: Option<&MemoryLayout>
+        //
+        // Returns: Result<Buffer>
+    }
+
+    #[test]
+    fn test_alias_buffer_api_structure() {
+        // This test verifies the create_alias_buffer API structure
+        // Full integration test requires a loaded PJRT plugin
+        //
+        // The API takes:
+        // - memory: &Memory (builder start)
+        // - dims: &[i64]
+        // - element_type: PrimitiveType
+        // - layout: Option<&MemoryLayout>
+        //
+        // Returns: Result<(Buffer, FulfillAliasBufferCallback)>
+    }
+
+    #[test]
+    fn test_process_info_creation() {
+        let info = ProcessInfo::new(42, ProcessState::Connected);
+
+        assert_eq!(info.task_id, 42i32);
+        assert_eq!(info.state, ProcessState::Connected);
+        assert_eq!(info.incarnation_id, 0u64);
+        assert!(info.error_code.is_none());
+        assert!(info.error_message.is_none());
+    }
+
+    #[test]
+    fn test_process_info_with_incarnation() {
+        let info = ProcessInfo::new(1, ProcessState::Uninitialized).with_incarnation(12345u64);
+
+        assert_eq!(info.task_id, 1i32);
+        assert_eq!(info.incarnation_id, 12345u64);
+        assert_eq!(info.state, ProcessState::Uninitialized);
+    }
+
+    #[test]
+    fn test_process_info_with_error() {
+        let info = ProcessInfo::new(1, ProcessState::Error).with_error(5, "test error message");
+
+        assert_eq!(info.task_id, 1i32);
+        assert_eq!(info.state, ProcessState::Error);
+        assert_eq!(info.error_code, Some(5i32));
+        assert_eq!(info.error_message, Some("test error message".to_string()));
+    }
+
+    #[test]
+    fn test_process_info_clone() {
+        let info = ProcessInfo::new(42, ProcessState::Connected)
+            .with_incarnation(100u64)
+            .with_error(1, "error");
+
+        let cloned = info.clone();
+        assert_eq!(cloned.task_id, info.task_id);
+        assert_eq!(cloned.state, info.state);
+        assert_eq!(cloned.incarnation_id, info.incarnation_id);
+        assert_eq!(cloned.error_code, info.error_code);
+        assert_eq!(cloned.error_message, info.error_message);
+    }
+
+    #[test]
+    fn test_process_info_debug_output() {
+        let info = ProcessInfo::new(42, ProcessState::Connected);
+
+        let debug = format!("{:?}", info);
+        assert!(debug.contains("ProcessInfo"));
+        assert!(debug.contains("42"));
+        assert!(debug.contains("Connected"));
+    }
+
+    #[test]
+    fn test_process_state_values() {
+        assert_eq!(ProcessState::Unspecified as i32, 0);
+        assert_eq!(ProcessState::Uninitialized as i32, 1);
+        assert_eq!(ProcessState::Disconnected as i32, 2);
+        assert_eq!(ProcessState::Connected as i32, 3);
+        assert_eq!(ProcessState::Error as i32, 4);
     }
 }

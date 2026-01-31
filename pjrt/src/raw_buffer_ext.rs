@@ -31,10 +31,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use pjrt_sys::{
-    PJRT_Event, PJRT_Memory, PJRT_RawBuffer, PJRT_RawBuffer_CopyRawDeviceToHost_Args,
-    PJRT_RawBuffer_CopyRawHostToDevice_Args, PJRT_RawBuffer_CreateRawAliasOfBuffer_Args,
-    PJRT_RawBuffer_Destroy_Args, PJRT_RawBuffer_Extension, PJRT_RawBuffer_GetHostPointer_Args,
-    PJRT_RawBuffer_GetMemorySpace_Args, PJRT_RawBuffer_GetOnDeviceSizeInBytes_Args,
+    PJRT_RawBuffer, PJRT_RawBuffer_CreateRawAliasOfBuffer_Args, PJRT_RawBuffer_Extension,
 };
 
 use crate::extension::{Extension, ExtensionType};
@@ -141,10 +138,6 @@ impl<'a> RawBuffer<'a> {
     /// The returned pointer is only valid as long as the RawBuffer exists.
     /// Direct memory access bypasses PJRT's safety mechanisms.
     pub unsafe fn get_host_pointer(&self) -> Result<*mut std::ffi::c_void> {
-        let mut args = unsafe { std::mem::zeroed::<PJRT_RawBuffer_GetHostPointer_Args>() };
-        args.struct_size = std::mem::size_of::<PJRT_RawBuffer_GetHostPointer_Args>();
-        args.buffer = self.raw;
-
         // This function pointer would come from the extension
         // For now, this is a placeholder showing the API design
         todo!("get_host_pointer requires RawBufferExtension reference")
@@ -177,16 +170,7 @@ impl<'a> RawBuffer<'a> {
     /// # Returns
     ///
     /// An `Event` that completes when the transfer is done
-    pub fn copy_raw_host_to_device<T>(&self, src: &[T], offset: i64) -> Result<Event> {
-        let transfer_size = (src.len() * std::mem::size_of::<T>()) as i64;
-
-        let mut args = unsafe { std::mem::zeroed::<PJRT_RawBuffer_CopyRawHostToDevice_Args>() };
-        args.struct_size = std::mem::size_of::<PJRT_RawBuffer_CopyRawHostToDevice_Args>();
-        args.buffer = self.raw;
-        args.src = src.as_ptr() as *const std::ffi::c_void;
-        args.offset = offset;
-        args.transfer_size = transfer_size;
-
+    pub fn copy_raw_host_to_device<T>(&self, _src: &[T], _offset: i64) -> Result<Event> {
         todo!("copy_raw_host_to_device requires RawBufferExtension reference")
     }
 
@@ -203,16 +187,7 @@ impl<'a> RawBuffer<'a> {
     /// # Returns
     ///
     /// An `Event` that completes when the transfer is done
-    pub fn copy_raw_device_to_host<T>(&self, dst: &mut [T], offset: i64) -> Result<Event> {
-        let transfer_size = (dst.len() * std::mem::size_of::<T>()) as i64;
-
-        let mut args = unsafe { std::mem::zeroed::<PJRT_RawBuffer_CopyRawDeviceToHost_Args>() };
-        args.struct_size = std::mem::size_of::<PJRT_RawBuffer_CopyRawDeviceToHost_Args>();
-        args.buffer = self.raw;
-        args.dst = dst.as_mut_ptr() as *mut std::ffi::c_void;
-        args.offset = offset;
-        args.transfer_size = transfer_size;
-
+    pub fn copy_raw_device_to_host<T>(&self, _dst: &mut [T], _offset: i64) -> Result<Event> {
         todo!("copy_raw_device_to_host requires RawBufferExtension reference")
     }
 }

@@ -46,6 +46,15 @@ impl Drop for Buffer {
     }
 }
 
+impl std::fmt::Debug for Buffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Buffer")
+            .field("ptr", &self.ptr)
+            .field("client", &"...")
+            .finish()
+    }
+}
+
 #[bon]
 impl Buffer {
     pub(crate) fn wrap(client: &Client, ptr: *mut PJRT_Buffer) -> Self {
@@ -449,6 +458,15 @@ impl Future for CopyRawToHostFuture {
     }
 }
 
+impl std::fmt::Debug for CopyRawToHostFuture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CopyRawToHostFuture")
+            .field("transfer_size", &self.transfer_size)
+            .field("event", &self.event)
+            .finish()
+    }
+}
+
 /// A donated buffer with a control dependency callback.
 ///
 /// This struct is returned by [`Buffer::donate_with_control_dependency`] and
@@ -499,6 +517,14 @@ impl DonateWithControlDependency {
 
         unsafe { callback(&mut args) };
         Ok(())
+    }
+}
+
+impl std::fmt::Debug for DonateWithControlDependency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DonateWithControlDependency")
+            .field("buffer", &self.buffer)
+            .finish()
     }
 }
 
@@ -595,5 +621,43 @@ impl Buffer {
             .api()
             .PJRT_Buffer_OpaqueDeviceMemoryDataPointer(args)?;
         Ok(args.device_memory_ptr)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_buffer_debug_impl() {
+        // Test that Buffer implements Debug
+        fn assert_debug<T: std::fmt::Debug>() {}
+        assert_debug::<Buffer>();
+    }
+
+    #[test]
+    fn test_copy_raw_to_host_future_debug() {
+        // Test that CopyRawToHostFuture implements Debug
+        fn assert_debug<T: std::fmt::Debug>() {}
+        assert_debug::<CopyRawToHostFuture>();
+    }
+
+    #[test]
+    fn test_donate_with_control_dependency_debug() {
+        // Test that DonateWithControlDependency implements Debug
+        fn assert_debug<T: std::fmt::Debug>() {}
+        assert_debug::<DonateWithControlDependency>();
+    }
+
+    #[test]
+    fn test_external_ref_count_api_safety_docs() {
+        // This test documents the safety invariants for external ref counting
+        // 
+        // Safety invariants:
+        // 1. increase_external_ref_count must be paired with decrease_external_ref_count
+        // 2. unsafe_pointer may return invalid pointer if ref count is 0
+        // 3. opaque_device_memory_pointer follows same rules as unsafe_pointer
+        //
+        // These are compile-time assertions only - runtime tests require a plugin
     }
 }

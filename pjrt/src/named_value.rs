@@ -1,3 +1,20 @@
+//! PJRT Named Values
+//!
+//! This module provides types for working with named key-value pairs used
+//! throughout the PJRT API for configuration and metadata.
+//!
+//! Named values are used for:
+//! - Plugin attributes and configuration options
+//! - Device and topology descriptions
+//! - Cost analysis properties
+//! - Compile options
+//!
+//! The module provides:
+//!
+//! - `NamedValue`: A single named value with a strongly-typed value
+//! - `NamedValueMap`: A collection of named values backed by a HashMap
+//! - `Value`: An enum representing different value types (i64, f32, bool, string, i64 list)
+
 use std::collections::HashMap;
 use std::slice;
 
@@ -9,6 +26,18 @@ use pjrt_sys::{
 
 use crate::utils;
 
+/// A named value with a strongly-typed value.
+///
+/// `NamedValue` represents a key-value pair where the value is one of several
+/// supported types (integer, float, boolean, string, or integer list).
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let option1 = NamedValue::i64("device_count", 8);
+/// let option2 = NamedValue::string("platform", "cuda");
+/// let option3 = NamedValue::bool("enable_xla", true);
+/// ```
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct NamedValue {
     pub name: String,
@@ -59,6 +88,10 @@ impl NamedValue {
     }
 }
 
+/// An enum representing different value types for named values.
+///
+/// This enum supports the types commonly used in PJRT configuration:
+/// integers, floats, booleans, strings, and lists of integers.
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     I64(i64),
@@ -140,6 +173,23 @@ impl<'a> From<&'a PJRT_NamedValue> for NamedValue {
     }
 }
 
+/// A map of named values backed by a HashMap.
+///
+/// `NamedValueMap` provides a convenient way to work with collections of
+/// named values, with methods for lookup, conversion, and iteration.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let map = NamedValueMap::from(vec![
+///     NamedValue::i64("device_count", 8),
+///     NamedValue::string("platform", "cuda"),
+/// ]);
+///
+/// if let Some(Value::I64(count)) = map.get("device_count") {
+///     println!("Devices: {}", count);
+/// }
+/// ```
 #[derive(Debug, Clone)]
 pub struct NamedValueMap {
     inner: HashMap<String, Value>,

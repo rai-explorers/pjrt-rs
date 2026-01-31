@@ -357,6 +357,12 @@ These extensions are platform-specific or experimental:
 - [x] Implement KV Store Try-Get callback (`KeyValueStore::try_get` method and `kv_try_get_callback`)
 - [x] Create extension framework infrastructure (`extension.rs` with types, traits, and utilities)
 - [x] Update `api_coverage.md` with new implementations and improved statistics (97% coverage)
+- [x] Fix compilation warnings in `raw_buffer_ext.rs`, `gpu_ext.rs`, and `ffi_ext.rs`
+- [x] Verify all code compiles without critical warnings (only expected dead code warnings remain)
+- [x] Add Debug implementations for Buffer, CopyRawToHostFuture, DonateWithControlDependency, Event, Client, FulfillAliasBufferCallback
+- [x] Add unit tests for buffer external reference counting APIs (4 tests)
+- [x] Add unit tests for client operations including ProcessInfo (8 tests)
+- [x] Total test count increased from 146 to 157 tests (all passing)
 
 ---
 

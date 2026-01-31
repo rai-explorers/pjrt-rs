@@ -1,3 +1,28 @@
+//! PJRT Host Buffer Management
+//!
+//! This module provides host-side buffer management for PJRT. Host buffers represent
+//! data stored in host (CPU) memory that can be transferred to and from PJRT devices.
+//!
+//! The module provides two main types:
+//!
+//! - `TypedHostBuffer<T>`: A type-safe buffer with a specific element type
+//! - `HostBuffer`: An enum that can hold any supported type
+//!
+//! These buffers support:
+//! - Creating buffers from typed data or raw bytes
+//! - Transferring data to devices (async and sync)
+//! - Various memory semantics for optimization
+//!
+//! # Example
+//!
+//! ```rust,ignore
+//! // Create a typed host buffer
+//! let buffer = HostBuffer::from_data(vec![1.0f32, 2.0, 3.0], None, None);
+//!
+//! // Transfer to device
+//! let device_buffer = buffer.to_sync(&client).copy()?;
+//! ```
+
 use std::ffi::c_void;
 use std::mem;
 use std::rc::Rc;
@@ -18,6 +43,13 @@ use crate::{
     Type, BF16, C128, C64, F16, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
 };
 
+/// A type-safe host buffer with a specific element type.
+///
+/// `TypedHostBuffer` provides compile-time type safety for host buffers,
+/// ensuring that the data type is known and consistent throughout operations.
+///
+/// The type parameter `T` must implement the `Type` trait, which includes
+/// all supported PJRT types like `F32`, `F64`, `I32`, etc.
 #[derive(Debug)]
 pub struct TypedHostBuffer<T: Type> {
     data: Rc<Vec<T::ElemType>>,
@@ -180,6 +212,14 @@ impl_from_typed_buffer![U64];
 impl_from_typed_buffer![C64];
 impl_from_typed_buffer![C128];
 
+/// An enum representing a host buffer of any supported type.
+///
+/// `HostBuffer` provides a way to work with buffers of different types
+/// in a uniform manner. Each variant wraps a `TypedHostBuffer` of the
+/// corresponding type.
+///
+/// This is useful when the type is only known at runtime, or when you
+/// need to store buffers of different types in a collection.
 #[derive(Debug)]
 pub enum HostBuffer {
     BF16(TypedHostBuffer<BF16>),
