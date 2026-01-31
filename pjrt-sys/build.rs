@@ -14,6 +14,8 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg(format!("-I{}", include.display()))
+        .clang_arg("-xc++") // Parse as C++ to handle C++11 typed enums
+        .clang_arg("-std=c++17") // Use C++17 standard
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .derive_default(true)
         .generate()

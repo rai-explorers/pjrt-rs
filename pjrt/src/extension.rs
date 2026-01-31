@@ -44,6 +44,7 @@ use pjrt_sys::{
     PJRT_Extension_Type_PJRT_Extension_Type_Layouts,
     PJRT_Extension_Type_PJRT_Extension_Type_Megascale,
     PJRT_Extension_Type_PJRT_Extension_Type_MemoryDescriptions,
+    PJRT_Extension_Type_PJRT_Extension_Type_PhaseCompile,
     PJRT_Extension_Type_PJRT_Extension_Type_Profiler,
     PJRT_Extension_Type_PJRT_Extension_Type_RawBuffer,
     PJRT_Extension_Type_PJRT_Extension_Type_Stream,
@@ -89,6 +90,8 @@ pub enum ExtensionType {
     TpuExecutable,
     /// Megascale extension for large-scale training
     Megascale,
+    /// Phase compile extension for debugging and caching
+    PhaseCompile,
 }
 
 impl ExtensionType {
@@ -119,6 +122,7 @@ impl ExtensionType {
             ExtensionType::TpuTopology => PJRT_Extension_Type_PJRT_Extension_Type_TpuTopology,
             ExtensionType::TpuExecutable => PJRT_Extension_Type_PJRT_Extension_Type_TpuExecutable,
             ExtensionType::Megascale => PJRT_Extension_Type_PJRT_Extension_Type_Megascale,
+            ExtensionType::PhaseCompile => PJRT_Extension_Type_PJRT_Extension_Type_PhaseCompile,
         }
     }
 }

@@ -7,3 +7,6 @@
 #include "xla/pjrt/c/pjrt_c_api_gpu_extension.h"
 #include "xla/pjrt/c/pjrt_c_api_triton_extension.h"
 #include "xla/pjrt/c/pjrt_c_api_raw_buffer_extension.h"
+#include "xla/pjrt/c/pjrt_c_api_callback_extension.h"
+#include "xla/pjrt/c/pjrt_c_api_memory_descriptions_extension.h"
+#include "xla/pjrt/c/pjrt_c_api_phase_compile_extension.h"

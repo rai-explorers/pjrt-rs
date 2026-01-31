@@ -139,6 +139,15 @@ pub use triton_ext::{TritonCompileResult, TritonExtension};
 mod profiler_ext;
 pub use profiler_ext::ProfilerExtension;
 
+mod callback_ext;
+pub use callback_ext::CallbackExtension;
+
+mod memory_descriptions_ext;
+pub use memory_descriptions_ext::{MemoryDescriptionsExtension, MemoryDescription, MemoryKind, DeviceMemoryDescriptions};
+
+mod phase_compile_ext;
+pub use phase_compile_ext::{PhaseCompileExtension, PhaseCompiler, PhaseCompileOutput};
+
 mod async_transfer;
 pub use async_transfer::{AsyncHostToDeviceTransferManager, BufferShape};
 // re-export pjrt-sys
