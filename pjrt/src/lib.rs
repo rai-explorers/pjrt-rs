@@ -92,7 +92,7 @@ mod loaded_executable;
 pub use loaded_executable::LoadedExecutable;
 
 mod executable;
-pub use executable::{CompiledMemoryStats, Executable};
+pub use executable::{CompiledMemoryStats, Executable, SerializedCompileOptions};
 
 mod event;
 pub use event::Event;
@@ -111,6 +111,15 @@ pub use chunk::Chunk;
 
 mod kv_store;
 pub use kv_store::KeyValueStore;
+
+mod extension;
+pub use extension::{Extension, ExtensionType};
+
+mod stream_ext;
+pub use stream_ext::{DeviceStream, StreamExtension, StreamExt};
+
+mod layouts_ext;
+pub use layouts_ext::{LayoutsExtension, LayoutsMemoryLayout, SerializedLayout};
 
 mod async_transfer;
 pub use async_transfer::{AsyncHostToDeviceTransferManager, BufferShape};

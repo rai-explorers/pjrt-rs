@@ -21,7 +21,7 @@ use pjrt_sys::{
     PJRT_Plugin_Initialize_Args, PJRT_Program, PJRT_TopologyDescription_Create_Args,
 };
 
-use crate::kv_store::{kv_get_callback, kv_put_callback};
+use crate::kv_store::{kv_get_callback, kv_put_callback, kv_try_get_callback};
 use crate::named_value::NamedValueMap;
 use crate::{
     utils, Client, CompileOptions, CompileToExecutable, Error, Executable, ExecuteContext,
@@ -99,6 +99,8 @@ impl Api {
             args.kv_get_user_arg = kv_store as *const _ as *mut _;
             args.kv_put_callback = Some(kv_put_callback);
             args.kv_put_user_arg = kv_store as *const _ as *mut _;
+            args.kv_try_get_callback = Some(kv_try_get_callback);
+            args.kv_try_get_user_arg = kv_store as *const _ as *mut _;
         }
         args = self.PJRT_Client_Create(args)?;
         Ok(Client::wrap(self, args.client))

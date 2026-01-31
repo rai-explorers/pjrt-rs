@@ -3,12 +3,14 @@ use std::borrow::{Borrow, Cow};
 use bon::bon;
 use pjrt_sys::{
     PJRT_Executable, PJRT_Executable_Destroy_Args, PJRT_Executable_Fingerprint_Args,
-    PJRT_Executable_GetCompiledMemoryStats_Args, PJRT_Executable_GetCostAnalysis_Args,
-    PJRT_Executable_Name_Args, PJRT_Executable_NumOutputs_Args, PJRT_Executable_NumPartitions_Args,
+    PJRT_Executable_GetCompileOptions_Args, PJRT_Executable_GetCompiledMemoryStats_Args,
+    PJRT_Executable_GetCostAnalysis_Args, PJRT_Executable_Name_Args,
+    PJRT_Executable_NumOutputs_Args, PJRT_Executable_NumPartitions_Args,
     PJRT_Executable_NumReplicas_Args, PJRT_Executable_OptimizedProgram_Args,
     PJRT_Executable_OutputDimensions_Args, PJRT_Executable_OutputElementTypes_Args,
     PJRT_Executable_OutputMemoryKinds_Args, PJRT_Executable_Serialize_Args,
-    PJRT_Executable_SizeOfGeneratedCodeInBytes_Args, PJRT_SerializedExecutable,
+    PJRT_Executable_SizeOfGeneratedCodeInBytes_Args, PJRT_SerializedCompileOptions,
+    PJRT_SerializedExecutable,
 };
 
 use crate::program::ProgramFormat;
@@ -229,6 +231,51 @@ impl Executable {
             .PJRT_Executable_GetCompiledMemoryStats(args)
             .expect("PJRT_Executable_GetCompiledMemoryStats");
         CompiledMemoryStats::from(args)
+    }
+
+    /// Returns the serialized compile options that were used to create this executable.
+    ///
+    /// The returned bytes represent a serialized `CompileOptionsProto` that can be
+    /// deserialized using the XLA protobuf definitions. This is useful for debugging
+    /// and for understanding the compilation configuration.
+    pub fn compile_options(&self) -> SerializedCompileOptions {
+        let mut args = PJRT_Executable_GetCompileOptions_Args::new();
+        args.executable = self.ptr;
+        args = self
+            .api
+            .PJRT_Executable_GetCompileOptions(args)
+            .expect("PJRT_Executable_GetCompileOptions");
+        SerializedCompileOptions {
+            ptr: args.serialized_compile_options,
+            deleter: args
+                .serialized_compile_options_deleter
+                .expect("compile_options_deleter"),
+            data_ptr: args.serialized_bytes as *const u8,
+            data_len: args.serialized_bytes_size,
+        }
+    }
+}
+
+pub struct SerializedCompileOptions {
+    ptr: *mut PJRT_SerializedCompileOptions,
+    deleter: unsafe extern "C" fn(options: *mut PJRT_SerializedCompileOptions),
+    data_ptr: *const u8,
+    data_len: usize,
+}
+
+impl Drop for SerializedCompileOptions {
+    fn drop(&mut self) {
+        unsafe { (self.deleter)(self.ptr) };
+    }
+}
+
+impl SerializedCompileOptions {
+    /// Returns the serialized compile options as a byte slice.
+    ///
+    /// This represents a serialized `CompileOptionsProto` that can be deserialized
+    /// using the appropriate protobuf library.
+    pub fn bytes(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(self.data_ptr, self.data_len) }
     }
 }
 

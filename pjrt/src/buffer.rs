@@ -501,3 +501,99 @@ impl DonateWithControlDependency {
         Ok(())
     }
 }
+
+impl Buffer {
+    /// # Safety
+    ///
+    /// Returns a platform-dependent address for this buffer that is often but not
+    /// guaranteed to be the physical/device address.
+    ///
+    /// The returned pointer may become invalid at any point. The caller must
+    /// use [`Buffer::increase_external_ref_count`] to ensure the buffer remains
+    /// valid if needed.
+    ///
+    /// # Safety
+    ///
+    /// - The returned pointer is not guaranteed to remain valid
+    /// - Use external reference counting if you need to keep the buffer alive
+    pub unsafe fn unsafe_pointer(&self) -> Result<usize> {
+        use pjrt_sys::PJRT_Buffer_UnsafePointer_Args;
+        let mut args = PJRT_Buffer_UnsafePointer_Args::new();
+        args.buffer = self.ptr;
+        let args = self.client.api().PJRT_Buffer_UnsafePointer(args)?;
+        Ok(args.buffer_pointer)
+    }
+
+    /// Increments the external reference count for this buffer.
+    ///
+    /// The reference count indicates that the raw buffer data is being shared with
+    /// another framework (e.g., NumPy, dlpack) and should not be deleted or moved
+    /// by the PJRT implementation (e.g., for memory compaction).
+    ///
+    /// This should be called before obtaining an unsafe pointer via
+    /// [`Buffer::unsafe_pointer`] or [`Buffer::opaque_device_memory_pointer`] if
+    /// the external framework needs to keep the buffer alive.
+    ///
+    /// # Safety
+    ///
+    /// - Each call to `increase_external_ref_count` must be paired with a call to
+    ///   [`Buffer::decrease_external_ref_count`]
+    /// - Failing to decrement the reference count will cause memory leaks
+    /// - This is only safe when the buffer is not deleted or donated
+    pub unsafe fn increase_external_ref_count(&self) -> Result<()> {
+        use pjrt_sys::PJRT_Buffer_IncreaseExternalReferenceCount_Args;
+        let mut args = PJRT_Buffer_IncreaseExternalReferenceCount_Args::new();
+        args.buffer = self.ptr;
+        self.client
+            .api()
+            .PJRT_Buffer_IncreaseExternalReferenceCount(args)?;
+        Ok(())
+    }
+
+    /// Decrements the external reference count for this buffer.
+    ///
+    /// This should be called when an external framework is done using the buffer
+    /// and no longer needs to keep it alive. It must be paired with a previous
+    /// call to [`Buffer::increase_external_ref_count`].
+    ///
+    /// # Safety
+    ///
+    /// - This will return an error if the reference count is zero
+    /// - Must only be called after a corresponding `increase_external_ref_count`
+    /// - Calling this without a matching increment will cause errors
+    pub unsafe fn decrease_external_ref_count(&self) -> Result<()> {
+        use pjrt_sys::PJRT_Buffer_DecreaseExternalReferenceCount_Args;
+        let mut args = PJRT_Buffer_DecreaseExternalReferenceCount_Args::new();
+        args.buffer = self.ptr;
+        self.client
+            .api()
+            .PJRT_Buffer_DecreaseExternalReferenceCount(args)?;
+        Ok(())
+    }
+
+    /// Returns the opaque device memory data pointer for this buffer.
+    ///
+    /// The returned data pointer may become invalid at any point unless the
+    /// external reference count is greater than 0 via
+    /// [`Buffer::increase_external_ref_count`].
+    ///
+    /// This is useful for interop with other frameworks that need direct access
+    /// to device memory (e.g., CUDA, ROCm, dlpack).
+    ///
+    /// # Safety
+    ///
+    /// - The returned pointer may become invalid at any point
+    /// - Must call [`Buffer::increase_external_ref_count`] before obtaining the pointer
+    ///   if you need to keep the buffer alive
+    /// - The pointer is only valid while the external reference count > 0
+    pub unsafe fn opaque_device_memory_pointer(&self) -> Result<*mut c_void> {
+        use pjrt_sys::PJRT_Buffer_OpaqueDeviceMemoryDataPointer_Args;
+        let mut args = PJRT_Buffer_OpaqueDeviceMemoryDataPointer_Args::new();
+        args.buffer = self.ptr;
+        let args = self
+            .client
+            .api()
+            .PJRT_Buffer_OpaqueDeviceMemoryDataPointer(args)?;
+        Ok(args.device_memory_ptr)
+    }
+}
