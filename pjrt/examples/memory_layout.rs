@@ -14,7 +14,7 @@
 //! cargo run --example memory_layout
 //! ```
 
-use pjrt::{self, Client, PrimitiveType, Result};
+use pjrt::{self, Client, LayoutsExt, PrimitiveType, Result};
 
 fn main() -> Result<()> {
     let plugin_path = std::env::var("PJRT_PLUGIN_PATH")
@@ -212,7 +212,7 @@ mod layout_cache {
 
             if !self.cache.contains_key(&key) {
                 let layout = compute_fn(dims, ty)?;
-                self.cache.insert(key, layout);
+                self.cache.insert(key.clone(), layout);
             }
 
             Ok(self.cache.get(&key).unwrap())

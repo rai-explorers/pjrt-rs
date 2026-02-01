@@ -54,6 +54,14 @@ impl Drop for AsyncHostToDeviceTransferManager {
     }
 }
 
+impl std::fmt::Debug for AsyncHostToDeviceTransferManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AsyncHostToDeviceTransferManager")
+            .field("ptr", &self.ptr)
+            .finish()
+    }
+}
+
 #[bon]
 impl AsyncHostToDeviceTransferManager {
     pub(crate) fn wrap(client: &Client, ptr: *mut PJRT_AsyncHostToDeviceTransferManager) -> Self {
@@ -225,6 +233,16 @@ pub struct BufferShape {
     dims: Vec<i64>,
     element_type: PrimitiveType,
     layout: Option<MemoryLayout>,
+}
+
+impl std::fmt::Debug for BufferShape {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BufferShape")
+            .field("dims", &self.dims)
+            .field("element_type", &self.element_type)
+            .field("layout", &self.layout)
+            .finish()
+    }
 }
 
 impl BufferShape {

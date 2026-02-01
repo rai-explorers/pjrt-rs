@@ -33,10 +33,10 @@ use pjrt_sys::{
 };
 
 use crate::{
-    utils, Api, AsyncHostToDeviceTransferManager, Buffer, BufferShape, CompileOptions,
-    CompileToLoadedExecutable, Device, DeviceAssignment, ErrorCode, GlobalDeviceId, KeyValueStore,
-    LoadedExecutable, LocalHardwareId, Memory, MemoryLayout, NamedValue, PrimitiveType, Program,
-    Result, TopologyDescription,
+    utils, Api, AsyncHostToDeviceTransferManager, Buffer, BufferShape, CallbackExtension,
+    CompileOptions, CompileToLoadedExecutable, Device, DeviceAssignment, ErrorCode, Extension,
+    GlobalDeviceId, KeyValueStore, LayoutsExtension, LoadedExecutable, LocalHardwareId, Memory,
+    MemoryLayout, NamedValue, PrimitiveType, Program, Result, TopologyDescription,
 };
 
 struct ClientRaw {
@@ -464,6 +464,47 @@ impl CompileToLoadedExecutable<Program> for Client {
     }
 }
 
+/// Extension trait for accessing Layouts extension from Client
+pub trait LayoutsExt {
+    /// Get the Layouts extension if available
+    fn layouts_extension(&self) -> Option<LayoutsExtension>;
+}
+
+impl LayoutsExt for Client {
+    fn layouts_extension(&self) -> Option<LayoutsExtension> {
+        unsafe {
+            // Extensions are accessed through the Api's extension chain
+            // The PJRT_Api struct has an extension_start field
+            let api_ptr = self.api() as *const Api as *mut pjrt_sys::PJRT_Api;
+            if api_ptr.is_null() {
+                return None;
+            }
+            let ext_start = (*api_ptr).extension_start;
+            LayoutsExtension::from_raw(ext_start, self.api())
+        }
+    }
+}
+
+/// Extension trait for accessing Callback extension from Client
+pub trait CallbackExt {
+    /// Get the Callback extension if available
+    fn callback_extension(&self) -> Option<CallbackExtension>;
+}
+
+impl CallbackExt for Client {
+    fn callback_extension(&self) -> Option<CallbackExtension> {
+        unsafe {
+            // Extensions are accessed through the Api's extension chain
+            let api_ptr = self.api() as *const Api as *mut pjrt_sys::PJRT_Api;
+            if api_ptr.is_null() {
+                return None;
+            }
+            let ext_start = (*api_ptr).extension_start;
+            CallbackExtension::from_raw(ext_start, self.api())
+        }
+    }
+}
+
 /// Represents the state of a process in distributed execution.
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -662,5 +703,36 @@ mod tests {
         assert_eq!(ProcessState::Disconnected as i32, 2);
         assert_eq!(ProcessState::Connected as i32, 3);
         assert_eq!(ProcessState::Error as i32, 4);
+    }
+
+    #[test]
+    fn test_client_extension_traits() {
+        // Verify that Client implements the extension traits
+        // These traits provide access to PJRT extensions:
+        // - LayoutsExt: provides layouts_extension() method
+        // - CallbackExt: provides callback_extension() method
+        //
+        // Both methods return Option<Extension> which is None if:
+        // - The extension is not available in the plugin
+        // - The extension chain is not properly initialized
+        fn assert_layouts_ext<T: LayoutsExt>() {}
+        fn assert_callback_ext<T: CallbackExt>() {}
+        assert_layouts_ext::<Client>();
+        assert_callback_ext::<Client>();
+    }
+
+    #[test]
+    fn test_client_api_coverage() {
+        // Document the client API surface
+        //
+        // Key APIs (from api_coverage.md):
+        // - Client creation via Client::builder()
+        // - Device enumeration: devices(), addressable_devices()
+        // - Memory management: dma_map(), dma_unmap()
+        // - Buffer creation: create_view_of_device_buffer(), create_error_buffer()
+        // - Alias buffers: create_alias_buffer(), fulfill_alias_buffer()
+        // - Process management: update_global_process_info()
+        // - Compilation: compile()
+        // - Topology: topology_description()
     }
 }

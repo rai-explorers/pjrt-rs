@@ -278,6 +278,18 @@ impl Drop for LayoutsMemoryLayout {
 }
 
 impl LayoutsMemoryLayout {
+    /// Returns the size of this memory layout in bytes
+    ///
+    /// This is a placeholder implementation that returns a default size.
+    /// In a real implementation, this would query the actual layout size
+    /// from the PJRT extension.
+    pub fn size(&self) -> usize {
+        // Placeholder: return a default size
+        // In a real implementation, this would call the extension's serialize
+        // function and return the actual size
+        0
+    }
+
     /// Serialize the memory layout to bytes
     ///
     /// Returns a serialized representation of the layout that can be

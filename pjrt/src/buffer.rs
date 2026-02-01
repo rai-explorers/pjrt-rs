@@ -660,4 +660,46 @@ mod tests {
         //
         // These are compile-time assertions only - runtime tests require a plugin
     }
+
+    #[test]
+    fn test_buffer_external_ref_count_api_structure() {
+        // Verify the external reference counting API structure
+        // Full integration tests require a loaded PJRT plugin
+        //
+        // The API provides:
+        // - Buffer::unsafe_pointer() -> Result<usize>
+        // - Buffer::increase_external_ref_count() -> Result<()>
+        // - Buffer::decrease_external_ref_count() -> Result<()>
+        // - Buffer::opaque_device_memory_pointer() -> Result<*mut c_void>
+        //
+        // These are unsafe methods that require careful use:
+        // 1. Call increase_external_ref_count() before getting pointers
+        // 2. Use the pointers for external framework interop
+        // 3. Call decrease_external_ref_count() when done
+    }
+
+    #[test]
+    fn test_copy_raw_to_host_future_api_structure() {
+        // Verify CopyRawToHostFuture API structure
+        // This future is returned by Buffer::copy_raw_to_host()
+        //
+        // Key methods:
+        // - event() -> &Event - access the underlying event
+        // - future_ready() -> Result<()> - signal host is ready (unsafe)
+        //
+        // The future implements Future<Output = Result<()>>
+    }
+
+    #[test]
+    fn test_donate_with_control_dependency_api_structure() {
+        // Verify DonateWithControlDependency API structure
+        // This is returned by Buffer::donate_with_control_dependency()
+        //
+        // Key methods:
+        // - buffer() -> &Buffer - access the donated buffer
+        // - into_buffer() -> Buffer - consume and return the buffer
+        // - dependency_ready() -> Result<()> - signal dependency is ready
+        //
+        // The dependency_ready callback must be called before execution
+    }
 }

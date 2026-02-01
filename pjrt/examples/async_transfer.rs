@@ -14,10 +14,7 @@
 //! cargo run --example async_transfer
 //! ```
 
-use std::pin::Pin;
-use std::task::{Context, Poll};
-
-use pjrt::{self, AsyncTransferShape, Client, PrimitiveType, Result};
+use pjrt::{self, BufferShape, Client, PrimitiveType, Result};
 
 // Simulated async context for this example
 struct SimulatedAsyncContext;
@@ -42,9 +39,9 @@ fn main() -> Result<()> {
 
     // Demonstrate setting up transfer shapes for async operations
     let shapes = vec![
-        AsyncTransferShape::new(vec![1024, 1024], PrimitiveType::F32),
-        AsyncTransferShape::new(vec![512, 512], PrimitiveType::F32),
-        AsyncTransferShape::new(vec![256, 256], PrimitiveType::F32),
+        BufferShape::new(vec![1024, 1024], PrimitiveType::F32),
+        BufferShape::new(vec![512, 512], PrimitiveType::F32),
+        BufferShape::new(vec![256, 256], PrimitiveType::F32),
     ];
 
     println!("Setting up async transfer shapes:");
@@ -108,16 +105,16 @@ fn demonstrate_buffer_shapes() -> Result<()> {
     println!("\nBufferShape examples for different data types:");
 
     // Floating point types
-    let f32_shape = AsyncTransferShape::new(vec![1000, 1000], PrimitiveType::F32);
-    let f16_shape = AsyncTransferShape::new(vec![1000, 1000], PrimitiveType::F16);
-    let bf16_shape = AsyncTransferShape::new(vec![1000, 1000], PrimitiveType::BF16);
+    let f32_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::F32);
+    let f16_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::F16);
+    let bf16_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::BF16);
 
     // Integer types
-    let i32_shape = AsyncTransferShape::new(vec![1000, 1000], PrimitiveType::S32);
-    let i8_shape = AsyncTransferShape::new(vec![1000, 1000], PrimitiveType::S8);
+    let i32_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::S32);
+    let i8_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::S8);
 
     // Complex types
-    let c64_shape = AsyncTransferShape::new(vec![500, 500], PrimitiveType::C64);
+    let c64_shape = BufferShape::new(vec![500, 500], PrimitiveType::C64);
 
     // Calculate sizes for demonstration
     let shapes = vec![

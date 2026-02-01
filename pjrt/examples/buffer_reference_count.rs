@@ -16,7 +16,7 @@
 //! cargo run --example buffer_reference_count
 //! ```
 
-use pjrt::{self, Buffer, Client, HostBuffer, Result};
+use pjrt::{self, Client, HostBuffer, Result};
 
 fn main() -> Result<()> {
     let plugin_path = std::env::var("PJRT_PLUGIN_PATH")
@@ -45,7 +45,7 @@ fn main() -> Result<()> {
         // This can be passed to external frameworks
         let buffer_ptr = device_buffer.unsafe_pointer()?;
         println!("Buffer pointer: {:p}", buffer_ptr as *const ());
-        assert!(!buffer_ptr.is_null(), "Buffer pointer should not be null");
+        assert!(buffer_ptr != 0, "Buffer pointer should not be null");
 
         // 3. Get the opaque device memory pointer
         // This might be needed for some external frameworks
@@ -70,7 +70,7 @@ fn main() -> Result<()> {
 
     // The buffer can still be used normally after external reference counting
     let result = device_buffer.to_host_sync(None)?;
-    let data = result.read::<f32>()?;
+    let data = result.read_f32()?;
     println!("Buffer data after external operations: {:?}", data);
 
     println!("Note: In a real application, ensure that the external framework");

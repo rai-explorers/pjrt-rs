@@ -320,6 +320,39 @@ impl HostBuffer {
             Self::C128(buf) => buf.layout(),
         }
     }
+
+    /// Read the buffer data as f32 values
+    ///
+    /// Returns the data as a slice of f32 if the buffer contains F32 data.
+    /// Returns an error if the buffer contains a different type.
+    pub fn read_f32(&self) -> Result<&[f32]> {
+        match self {
+            Self::F32(buf) => Ok(buf.data()),
+            _ => Err(crate::Error::InvalidArgument(
+                format!("Cannot read {:?} buffer as f32", self.primitive_type())
+            )),
+        }
+    }
+
+    /// Get the primitive type of this buffer
+    pub fn primitive_type(&self) -> PrimitiveType {
+        match self {
+            Self::BF16(_) => PrimitiveType::BF16,
+            Self::F16(_) => PrimitiveType::F16,
+            Self::F32(_) => PrimitiveType::F32,
+            Self::F64(_) => PrimitiveType::F64,
+            Self::I8(_) => PrimitiveType::S8,
+            Self::I16(_) => PrimitiveType::S16,
+            Self::I32(_) => PrimitiveType::S32,
+            Self::I64(_) => PrimitiveType::S64,
+            Self::U8(_) => PrimitiveType::U8,
+            Self::U16(_) => PrimitiveType::U16,
+            Self::U32(_) => PrimitiveType::U32,
+            Self::U64(_) => PrimitiveType::U64,
+            Self::C64(_) => PrimitiveType::C64,
+            Self::C128(_) => PrimitiveType::C128,
+        }
+    }
     pub(crate) fn call_copy_to<D>(
         &self,
         dest: &D,

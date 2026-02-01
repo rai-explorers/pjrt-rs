@@ -14,7 +14,7 @@
 //! cargo run --example callback_extension
 //! ```
 
-use pjrt::{self, Client, Result};
+use pjrt::{self, CallbackExt, Client, Result};
 
 fn main() -> Result<()> {
     let plugin_path = std::env::var("PJRT_PLUGIN_PATH")

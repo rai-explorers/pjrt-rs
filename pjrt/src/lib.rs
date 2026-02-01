@@ -54,7 +54,7 @@ mod api;
 pub use api::Api;
 
 mod client;
-pub use client::{Client, FulfillAliasBufferCallback, ProcessInfo, ProcessState};
+pub use client::{CallbackExt, Client, FulfillAliasBufferCallback, LayoutsExt, ProcessInfo, ProcessState};
 
 mod buffer;
 pub use buffer::{Buffer, CopyRawToHostFuture, DonateWithControlDependency};
@@ -140,7 +140,7 @@ mod profiler_ext;
 pub use profiler_ext::ProfilerExtension;
 
 mod callback_ext;
-pub use callback_ext::CallbackExtension;
+pub use callback_ext::{CallbackExtension, TpuSliceFailureType};
 
 mod memory_descriptions_ext;
 pub use memory_descriptions_ext::{
