@@ -159,8 +159,13 @@ pub trait StreamExt {
 
 impl StreamExt for Api {
     fn stream_extension(&self) -> Option<StreamExtension> {
-        // Access the API's extension chain
-        // This is a placeholder - in a real implementation we'd traverse the extension chain
-        None
+        unsafe {
+            let api_ptr = self as *const Api as *mut pjrt_sys::PJRT_Api;
+            if api_ptr.is_null() {
+                return None;
+            }
+            let ext_start = (*api_ptr).extension_start;
+            StreamExtension::from_raw(ext_start, self)
+        }
     }
 }

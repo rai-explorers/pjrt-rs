@@ -265,8 +265,13 @@ pub trait FfiExt {
 
 impl FfiExt for Api {
     fn ffi_extension(&self) -> Option<FfiExtension> {
-        // Access the API's extension chain
-        // This is a placeholder - in a real implementation we'd traverse the extension chain
-        None
+        unsafe {
+            let api_ptr = self as *const Api as *mut pjrt_sys::PJRT_Api;
+            if api_ptr.is_null() {
+                return None;
+            }
+            let ext_start = (*api_ptr).extension_start;
+            FfiExtension::from_raw(ext_start, self)
+        }
     }
 }
