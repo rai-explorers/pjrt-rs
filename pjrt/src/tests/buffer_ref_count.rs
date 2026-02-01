@@ -41,12 +41,13 @@ mod tests {
 // Integration tests that require a PJRT plugin
 #[cfg(all(test, feature = "integration-tests"))]
 mod integration_tests {
-    use pjrt::{Buffer, Client, HostBuffer, Result};
+    use pjrt::{Client, HostBuffer, Result};
 
     fn setup_test_client() -> Result<Client> {
-        // Setup code for creating a test client
-        // Requires PJRT_PLUGIN_PATH to be set
-        todo!("Integration test setup requires plugin path")
+        let plugin_path = std::env::var("PJRT_PLUGIN_PATH")
+            .expect("PJRT_PLUGIN_PATH environment variable must be set for integration tests");
+        let api = pjrt::plugin(&plugin_path).load()?;
+        Client::builder(&api).build()
     }
 
     #[test]

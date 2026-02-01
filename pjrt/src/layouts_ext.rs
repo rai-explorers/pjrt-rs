@@ -111,6 +111,7 @@ impl LayoutsExtension {
         Ok(LayoutsMemoryLayout {
             raw: args.layout,
             deleter: self.raw.PJRT_Layouts_MemoryLayout_Destroy,
+            serializer: self.raw.PJRT_Layouts_MemoryLayout_Serialize,
             api: self.api.clone(),
         })
     }
@@ -154,6 +155,7 @@ impl LayoutsExtension {
         Ok(LayoutsMemoryLayout {
             raw: args.layout,
             deleter: self.raw.PJRT_Layouts_MemoryLayout_Destroy,
+            serializer: self.raw.PJRT_Layouts_MemoryLayout_Serialize,
             api: self.api.clone(),
         })
     }
@@ -197,6 +199,7 @@ impl LayoutsExtension {
         Ok(LayoutsMemoryLayout {
             raw: args.layout,
             deleter: self.raw.PJRT_Layouts_MemoryLayout_Destroy,
+            serializer: self.raw.PJRT_Layouts_MemoryLayout_Serialize,
             api: self.api.clone(),
         })
     }
@@ -233,11 +236,13 @@ impl LayoutsExtension {
         let layouts = unsafe { std::slice::from_raw_parts(args.layouts, args.num_outputs) };
 
         let deleter = self.raw.PJRT_Layouts_MemoryLayout_Destroy;
+        let serializer = self.raw.PJRT_Layouts_MemoryLayout_Serialize;
         Ok(layouts
             .iter()
             .map(|&layout| LayoutsMemoryLayout {
                 raw: layout,
                 deleter,
+                serializer,
                 api: self.api.clone(),
             })
             .collect())
@@ -253,6 +258,11 @@ pub struct LayoutsMemoryLayout {
     deleter: Option<
         unsafe extern "C" fn(
             *mut PJRT_Layouts_MemoryLayout_Destroy_Args,
+        ) -> *mut pjrt_sys::PJRT_Error,
+    >,
+    serializer: Option<
+        unsafe extern "C" fn(
+            *mut PJRT_Layouts_MemoryLayout_Serialize_Args,
         ) -> *mut pjrt_sys::PJRT_Error,
     >,
     api: Api,
@@ -274,6 +284,22 @@ impl Drop for LayoutsMemoryLayout {
             args.layout = self.raw;
             let _ = unsafe { deleter(&mut args) };
         }
+    }
+}
+
+/// A serialized memory layout
+///
+/// Contains the serialized bytes of a memory layout and manages the backing
+/// memory through a deleter function.
+pub struct SerializedLayout {
+    bytes: Vec<u8>,
+    _marker: PhantomData<*const ()>,
+}
+
+impl SerializedLayout {
+    /// Get the serialized layout bytes
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
     }
 }
 
@@ -299,28 +325,38 @@ impl LayoutsMemoryLayout {
     ///
     /// A `SerializedLayout` containing the serialized layout data
     pub fn serialize(&self) -> Result<SerializedLayout> {
-        let mut _args: PJRT_Layouts_MemoryLayout_Serialize_Args = unsafe { std::mem::zeroed() };
-        _args.struct_size = std::mem::size_of::<PJRT_Layouts_MemoryLayout_Serialize_Args>();
-        _args.layout = self.raw;
+        let serializer = self
+            .serializer
+            .expect("PJRT_Layouts_MemoryLayout_Serialize not implemented");
 
-        // We need access to the extension function - this is a placeholder
-        // In a real implementation, we'd store the extension or get it from Api
-        todo!("serialize requires LayoutsExtension reference")
-    }
-}
+        let mut args: PJRT_Layouts_MemoryLayout_Serialize_Args = unsafe { std::mem::zeroed() };
+        args.struct_size = std::mem::size_of::<PJRT_Layouts_MemoryLayout_Serialize_Args>();
+        args.layout = self.raw;
 
-/// A serialized memory layout
-///
-/// Contains the serialized bytes of a memory layout and a deleter function
-/// to free the backing memory.
-pub struct SerializedLayout {
-    bytes: Vec<u8>,
-    _marker: PhantomData<*const ()>,
-}
+        let err = unsafe { serializer(&mut args) };
+        self.api.err_or(err, ())?;
 
-impl SerializedLayout {
-    /// Get the serialized layout bytes
-    pub fn bytes(&self) -> &[u8] {
-        &self.bytes
+        // Copy the serialized bytes into a Vec<u8>
+        let bytes = if args.serialized_bytes_size > 0 && !args.serialized_bytes.is_null() {
+            unsafe {
+                std::slice::from_raw_parts(
+                    args.serialized_bytes as *const u8,
+                    args.serialized_bytes_size,
+                )
+                .to_vec()
+            }
+        } else {
+            Vec::new()
+        };
+
+        // Clean up the backing memory if a deleter is provided
+        if let Some(deleter) = args.serialized_layout_deleter {
+            unsafe { deleter(args.serialized_layout) };
+        }
+
+        Ok(SerializedLayout {
+            bytes,
+            _marker: PhantomData,
+        })
     }
 }

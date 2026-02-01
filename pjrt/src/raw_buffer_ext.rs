@@ -12,7 +12,7 @@
 //! ## Usage
 //!
 //! ```rust,ignore
-//! use pjrt::raw_buffer::{RawBufferExtension, RawBuffer};
+//! use pjrt::raw_buffer_ext::{RawBufferExtension, RawBuffer};
 //!
 //! // Get the raw buffer extension
 //! let raw_ext = api.get_extension::<RawBufferExtension>()?;
@@ -24,18 +24,21 @@
 //! let host_ptr = raw_buffer.get_host_pointer()?;
 //!
 //! // Copy data to/from the raw buffer
-//! let event = raw_buffer.copy_raw_host_to_device(&src_data, 0, data_len)?;
+//! let event = raw_buffer.copy_raw_host_to_device(&src_data, 0)?;
 //! ```
 
 use std::marker::PhantomData;
 use std::rc::Rc;
 
 use pjrt_sys::{
-    PJRT_RawBuffer, PJRT_RawBuffer_CreateRawAliasOfBuffer_Args, PJRT_RawBuffer_Extension,
+    PJRT_RawBuffer, PJRT_RawBuffer_CopyRawDeviceToHost_Args,
+    PJRT_RawBuffer_CopyRawHostToDevice_Args, PJRT_RawBuffer_CreateRawAliasOfBuffer_Args,
+    PJRT_RawBuffer_Extension, PJRT_RawBuffer_GetHostPointer_Args,
+    PJRT_RawBuffer_GetMemorySpace_Args, PJRT_RawBuffer_GetOnDeviceSizeInBytes_Args,
 };
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, Buffer, Event, Memory, Result};
+use crate::{Api, Buffer, Client, Event, Memory, Result};
 
 /// Safe wrapper for PJRT Raw Buffer extension
 ///
@@ -113,6 +116,8 @@ impl RawBufferExtension {
 
         Ok(RawBuffer {
             raw: args.raw_buffer,
+            ext: Rc::clone(&self.raw),
+            client: buffer.client().clone(),
             _marker: PhantomData,
         })
     }
@@ -124,6 +129,8 @@ impl RawBufferExtension {
 /// The raw buffer is only valid as long as the original buffer exists.
 pub struct RawBuffer<'a> {
     raw: *mut PJRT_RawBuffer,
+    ext: Rc<PJRT_RawBuffer_Extension>,
+    client: Client,
     _marker: PhantomData<&'a ()>,
 }
 
@@ -138,23 +145,57 @@ impl<'a> RawBuffer<'a> {
     /// The returned pointer is only valid as long as the RawBuffer exists.
     /// Direct memory access bypasses PJRT's safety mechanisms.
     pub unsafe fn get_host_pointer(&self) -> Result<*mut std::ffi::c_void> {
-        // This function pointer would come from the extension
-        // For now, this is a placeholder showing the API design
-        todo!("get_host_pointer requires RawBufferExtension reference")
+        let ext_fn = self
+            .ext
+            .PJRT_RawBuffer_GetHostPointer
+            .expect("PJRT_RawBuffer_GetHostPointer not implemented");
+
+        let mut args: PJRT_RawBuffer_GetHostPointer_Args = unsafe { std::mem::zeroed() };
+        args.struct_size = std::mem::size_of::<PJRT_RawBuffer_GetHostPointer_Args>();
+        args.buffer = self.raw;
+
+        let err = unsafe { ext_fn(&mut args) };
+        self.client.api().err_or(err, ())?;
+
+        Ok(args.host_pointer)
     }
 
     /// Get the on-device size in bytes
     ///
     /// Returns the number of bytes of the buffer storage on the device.
     pub fn on_device_size(&self) -> Result<usize> {
-        todo!("on_device_size requires RawBufferExtension reference")
+        let ext_fn = self
+            .ext
+            .PJRT_RawBuffer_GetOnDeviceSizeInBytes
+            .expect("PJRT_RawBuffer_GetOnDeviceSizeInBytes not implemented");
+
+        let mut args: PJRT_RawBuffer_GetOnDeviceSizeInBytes_Args = unsafe { std::mem::zeroed() };
+        args.struct_size = std::mem::size_of::<PJRT_RawBuffer_GetOnDeviceSizeInBytes_Args>();
+        args.buffer = self.raw;
+
+        let err = unsafe { ext_fn(&mut args) };
+        self.client.api().err_or(err, ())?;
+
+        Ok(args.on_device_size_in_bytes)
     }
 
     /// Get the memory space
     ///
     /// Returns the memory space that this buffer is attached to.
     pub fn memory_space(&self) -> Result<Memory> {
-        todo!("memory_space requires RawBufferExtension reference")
+        let ext_fn = self
+            .ext
+            .PJRT_RawBuffer_GetMemorySpace
+            .expect("PJRT_RawBuffer_GetMemorySpace not implemented");
+
+        let mut args: PJRT_RawBuffer_GetMemorySpace_Args = unsafe { std::mem::zeroed() };
+        args.struct_size = std::mem::size_of::<PJRT_RawBuffer_GetMemorySpace_Args>();
+        args.buffer = self.raw;
+
+        let err = unsafe { ext_fn(&mut args) };
+        self.client.api().err_or(err, ())?;
+
+        Ok(Memory::wrap(&self.client, args.memory_space))
     }
 
     /// Copy raw data from host to device
@@ -165,13 +206,27 @@ impl<'a> RawBuffer<'a> {
     ///
     /// * `src` - Source data on the host
     /// * `offset` - Offset in bytes within the buffer
-    /// * `transfer_size` - Number of bytes to transfer
     ///
     /// # Returns
     ///
     /// An `Event` that completes when the transfer is done
-    pub fn copy_raw_host_to_device<T>(&self, _src: &[T], _offset: i64) -> Result<Event> {
-        todo!("copy_raw_host_to_device requires RawBufferExtension reference")
+    pub fn copy_raw_host_to_device<T>(&self, src: &[T], offset: i64) -> Result<Event> {
+        let ext_fn = self
+            .ext
+            .PJRT_RawBuffer_CopyRawHostToDevice
+            .expect("PJRT_RawBuffer_CopyRawHostToDevice not implemented");
+
+        let mut args: PJRT_RawBuffer_CopyRawHostToDevice_Args = unsafe { std::mem::zeroed() };
+        args.struct_size = std::mem::size_of::<PJRT_RawBuffer_CopyRawHostToDevice_Args>();
+        args.buffer = self.raw;
+        args.src = src.as_ptr() as *const std::ffi::c_void;
+        args.offset = offset;
+        args.transfer_size = (src.len() * std::mem::size_of::<T>()) as i64;
+
+        let err = unsafe { ext_fn(&mut args) };
+        self.client.api().err_or(err, ())?;
+
+        Ok(Event::wrap(self.client.api(), args.event))
     }
 
     /// Copy raw data from device to host
@@ -182,19 +237,38 @@ impl<'a> RawBuffer<'a> {
     ///
     /// * `dst` - Destination buffer on the host
     /// * `offset` - Offset in bytes within the buffer
-    /// * `transfer_size` - Number of bytes to transfer
     ///
     /// # Returns
     ///
     /// An `Event` that completes when the transfer is done
-    pub fn copy_raw_device_to_host<T>(&self, _dst: &mut [T], _offset: i64) -> Result<Event> {
-        todo!("copy_raw_device_to_host requires RawBufferExtension reference")
+    pub fn copy_raw_device_to_host<T>(&self, dst: &mut [T], offset: i64) -> Result<Event> {
+        let ext_fn = self
+            .ext
+            .PJRT_RawBuffer_CopyRawDeviceToHost
+            .expect("PJRT_RawBuffer_CopyRawDeviceToHost not implemented");
+
+        let mut args: PJRT_RawBuffer_CopyRawDeviceToHost_Args = unsafe { std::mem::zeroed() };
+        args.struct_size = std::mem::size_of::<PJRT_RawBuffer_CopyRawDeviceToHost_Args>();
+        args.buffer = self.raw;
+        args.dst = dst.as_mut_ptr() as *mut std::ffi::c_void;
+        args.offset = offset;
+        args.transfer_size = (dst.len() * std::mem::size_of::<T>()) as i64;
+
+        let err = unsafe { ext_fn(&mut args) };
+        self.client.api().err_or(err, ())?;
+
+        Ok(Event::wrap(self.client.api(), args.event))
     }
 }
 
 impl<'a> Drop for RawBuffer<'a> {
     fn drop(&mut self) {
-        // Note: The raw buffer is just an alias, we don't need to free it
-        // The underlying PJRT_Buffer manages the actual memory
+        // Free the raw buffer using the extension's destroy function
+        if let Some(destroy_fn) = self.ext.PJRT_RawBuffer_Destroy {
+            let mut args: pjrt_sys::PJRT_RawBuffer_Destroy_Args = unsafe { std::mem::zeroed() };
+            args.struct_size = std::mem::size_of::<pjrt_sys::PJRT_RawBuffer_Destroy_Args>();
+            args.buffer = self.raw;
+            let _ = unsafe { destroy_fn(&mut args) };
+        }
     }
 }

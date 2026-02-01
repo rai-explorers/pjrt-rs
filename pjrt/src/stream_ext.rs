@@ -19,7 +19,10 @@
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use pjrt_sys::{PJRT_Get_Stream_For_External_Ready_Events_Args, PJRT_Stream_Extension};
+use pjrt_sys::{
+    PJRT_Get_Stream_For_External_Ready_Events_Args, PJRT_Stream_Extension,
+    PJRT_Wait_Until_Buffer_Ready_On_Stream_Args,
+};
 
 use crate::extension::{Extension, ExtensionType};
 use crate::{Api, Buffer, Device, Result};
@@ -98,6 +101,8 @@ impl StreamExtension {
 
         Ok(DeviceStream {
             stream: args.stream,
+            waiter: self.raw.wait_stream,
+            api: self.api.clone(),
             _marker: PhantomData,
         })
     }
@@ -108,7 +113,13 @@ impl StreamExtension {
 /// This represents a handle to a platform-specific stream (e.g., CUDA stream)
 /// that can be used to synchronize external buffer operations.
 pub struct DeviceStream {
-    stream: isize,                   // intptr_t
+    stream: isize, // intptr_t
+    waiter: Option<
+        unsafe extern "C" fn(
+            *mut PJRT_Wait_Until_Buffer_Ready_On_Stream_Args,
+        ) -> *mut pjrt_sys::PJRT_Error,
+    >,
+    api: Api,
     _marker: PhantomData<*const ()>, // Not Send + Sync
 }
 
@@ -120,17 +131,23 @@ impl DeviceStream {
     ///
     /// # Arguments
     ///
-    /// * `_buffer` - The buffer to wait for
+    /// * `buffer` - The buffer to wait for
     ///
     /// # Returns
     ///
     /// `Ok(())` when the buffer is ready, or an error if the wait fails
-    pub fn wait_until_buffer_ready(&self, _buffer: &Buffer) -> Result<()> {
-        // This requires access to the StreamExtension - we'd need to pass it or store it
-        // For now, this is a placeholder showing the API design
-        // In a real implementation, we'd call PJRT_Wait_Until_Buffer_Ready_On_Stream
+    pub fn wait_until_buffer_ready(&self, buffer: &Buffer) -> Result<()> {
+        let waiter = self
+            .waiter
+            .expect("PJRT_Wait_Until_Buffer_Ready_On_Stream not implemented");
 
-        todo!("wait_until_buffer_ready requires StreamExtension reference")
+        let mut args: PJRT_Wait_Until_Buffer_Ready_On_Stream_Args = unsafe { std::mem::zeroed() };
+        args.struct_size = std::mem::size_of::<PJRT_Wait_Until_Buffer_Ready_On_Stream_Args>();
+        args.stream = self.stream;
+        args.buffer = buffer.ptr;
+
+        let err = unsafe { waiter(&mut args) };
+        self.api.err_or(err, ())
     }
 }
 
