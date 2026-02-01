@@ -234,3 +234,7 @@ The repository uses GitHub Actions with the following jobs:
 - **clippy**: Runs clippy with `-D warnings` (denies all warnings)
 
 All PRs must pass these checks before merging.
+
+## Rules
+- Don't leave placeholder implmentations, implment it when it is required
+- Don't crete simply versions for the requirement, implment well designed and tested version
