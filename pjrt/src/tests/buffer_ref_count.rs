@@ -6,39 +6,6 @@
 //! - Buffer::decrease_external_ref_count()
 //! - Buffer::opaque_device_memory_pointer()
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_buffer_external_ref_count_basic() {
-        // This is a basic test structure
-        // Full implementation requires a loaded PJRT plugin
-        // TODO: Add integration test with actual plugin
-    }
-
-    #[test]
-    fn test_buffer_unsafe_pointer_doc() {
-        // Test that unsafe_pointer documentation is accurate
-        // The pointer should be valid after increase_external_ref_count
-        // and invalid after decrease_external_ref_count
-    }
-
-    #[test]
-    fn test_buffer_device_memory_pointer() {
-        // Test opaque_device_memory_pointer API
-        // Should return a valid device memory pointer
-    }
-
-    #[test]
-    fn test_external_ref_count_safety() {
-        // Test that proper ref counting prevents use-after-free
-        // increase_external_ref_count should prevent buffer deletion
-        // decrease_external_ref_count should allow normal cleanup
-    }
-}
-
-// Integration tests that require a PJRT plugin
 #[cfg(all(test, feature = "integration-tests"))]
 mod integration_tests {
     use pjrt::{Client, HostBuffer, Result};

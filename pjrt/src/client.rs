@@ -613,36 +613,6 @@ mod tests {
     }
 
     #[test]
-    fn test_error_buffer_api_structure() {
-        // This test verifies the create_error_buffer API structure
-        // Full integration test requires a loaded PJRT plugin
-        //
-        // The API takes:
-        // - error_code: ErrorCode
-        // - error_message: &str
-        // - dims: &[i64]
-        // - element_type: PrimitiveType
-        // - memory: &Memory
-        // - layout: Option<&MemoryLayout>
-        //
-        // Returns: Result<Buffer>
-    }
-
-    #[test]
-    fn test_alias_buffer_api_structure() {
-        // This test verifies the create_alias_buffer API structure
-        // Full integration test requires a loaded PJRT plugin
-        //
-        // The API takes:
-        // - memory: &Memory (builder start)
-        // - dims: &[i64]
-        // - element_type: PrimitiveType
-        // - layout: Option<&MemoryLayout>
-        //
-        // Returns: Result<(Buffer, FulfillAliasBufferCallback)>
-    }
-
-    #[test]
     fn test_process_info_creation() {
         let info = ProcessInfo::new(42, ProcessState::Connected);
 
@@ -719,20 +689,5 @@ mod tests {
         fn assert_callback_ext<T: CallbackExt>() {}
         assert_layouts_ext::<Client>();
         assert_callback_ext::<Client>();
-    }
-
-    #[test]
-    fn test_client_api_coverage() {
-        // Document the client API surface
-        //
-        // Key APIs (from api_coverage.md):
-        // - Client creation via Client::builder()
-        // - Device enumeration: devices(), addressable_devices()
-        // - Memory management: dma_map(), dma_unmap()
-        // - Buffer creation: create_view_of_device_buffer(), create_error_buffer()
-        // - Alias buffers: create_alias_buffer(), fulfill_alias_buffer()
-        // - Process management: update_global_process_info()
-        // - Compilation: compile()
-        // - Topology: topology_description()
     }
 }

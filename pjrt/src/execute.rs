@@ -60,9 +60,10 @@ impl ExecuteContext {
 pub struct ExecuteOptions {
     launch_id: i32,
     non_donatable_input_indices: Vec<i64>,
-    // TODO:
-    // send_callbacks
-    // recv_callbacks
+    // send_callbacks and recv_callbacks are used for cross-device communication
+    // during execution. These are advanced features for distributed execution.
+    // For now, these are not exposed in the high-level API but can be added
+    // when needed for send/recv operations in multi-device setups.
 }
 
 impl ExecuteOptions {
