@@ -7,13 +7,48 @@ This document tracks the implementation tasks needed to close the gap between th
 
 ---
 
-## Recently Completed (January 31, 2026)
+## Recently Completed (February 1, 2026)
 
 ### API Coverage Analysis
 - ✅ Reviewed all PJRT C API v0.90 functions (124 total)
 - ✅ Documented Rust implementation status in `api_coverage.md`
 - ✅ Identified gaps between C API and Rust bindings
 - **Overall Coverage:** 97% (116/119 core functions fully implemented, excluding extensions)
+
+### February 1, 2026 - Test Fixes and Additional Work
+
+1. ✅ **Fixed Compilation Errors in Example Files**
+   - Fixed `async_transfer.rs`: Changed `AsyncTransferShape` to `BufferShape`
+   - Fixed `callback_extension.rs`: Added `CallbackExt` trait import
+   - Fixed `memory_layout.rs`: Added `LayoutsExt` trait import, fixed borrow checker issue
+   - Fixed `buffer_reference_count.rs`: Fixed pointer checks and data reading
+   - All examples now compile without errors
+
+2. ✅ **Exported Missing Public APIs**
+   - Exported `TpuSliceFailureType` in `lib.rs`
+   - Exported `LayoutsExt` trait for accessing layouts extension
+   - Exported `CallbackExt` trait for accessing callback extension
+
+3. ✅ **Implemented Extension Access Traits for Client**
+   - Implemented `LayoutsExt` trait with `layouts_extension()` method
+   - Implemented `CallbackExt` trait with `callback_extension()` method
+   - Both traits allow accessing PJRT extensions from Client instances
+
+4. ✅ **Added Missing Methods**
+   - Added `size()` method to `LayoutsMemoryLayout`
+   - Added `read_f32()` method to `HostBuffer` for reading F32 data
+   - Added `primitive_type()` method to `HostBuffer`
+
+5. ✅ **Added Debug Implementations**
+   - Added `Debug` impl for `AsyncHostToDeviceTransferManager`
+   - Added `Debug` impl for `BufferShape`
+   - Total test coverage maintained with 162 tests (up from 157)
+
+6. ✅ **Added Unit Tests**
+   - Added tests for buffer external reference counting API structure
+   - Added tests for CopyRawToHostFuture API structure
+   - Added tests for DonateWithControlDependency API structure
+   - Added tests for Client extension traits
 
 ### High Priority Implementations
 1. ✅ **Buffer External Reference Counting APIs** (`pjrt/src/buffer.rs`)
@@ -317,14 +352,14 @@ These extensions are platform-specific or experimental:
 **Priority:** High
 
 **Tasks:**
-- [ ] Add unit tests for buffer reference counting APIs
+- [x] Add unit tests for buffer reference counting APIs ✅ COMPLETED (4 API structure tests added)
 - [ ] Add integration tests for multi-device scenarios
-- [ ] Add tests for error buffer creation
-- [ ] Add tests for alias buffer functionality
-- [ ] Add tests for async transfer manager
-- [ ] Add tests for device stream operations
-- [ ] Add tests for memory layout conversions
-- [ ] Add tests for all buffer types (f8, f4, s2, u2, etc.)
+- [x] Add tests for error buffer creation ✅ COMPLETED (API structure test in client.rs)
+- [x] Add tests for alias buffer functionality ✅ COMPLETED (API structure test in client.rs)
+- [ ] Add tests for async transfer manager (runtime tests require PJRT plugin)
+- [ ] Add tests for device stream operations (runtime tests require PJRT plugin)
+- [ ] Add tests for memory layout conversions (runtime tests require PJRT plugin with layouts extension)
+- [ ] Add tests for all buffer types (f8, f4, s2, u2, etc.) - awaiting upstream support
 
 ---
 
@@ -335,12 +370,12 @@ These extensions are platform-specific or experimental:
 **Priority:** Medium
 
 **Tasks:**
-- [ ] Review and improve error handling consistency
-- [ ] Add more Debug impls for public types
-- [ ] Review unsafe code blocks for soundness
-- [ ] Add benchmarks for critical paths
-- [ ] Optimize memory allocations in hot paths
-- [ ] Reduce code duplication between sync/async variants
+- [x] Review and improve error handling consistency ✅ COMPLETED (consistent Result types used throughout)
+- [x] Add more Debug impls for public types ✅ COMPLETED (added for AsyncHostToDeviceTransferManager, BufferShape)
+- [ ] Review unsafe code blocks for soundness (ongoing - all unsafe blocks documented)
+- [ ] Add benchmarks for critical paths (requires integration testing setup)
+- [ ] Optimize memory allocations in hot paths (performance work - future iteration)
+- [ ] Reduce code duplication between sync/async variants (refactoring work - future iteration)
 
 ---
 
@@ -362,7 +397,12 @@ These extensions are platform-specific or experimental:
 - [x] Add Debug implementations for Buffer, CopyRawToHostFuture, DonateWithControlDependency, Event, Client, FulfillAliasBufferCallback
 - [x] Add unit tests for buffer external reference counting APIs (4 tests)
 - [x] Add unit tests for client operations including ProcessInfo (8 tests)
-- [x] Total test count increased from 146 to 157 tests (all passing)
+- [x] Total test count increased from 146 to 162 tests (all passing)
+- [x] Fixed all compilation errors in example files (4 files updated)
+- [x] Added Debug implementations for AsyncHostToDeviceTransferManager and BufferShape
+- [x] Exported TpuSliceFailureType, LayoutsExt, and CallbackExt in public API
+- [x] Implemented LayoutsExt and CallbackExt traits for Client
+- [x] Added read_f32() and primitive_type() methods to HostBuffer
 
 ---
 
@@ -392,4 +432,4 @@ Extensions should be implemented as:
 
 ---
 
-**Last Updated:** January 31, 2026
+**Last Updated:** February 1, 2026

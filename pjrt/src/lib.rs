@@ -66,7 +66,7 @@ mod memory_layout;
 pub use memory_layout::MemoryLayout;
 
 mod compile;
-pub use compile::{CompileOptions, CompileToExecutable, CompileToLoadedExecutable};
+pub use compile::{CompileOptions, CompileToExecutable, CompileToLoadedExecutable, ExecutableBuildOptions};
 
 mod device;
 pub use device::{
