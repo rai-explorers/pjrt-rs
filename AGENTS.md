@@ -42,12 +42,12 @@ rustup component add clippy rustfmt
 cargo test
 
 # Run tests for a specific package
-cargo test -p pjrt
-cargo test -p pjrt-sys
+cargo test --all-features -p pjrt
+cargo test --all-features -p pjrt-sys
 
 # Run a single test by name
-cargo test test_error_code_values
-cargo test -p pjrt test_client_debug_impl
+cargo test --all-features test_error_code_values
+cargo test --all-features -p pjrt test_client_debug_impl
 
 # Run tests with output
 cargo test -- --nocapture --all-features

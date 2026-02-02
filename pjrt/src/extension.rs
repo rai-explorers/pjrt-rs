@@ -238,7 +238,7 @@ pub(crate) unsafe fn has_extension(
 // Note: Real extension implementations are in separate modules:
 // - stream_ext.rs: StreamExtension implementation
 // - layouts_ext.rs: LayoutsExtension implementation
-// - ffi_ext.rs: FfiExtension implementation (TODO)
-// - raw_buffer_ext.rs: RawBufferExtension implementation (TODO)
-// - gpu_ext.rs: GpuExtension implementation (TODO)
-// - profiler_ext.rs: ProfilerExtension implementation (TODO)
+// - ffi_ext.rs: FfiExtension implementation
+// - raw_buffer_ext.rs: RawBufferExtension implementation
+// - gpu_ext.rs: GpuExtension implementation
+// - profiler_ext.rs: ProfilerExtension implementation

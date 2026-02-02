@@ -642,11 +642,20 @@ impl std::fmt::Debug for FulfillAliasBufferCallback {
 mod tests {
     use super::*;
 
+    // =========================================================================
+    // Type trait verification tests
+    // =========================================================================
+
     #[test]
     fn test_client_debug_impl() {
-        // Test that Client implements Debug
         fn assert_debug<T: std::fmt::Debug>() {}
         assert_debug::<Client>();
+    }
+
+    #[test]
+    fn test_client_clone_impl() {
+        fn assert_clone<T: Clone>() {}
+        assert_clone::<Client>();
     }
 
     #[test]
@@ -656,67 +665,48 @@ mod tests {
     }
 
     #[test]
+    fn test_process_info_clone() {
+        fn assert_clone<T: Clone>() {}
+        assert_clone::<ProcessInfo>();
+    }
+
+    #[test]
+    fn test_process_state_debug() {
+        fn assert_debug<T: std::fmt::Debug>() {}
+        assert_debug::<ProcessState>();
+    }
+
+    #[test]
+    fn test_process_state_clone() {
+        fn assert_clone<T: Clone>() {}
+        assert_clone::<ProcessState>();
+    }
+
+    #[test]
+    fn test_process_state_copy() {
+        fn assert_copy<T: Copy>() {}
+        assert_copy::<ProcessState>();
+    }
+
+    #[test]
+    fn test_process_state_eq() {
+        fn assert_eq<T: Eq + PartialEq>() {}
+        assert_eq::<ProcessState>();
+    }
+
+    #[test]
     fn test_fulfill_alias_buffer_callback_debug() {
         fn assert_debug<T: std::fmt::Debug>() {}
         assert_debug::<FulfillAliasBufferCallback>();
     }
 
-    #[test]
-    fn test_process_info_creation() {
-        let info = ProcessInfo::new(42, ProcessState::Connected);
-
-        assert_eq!(info.task_id, 42i32);
-        assert_eq!(info.state, ProcessState::Connected);
-        assert_eq!(info.incarnation_id, 0u64);
-        assert!(info.error_code.is_none());
-        assert!(info.error_message.is_none());
-    }
-
-    #[test]
-    fn test_process_info_with_incarnation() {
-        let info = ProcessInfo::new(1, ProcessState::Uninitialized).with_incarnation(12345u64);
-
-        assert_eq!(info.task_id, 1i32);
-        assert_eq!(info.incarnation_id, 12345u64);
-        assert_eq!(info.state, ProcessState::Uninitialized);
-    }
-
-    #[test]
-    fn test_process_info_with_error() {
-        let info = ProcessInfo::new(1, ProcessState::Error).with_error(5, "test error message");
-
-        assert_eq!(info.task_id, 1i32);
-        assert_eq!(info.state, ProcessState::Error);
-        assert_eq!(info.error_code, Some(5i32));
-        assert_eq!(info.error_message, Some("test error message".to_string()));
-    }
-
-    #[test]
-    fn test_process_info_clone() {
-        let info = ProcessInfo::new(42, ProcessState::Connected)
-            .with_incarnation(100u64)
-            .with_error(1, "error");
-
-        let cloned = info.clone();
-        assert_eq!(cloned.task_id, info.task_id);
-        assert_eq!(cloned.state, info.state);
-        assert_eq!(cloned.incarnation_id, info.incarnation_id);
-        assert_eq!(cloned.error_code, info.error_code);
-        assert_eq!(cloned.error_message, info.error_message);
-    }
-
-    #[test]
-    fn test_process_info_debug_output() {
-        let info = ProcessInfo::new(42, ProcessState::Connected);
-
-        let debug = format!("{:?}", info);
-        assert!(debug.contains("ProcessInfo"));
-        assert!(debug.contains("42"));
-        assert!(debug.contains("Connected"));
-    }
+    // =========================================================================
+    // ProcessState tests
+    // =========================================================================
 
     #[test]
     fn test_process_state_values() {
+        // Verify that ProcessState values match the C API PJRT_ProcessState enum
         assert_eq!(ProcessState::Unspecified as i32, 0);
         assert_eq!(ProcessState::Uninitialized as i32, 1);
         assert_eq!(ProcessState::Disconnected as i32, 2);
@@ -725,18 +715,449 @@ mod tests {
     }
 
     #[test]
-    fn test_client_extension_traits() {
-        // Verify that Client implements the extension traits
-        // These traits provide access to PJRT extensions:
-        // - LayoutsExt: provides layouts_extension() method
-        // - CallbackExt: provides callback_extension() method
-        //
-        // Both methods return Option<Extension> which is None if:
-        // - The extension is not available in the plugin
-        // - The extension chain is not properly initialized
+    fn test_process_state_matches_c_api() {
+        // Verify the Rust enum values match the C API enum values
+        use pjrt_sys::{
+            PJRT_ProcessState_PJRT_ProcessState_kConnected,
+            PJRT_ProcessState_PJRT_ProcessState_kDisconnected,
+            PJRT_ProcessState_PJRT_ProcessState_kError,
+            PJRT_ProcessState_PJRT_ProcessState_kUninitialized,
+            PJRT_ProcessState_PJRT_ProcessState_kUnspecified,
+        };
+
+        assert_eq!(
+            ProcessState::Unspecified as i32,
+            PJRT_ProcessState_PJRT_ProcessState_kUnspecified as i32
+        );
+        assert_eq!(
+            ProcessState::Uninitialized as i32,
+            PJRT_ProcessState_PJRT_ProcessState_kUninitialized as i32
+        );
+        assert_eq!(
+            ProcessState::Disconnected as i32,
+            PJRT_ProcessState_PJRT_ProcessState_kDisconnected as i32
+        );
+        assert_eq!(
+            ProcessState::Connected as i32,
+            PJRT_ProcessState_PJRT_ProcessState_kConnected as i32
+        );
+        assert_eq!(
+            ProcessState::Error as i32,
+            PJRT_ProcessState_PJRT_ProcessState_kError as i32
+        );
+    }
+
+    #[test]
+    fn test_process_state_equality() {
+        assert_eq!(ProcessState::Unspecified, ProcessState::Unspecified);
+        assert_eq!(ProcessState::Uninitialized, ProcessState::Uninitialized);
+        assert_eq!(ProcessState::Disconnected, ProcessState::Disconnected);
+        assert_eq!(ProcessState::Connected, ProcessState::Connected);
+        assert_eq!(ProcessState::Error, ProcessState::Error);
+
+        assert_ne!(ProcessState::Unspecified, ProcessState::Connected);
+        assert_ne!(ProcessState::Connected, ProcessState::Error);
+        assert_ne!(ProcessState::Uninitialized, ProcessState::Disconnected);
+    }
+
+    #[test]
+    fn test_process_state_copy_semantics() {
+        let state = ProcessState::Connected;
+        let copied = state; // Copy, not move
+        assert_eq!(state, copied);
+        assert_eq!(state, ProcessState::Connected);
+    }
+
+    #[test]
+    fn test_process_state_debug_output() {
+        assert_eq!(format!("{:?}", ProcessState::Unspecified), "Unspecified");
+        assert_eq!(
+            format!("{:?}", ProcessState::Uninitialized),
+            "Uninitialized"
+        );
+        assert_eq!(format!("{:?}", ProcessState::Disconnected), "Disconnected");
+        assert_eq!(format!("{:?}", ProcessState::Connected), "Connected");
+        assert_eq!(format!("{:?}", ProcessState::Error), "Error");
+    }
+
+    #[test]
+    fn test_process_state_all_variants_distinct() {
+        let variants = [
+            ProcessState::Unspecified,
+            ProcessState::Uninitialized,
+            ProcessState::Disconnected,
+            ProcessState::Connected,
+            ProcessState::Error,
+        ];
+
+        // Check all variants have unique i32 values
+        for (i, v1) in variants.iter().enumerate() {
+            for (j, v2) in variants.iter().enumerate() {
+                if i != j {
+                    assert_ne!(*v1 as i32, *v2 as i32);
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // ProcessInfo tests
+    // =========================================================================
+
+    #[test]
+    fn test_process_info_new() {
+        let info = ProcessInfo::new(42, ProcessState::Connected);
+
+        assert_eq!(info.task_id, 42);
+        assert_eq!(info.state, ProcessState::Connected);
+        assert_eq!(info.incarnation_id, 0);
+        assert!(info.error_code.is_none());
+        assert!(info.error_message.is_none());
+    }
+
+    #[test]
+    fn test_process_info_new_with_all_states() {
+        for state in [
+            ProcessState::Unspecified,
+            ProcessState::Uninitialized,
+            ProcessState::Disconnected,
+            ProcessState::Connected,
+            ProcessState::Error,
+        ] {
+            let info = ProcessInfo::new(0, state);
+            assert_eq!(info.state, state);
+        }
+    }
+
+    #[test]
+    fn test_process_info_new_with_negative_task_id() {
+        let info = ProcessInfo::new(-1, ProcessState::Connected);
+        assert_eq!(info.task_id, -1);
+    }
+
+    #[test]
+    fn test_process_info_new_with_max_task_id() {
+        let info = ProcessInfo::new(i32::MAX, ProcessState::Connected);
+        assert_eq!(info.task_id, i32::MAX);
+    }
+
+    #[test]
+    fn test_process_info_new_with_min_task_id() {
+        let info = ProcessInfo::new(i32::MIN, ProcessState::Connected);
+        assert_eq!(info.task_id, i32::MIN);
+    }
+
+    #[test]
+    fn test_process_info_with_incarnation() {
+        let info = ProcessInfo::new(1, ProcessState::Uninitialized).with_incarnation(12345);
+
+        assert_eq!(info.task_id, 1);
+        assert_eq!(info.incarnation_id, 12345);
+        assert_eq!(info.state, ProcessState::Uninitialized);
+    }
+
+    #[test]
+    fn test_process_info_with_incarnation_max_value() {
+        let info = ProcessInfo::new(0, ProcessState::Connected).with_incarnation(u64::MAX);
+        assert_eq!(info.incarnation_id, u64::MAX);
+    }
+
+    #[test]
+    fn test_process_info_with_incarnation_zero() {
+        let info = ProcessInfo::new(0, ProcessState::Connected).with_incarnation(0);
+        assert_eq!(info.incarnation_id, 0);
+    }
+
+    #[test]
+    fn test_process_info_with_error() {
+        let info = ProcessInfo::new(1, ProcessState::Error).with_error(5, "test error message");
+
+        assert_eq!(info.task_id, 1);
+        assert_eq!(info.state, ProcessState::Error);
+        assert_eq!(info.error_code, Some(5));
+        assert_eq!(info.error_message, Some("test error message".to_string()));
+    }
+
+    #[test]
+    fn test_process_info_with_error_string_conversion() {
+        // Test that `Into<String>` works with various string types
+        let info1 = ProcessInfo::new(1, ProcessState::Error).with_error(1, "string slice");
+        assert_eq!(info1.error_message, Some("string slice".to_string()));
+
+        let info2 =
+            ProcessInfo::new(2, ProcessState::Error).with_error(2, String::from("owned string"));
+        assert_eq!(info2.error_message, Some("owned string".to_string()));
+
+        let cow: std::borrow::Cow<str> = std::borrow::Cow::Borrowed("cow string");
+        let info3 = ProcessInfo::new(3, ProcessState::Error).with_error(3, cow);
+        assert_eq!(info3.error_message, Some("cow string".to_string()));
+    }
+
+    #[test]
+    fn test_process_info_with_error_empty_message() {
+        let info = ProcessInfo::new(1, ProcessState::Error).with_error(1, "");
+        assert_eq!(info.error_code, Some(1));
+        assert_eq!(info.error_message, Some(String::new()));
+    }
+
+    #[test]
+    fn test_process_info_with_error_negative_code() {
+        let info = ProcessInfo::new(1, ProcessState::Error).with_error(-1, "negative error");
+        assert_eq!(info.error_code, Some(-1));
+    }
+
+    #[test]
+    fn test_process_info_with_error_zero_code() {
+        let info = ProcessInfo::new(1, ProcessState::Error).with_error(0, "zero error");
+        assert_eq!(info.error_code, Some(0));
+    }
+
+    #[test]
+    fn test_process_info_builder_chaining() {
+        let info = ProcessInfo::new(42, ProcessState::Connected)
+            .with_incarnation(100)
+            .with_error(1, "error");
+
+        assert_eq!(info.task_id, 42);
+        assert_eq!(info.incarnation_id, 100);
+        assert_eq!(info.state, ProcessState::Connected);
+        assert_eq!(info.error_code, Some(1));
+        assert_eq!(info.error_message, Some("error".to_string()));
+    }
+
+    #[test]
+    fn test_process_info_builder_chaining_reverse_order() {
+        let info = ProcessInfo::new(42, ProcessState::Error)
+            .with_error(1, "error")
+            .with_incarnation(100);
+
+        assert_eq!(info.task_id, 42);
+        assert_eq!(info.incarnation_id, 100);
+        assert_eq!(info.error_code, Some(1));
+        assert_eq!(info.error_message, Some("error".to_string()));
+    }
+
+    #[test]
+    fn test_process_info_clone_behavior() {
+        let original = ProcessInfo::new(42, ProcessState::Connected)
+            .with_incarnation(100)
+            .with_error(1, "error");
+
+        let cloned = original.clone();
+
+        assert_eq!(cloned.task_id, original.task_id);
+        assert_eq!(cloned.state, original.state);
+        assert_eq!(cloned.incarnation_id, original.incarnation_id);
+        assert_eq!(cloned.error_code, original.error_code);
+        assert_eq!(cloned.error_message, original.error_message);
+    }
+
+    #[test]
+    fn test_process_info_clone_independence() {
+        let original = ProcessInfo::new(42, ProcessState::Connected);
+        let mut modified = original.clone();
+
+        modified.task_id = 100;
+        modified.state = ProcessState::Error;
+        modified.incarnation_id = 999;
+        modified.error_code = Some(5);
+        modified.error_message = Some("modified".to_string());
+
+        // Original should be unchanged
+        assert_eq!(original.task_id, 42);
+        assert_eq!(original.state, ProcessState::Connected);
+        assert_eq!(original.incarnation_id, 0);
+        assert!(original.error_code.is_none());
+        assert!(original.error_message.is_none());
+    }
+
+    #[test]
+    fn test_process_info_debug_output() {
+        let info = ProcessInfo::new(42, ProcessState::Connected);
+        let debug = format!("{:?}", info);
+
+        assert!(debug.contains("ProcessInfo"));
+        assert!(debug.contains("task_id"));
+        assert!(debug.contains("42"));
+        assert!(debug.contains("state"));
+        assert!(debug.contains("Connected"));
+        assert!(debug.contains("incarnation_id"));
+        assert!(debug.contains("0"));
+        assert!(debug.contains("error_code"));
+        assert!(debug.contains("None"));
+        assert!(debug.contains("error_message"));
+    }
+
+    #[test]
+    fn test_process_info_debug_with_error() {
+        let info = ProcessInfo::new(1, ProcessState::Error).with_error(5, "test error");
+        let debug = format!("{:?}", info);
+
+        assert!(debug.contains("Error"));
+        assert!(debug.contains("5") || debug.contains("Some(5)"));
+        assert!(debug.contains("test error"));
+    }
+
+    #[test]
+    fn test_process_info_multiple_instances() {
+        let infos: Vec<ProcessInfo> = (0..5)
+            .map(|i| ProcessInfo::new(i, ProcessState::Connected).with_incarnation(i as u64 * 10))
+            .collect();
+
+        for (i, info) in infos.iter().enumerate() {
+            assert_eq!(info.task_id, i as i32);
+            assert_eq!(info.incarnation_id, i as u64 * 10);
+        }
+    }
+
+    #[test]
+    fn test_process_info_typical_distributed_scenario() {
+        // Simulate a typical distributed execution scenario
+        let process_infos = [
+            ProcessInfo::new(0, ProcessState::Connected).with_incarnation(1),
+            ProcessInfo::new(1, ProcessState::Connected).with_incarnation(1),
+            ProcessInfo::new(2, ProcessState::Disconnected)
+                .with_incarnation(1)
+                .with_error(1, "Connection lost"),
+            ProcessInfo::new(3, ProcessState::Uninitialized),
+        ];
+
+        assert_eq!(process_infos.len(), 4);
+        assert_eq!(process_infos[0].state, ProcessState::Connected);
+        assert_eq!(process_infos[1].state, ProcessState::Connected);
+        assert_eq!(process_infos[2].state, ProcessState::Disconnected);
+        assert!(process_infos[2].error_message.is_some());
+        assert_eq!(process_infos[3].state, ProcessState::Uninitialized);
+    }
+
+    // =========================================================================
+    // Extension trait tests
+    // =========================================================================
+
+    #[test]
+    fn test_client_implements_layouts_ext() {
         fn assert_layouts_ext<T: LayoutsExt>() {}
-        fn assert_callback_ext<T: CallbackExt>() {}
         assert_layouts_ext::<Client>();
+    }
+
+    #[test]
+    fn test_client_implements_callback_ext() {
+        fn assert_callback_ext<T: CallbackExt>() {}
         assert_callback_ext::<Client>();
+    }
+
+    // =========================================================================
+    // FFI conversion tests
+    // =========================================================================
+
+    #[test]
+    fn test_process_info_to_raw_pjrt_process_info() {
+        // Test that ProcessInfo can be correctly converted to PJRT_ProcessInfo
+        let info = ProcessInfo::new(42, ProcessState::Connected)
+            .with_incarnation(100)
+            .with_error(5, "test error");
+
+        let mut raw = PJRT_ProcessInfo::new();
+        raw.task_id = info.task_id;
+        raw.incarnation_id = info.incarnation_id;
+        raw.state = info.state as pjrt_sys::PJRT_ProcessState;
+        raw.error_code = info.error_code.unwrap_or(0);
+
+        assert_eq!(raw.task_id, 42);
+        assert_eq!(raw.incarnation_id, 100);
+        assert_eq!(raw.error_code, 5);
+    }
+
+    #[test]
+    fn test_process_state_as_c_type() {
+        use pjrt_sys::PJRT_ProcessState;
+
+        // Test that casting works correctly
+        let state = ProcessState::Connected;
+        let raw: PJRT_ProcessState = state as PJRT_ProcessState;
+
+        assert_eq!(
+            raw,
+            pjrt_sys::PJRT_ProcessState_PJRT_ProcessState_kConnected
+        );
+    }
+
+    // =========================================================================
+    // Edge case and boundary tests
+    // =========================================================================
+
+    #[test]
+    fn test_process_info_unicode_error_message() {
+        let info =
+            ProcessInfo::new(1, ProcessState::Error).with_error(1, "エラー: 接続が失われました 🔌");
+
+        assert_eq!(
+            info.error_message,
+            Some("エラー: 接続が失われました 🔌".to_string())
+        );
+    }
+
+    #[test]
+    fn test_process_info_multiline_error_message() {
+        let info = ProcessInfo::new(1, ProcessState::Error).with_error(1, "Line 1\nLine 2\nLine 3");
+
+        assert_eq!(
+            info.error_message,
+            Some("Line 1\nLine 2\nLine 3".to_string())
+        );
+    }
+
+    #[test]
+    fn test_process_info_special_characters_in_error() {
+        let info = ProcessInfo::new(1, ProcessState::Error)
+            .with_error(1, "Error with <special> \"characters\" & 'quotes'");
+
+        assert!(info.error_message.is_some());
+        assert!(info.error_message.as_ref().unwrap().contains("<special>"));
+    }
+
+    #[test]
+    fn test_process_info_long_error_message() {
+        let long_message = "x".repeat(10000);
+        let info = ProcessInfo::new(1, ProcessState::Error).with_error(1, long_message.clone());
+
+        assert_eq!(info.error_message, Some(long_message));
+    }
+
+    #[test]
+    fn test_process_info_in_vec() {
+        let mut infos: Vec<ProcessInfo> = Vec::new();
+
+        for i in 0..100 {
+            infos.push(ProcessInfo::new(i, ProcessState::Connected));
+        }
+
+        assert_eq!(infos.len(), 100);
+        assert_eq!(infos[0].task_id, 0);
+        assert_eq!(infos[99].task_id, 99);
+    }
+
+    #[test]
+    fn test_process_info_default_state_for_new_process() {
+        // When a process first starts, it should typically be Uninitialized
+        let new_process = ProcessInfo::new(0, ProcessState::Uninitialized);
+        assert_eq!(new_process.state, ProcessState::Uninitialized);
+        assert_eq!(new_process.incarnation_id, 0);
+    }
+
+    #[test]
+    fn test_process_state_lifecycle() {
+        // Test typical state transitions in a process lifecycle
+        let states = [
+            ProcessState::Uninitialized,
+            ProcessState::Connected,
+            ProcessState::Disconnected,
+            ProcessState::Error,
+        ];
+
+        for (i, state) in states.iter().enumerate() {
+            let info = ProcessInfo::new(0, *state);
+            assert_eq!(info.state, states[i]);
+        }
     }
 }

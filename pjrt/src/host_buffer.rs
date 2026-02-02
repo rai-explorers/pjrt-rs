@@ -32,8 +32,8 @@
 //! // Create with explicit shape
 //! let matrix = TypedHostBuffer::<F64>::from_data(
 //!     vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
-//!     Some(vec![2, 3]),  // 2x3 matrix
-//!     None
+//!     Some(vec![2, 3]), // 2x3 matrix
+//!     None,
 //! );
 //! assert_eq!(matrix.dims(), &[2, 3]);
 //! ```
