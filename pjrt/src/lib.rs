@@ -54,10 +54,12 @@ mod api;
 pub use api::Api;
 
 mod client;
-pub use client::{CallbackExt, Client, FulfillAliasBufferCallback, LayoutsExt, ProcessInfo, ProcessState};
+pub use client::{
+    CallbackExt, Client, FulfillAliasBufferCallback, LayoutsExt, ProcessInfo, ProcessState,
+};
 
 mod buffer;
-pub use buffer::{Buffer, CopyRawToHostFuture, DonateWithControlDependency};
+pub use buffer::{Buffer, CopyRawToHostFuture, DonateWithControlDependency, ExternalBufferRef};
 
 mod host_buffer;
 pub use host_buffer::{HostBuffer, TypedHostBuffer};
@@ -66,7 +68,9 @@ mod memory_layout;
 pub use memory_layout::MemoryLayout;
 
 mod compile;
-pub use compile::{CompileOptions, CompileToExecutable, CompileToLoadedExecutable, ExecutableBuildOptions};
+pub use compile::{
+    CompileOptions, CompileToExecutable, CompileToLoadedExecutable, ExecutableBuildOptions,
+};
 
 mod device;
 pub use device::{

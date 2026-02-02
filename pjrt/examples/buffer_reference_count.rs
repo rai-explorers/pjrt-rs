@@ -80,6 +80,7 @@ fn main() -> Result<()> {
 }
 
 /// Example of integrating with a hypothetical external framework
+#[allow(dead_code)]
 mod external_integration {
     use std::ffi::c_void;
 

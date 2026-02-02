@@ -9,9 +9,10 @@
 //! cargo run --example event
 //! ```
 
-use pjrt::ProgramFormat::MLIR;
-use pjrt::{self, Buffer, Client, HostBuffer, LoadedExecutable, Result};
 use std::time::Instant;
+
+use pjrt::ProgramFormat::MLIR;
+use pjrt::{self, Client, HostBuffer, LoadedExecutable, Result};
 
 const CODE: &[u8] = include_bytes!("prog_f32.mlir");
 
@@ -37,7 +38,7 @@ fn demonstrate_async_operations(client: &Client) -> Result<()> {
     println!("   ------------------------------");
 
     let input = HostBuffer::from_scalar(1.0f32);
-    let buffer = input.to_sync(client).copy()?;
+    let _buffer = input.to_sync(client).copy()?;
 
     println!("   Buffer created and ready for use");
     println!("   PJRT tracks buffer readiness internally using events\n");
@@ -53,7 +54,7 @@ fn demonstrate_execution_timing(client: &Client) -> Result<()> {
     let program = pjrt::Program::new(MLIR, CODE);
     let loaded_executable = LoadedExecutable::builder(client, &program).build()?;
 
-    let input = HostBuffer::from_scalar(3.14f32);
+    let input = HostBuffer::from_scalar(std::f32::consts::PI);
     let device_buffer = input.to_sync(client).copy()?;
 
     let start = Instant::now();

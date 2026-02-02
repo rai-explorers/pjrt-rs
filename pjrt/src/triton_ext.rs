@@ -68,7 +68,7 @@ unsafe impl Extension for TritonExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*triton_ext).clone()),
+            raw: Rc::new(*triton_ext),
             api: api.clone(),
         })
     }

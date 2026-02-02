@@ -14,9 +14,10 @@
 //! cargo run --example kv_store
 //! ```
 
-use pjrt::{self, Client, KeyValueStore, Result};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+
+use pjrt::{self, KeyValueStore, Result};
 
 /// A simple in-memory KeyValueStore implementation for demonstration
 #[derive(Debug, Clone)]
@@ -172,9 +173,11 @@ fn demonstrate_client_integration() -> Result<()> {
 }
 
 /// Example of a more sophisticated KeyValueStore implementation
+#[allow(dead_code)]
 mod advanced_kv_store {
-    use super::*;
     use std::time::{Duration, Instant};
+
+    use super::*;
 
     /// A KeyValueStore with timeouts and retry logic
     pub struct RetryableKeyValueStore {
@@ -196,7 +199,7 @@ mod advanced_kv_store {
         where
             F: Fn() -> Result<T>,
         {
-            let start = Instant::now();
+            let _start = Instant::now();
             let mut last_error = None;
 
             for attempt in 0..self.retry_count {

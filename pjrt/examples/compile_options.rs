@@ -16,7 +16,7 @@
 use pjrt::ProgramFormat::MLIR;
 use pjrt::{
     self, Client, CompileOptions, CompiledMemoryStats, Executable, ExecutableBuildOptions,
-    HostBuffer, LoadedExecutable, Result, TopologyDescription,
+    HostBuffer, Result,
 };
 
 // Simple MLIR program that performs an identity operation on a float32 scalar
@@ -87,7 +87,7 @@ fn demonstrate_custom_options(client: &Client) -> Result<()> {
 
     println!("   CompileOptions created with custom build options");
 
-    let loaded_executable = client.compile(&program, compile_options)?;
+    let _loaded_executable = client.compile(&program, compile_options)?;
     println!("   Compiled successfully with custom options\n");
 
     Ok(())

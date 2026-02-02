@@ -328,9 +328,10 @@ impl HostBuffer {
     pub fn read_f32(&self) -> Result<&[f32]> {
         match self {
             Self::F32(buf) => Ok(buf.data()),
-            _ => Err(crate::Error::InvalidArgument(
-                format!("Cannot read {:?} buffer as f32", self.primitive_type())
-            )),
+            _ => Err(crate::Error::InvalidArgument(format!(
+                "Cannot read {:?} buffer as f32",
+                self.primitive_type()
+            ))),
         }
     }
 

@@ -76,7 +76,7 @@ unsafe impl Extension for LayoutsExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*layouts_ext).clone()),
+            raw: Rc::new(*layouts_ext),
             api: api.clone(),
         })
     }

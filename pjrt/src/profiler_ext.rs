@@ -39,10 +39,7 @@ impl std::fmt::Debug for ProfilerExtension {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ProfilerExtension")
             .field("api_version", &1i32) // Version 1
-            .field(
-                "has_profiler_api",
-                &(self.raw.profiler_api != std::ptr::null_mut()),
-            )
+            .field("has_profiler_api", &!self.raw.profiler_api.is_null())
             .field("traceme_context_id", &self.raw.traceme_context_id)
             .finish()
     }
@@ -67,7 +64,7 @@ unsafe impl Extension for ProfilerExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*profiler_ext).clone()),
+            raw: Rc::new(*profiler_ext),
             _api: api.clone(),
         })
     }

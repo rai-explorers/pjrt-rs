@@ -18,10 +18,7 @@
 //! ```
 
 use pjrt::ProgramFormat::MLIR;
-use pjrt::{
-    self, Buffer, Client, ExecuteContext, ExecuteOptions, Execution, ExecutionInputs, HostBuffer,
-    LoadedExecutable, Result,
-};
+use pjrt::{self, Client, ExecuteOptions, Execution, HostBuffer, LoadedExecutable, Result};
 
 // Simple MLIR program that performs an identity operation on a float32 scalar
 const CODE: &[u8] = include_bytes!("prog_f32.mlir");

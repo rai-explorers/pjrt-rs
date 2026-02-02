@@ -69,7 +69,7 @@ unsafe impl Extension for PhaseCompileExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*ext).clone()),
+            raw: Rc::new(*ext),
             api: api.clone(),
         })
     }
@@ -239,10 +239,8 @@ impl PhaseCompiler {
             .iter()
             .map(|s| std::ffi::CString::new(s.as_str()).expect("phase name contains null"))
             .collect();
-        let phase_names_ptrs: Vec<*const i8> = phase_names_cstrings
-            .iter()
-            .map(|s| s.as_ptr() as *const i8)
-            .collect();
+        let phase_names_ptrs: Vec<*const i8> =
+            phase_names_cstrings.iter().map(|s| s.as_ptr()).collect();
         let phase_names_sizes: Vec<usize> = phases_to_run.iter().map(|s| s.len()).collect();
 
         // Serialize compile options

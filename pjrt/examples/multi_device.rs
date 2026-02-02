@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
         let num_replicas = 2;
         let num_partitions = 1;
 
-        let device_assignment = client.default_device_assignment(num_replicas, num_partitions)?;
+        let _device_assignment = client.default_device_assignment(num_replicas, num_partitions)?;
         println!("Created device assignment with {} replicas", num_replicas);
         // Note: The actual device assignment details depend on the PJRT implementation
 

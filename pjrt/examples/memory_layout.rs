@@ -81,7 +81,7 @@ fn demonstrate_memory_layouts(client: &Client, layouts_ext: &pjrt::LayoutsExtens
     }
 
     // Example: Layout for a specific device
-    if let Some(device) = client.devices().first() {
+    if let Some(_device) = client.devices().first() {
         let layout = layouts_ext.client_default_layout(client, PrimitiveType::F32, &dims)?;
         println!("  Device-specific layout: {:?}", layout);
     }
@@ -90,7 +90,7 @@ fn demonstrate_memory_layouts(client: &Client, layouts_ext: &pjrt::LayoutsExtens
 }
 
 /// Demonstrates layout API concepts when extension is not available
-fn demonstrate_layout_api_concepts(client: &Client) -> Result<()> {
+fn demonstrate_layout_api_concepts(_client: &Client) -> Result<()> {
     println!("\nMemory Layout API Concepts:");
 
     // Show what would be available with the extension
@@ -169,6 +169,7 @@ fn demonstrate_layout_api_concepts(client: &Client) -> Result<()> {
 }
 
 /// Example of a memory layout cache for frequent reuse
+#[allow(dead_code)]
 mod layout_cache {
     use std::collections::HashMap;
 

@@ -17,6 +17,7 @@
 use pjrt::{self, BufferShape, Client, PrimitiveType, Result};
 
 // Simulated async context for this example
+#[allow(dead_code)]
 struct SimulatedAsyncContext;
 
 /// Simulates waiting for an operation (blocking for demonstration only)
@@ -38,7 +39,7 @@ fn main() -> Result<()> {
     println!("================================");
 
     // Demonstrate setting up transfer shapes for async operations
-    let shapes = vec![
+    let shapes = [
         BufferShape::new(vec![1024, 1024], PrimitiveType::F32),
         BufferShape::new(vec![512, 512], PrimitiveType::F32),
         BufferShape::new(vec![256, 256], PrimitiveType::F32),
@@ -101,6 +102,7 @@ fn simulate_async_streaming(_client: &Client) -> Result<()> {
 }
 
 /// Example of how to use BufferShape with different data types
+#[allow(dead_code)]
 fn demonstrate_buffer_shapes() -> Result<()> {
     println!("\nBufferShape examples for different data types:");
 

@@ -622,6 +622,111 @@ impl Buffer {
             .PJRT_Buffer_OpaqueDeviceMemoryDataPointer(args)?;
         Ok(args.device_memory_ptr)
     }
+
+    /// Acquires an external reference to this buffer's memory.
+    ///
+    /// Returns an `ExternalBufferRef` guard that keeps the buffer alive and valid
+    /// for external use. The guard automatically releases the reference when dropped.
+    ///
+    /// This is the recommended way to share buffer memory with external frameworks
+    /// (e.g., NumPy, dlpack) as it ensures proper cleanup via RAII.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // Acquire an external reference
+    /// let external_ref = buffer.external_ref()?;
+    ///
+    /// // Get the device memory pointer (safe while external_ref is alive)
+    /// let ptr = external_ref.device_memory_pointer()?;
+    ///
+    /// // Pass ptr to external framework...
+    ///
+    /// // external_ref is dropped here, releasing the reference
+    /// ```
+    pub fn external_ref(&self) -> Result<ExternalBufferRef<'_>> {
+        unsafe { self.increase_external_ref_count()? };
+        Ok(ExternalBufferRef { buffer: self })
+    }
+}
+
+/// An RAII guard for external buffer references.
+///
+/// This guard ensures that the external reference count is properly decremented
+/// when it goes out of scope. While the guard is alive, the buffer's memory is
+/// guaranteed to remain valid and unmoved.
+///
+/// # Thread Safety
+///
+/// `ExternalBufferRef` is not `Send` or `Sync` because the underlying buffer
+/// may not be thread-safe for concurrent access.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// // Acquire external reference to share with another framework
+/// let external_ref = buffer.external_ref()?;
+///
+/// // The buffer memory is now pinned and safe to access externally
+/// let ptr = external_ref.device_memory_pointer()?;
+/// let unsafe_ptr = external_ref.unsafe_pointer()?;
+///
+/// // Use the pointer with external frameworks...
+///
+/// // When external_ref is dropped, the reference is released
+/// drop(external_ref);
+/// ```
+pub struct ExternalBufferRef<'a> {
+    buffer: &'a Buffer,
+}
+
+impl<'a> ExternalBufferRef<'a> {
+    /// Returns the underlying buffer.
+    pub fn buffer(&self) -> &Buffer {
+        self.buffer
+    }
+
+    /// Returns the opaque device memory pointer.
+    ///
+    /// Unlike `Buffer::opaque_device_memory_pointer`, this is safe to call
+    /// because the external reference count is guaranteed to be > 0.
+    pub fn device_memory_pointer(&self) -> Result<*mut c_void> {
+        // SAFETY: The external reference count is > 0 because we hold an ExternalBufferRef
+        unsafe { self.buffer.opaque_device_memory_pointer() }
+    }
+
+    /// Returns the unsafe pointer to the buffer.
+    ///
+    /// Unlike `Buffer::unsafe_pointer`, this is safe to call because the
+    /// external reference count is guaranteed to be > 0.
+    pub fn unsafe_pointer(&self) -> Result<usize> {
+        // SAFETY: The external reference count is > 0 because we hold an ExternalBufferRef
+        unsafe { self.buffer.unsafe_pointer() }
+    }
+}
+
+impl<'a> Drop for ExternalBufferRef<'a> {
+    fn drop(&mut self) {
+        // SAFETY: We incremented the reference count in external_ref(),
+        // so it's safe to decrement here. If decrement fails, we can't do much
+        // about it since Drop doesn't return errors, but it shouldn't fail
+        // as long as the API contract is followed.
+        if let Err(e) = unsafe { self.buffer.decrease_external_ref_count() } {
+            // Log the error but don't panic in Drop
+            eprintln!(
+                "Warning: Failed to decrease external reference count: {}",
+                e
+            );
+        }
+    }
+}
+
+impl<'a> std::fmt::Debug for ExternalBufferRef<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ExternalBufferRef")
+            .field("buffer", &self.buffer)
+            .finish()
+    }
 }
 
 #[cfg(test)]
@@ -647,5 +752,12 @@ mod tests {
         // Test that DonateWithControlDependency implements Debug
         fn assert_debug<T: std::fmt::Debug>() {}
         assert_debug::<DonateWithControlDependency>();
+    }
+
+    #[test]
+    fn test_external_buffer_ref_debug() {
+        // Test that ExternalBufferRef implements Debug
+        fn assert_debug<T: std::fmt::Debug>() {}
+        assert_debug::<ExternalBufferRef>();
     }
 }

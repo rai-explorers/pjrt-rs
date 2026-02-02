@@ -17,7 +17,7 @@
 //! cargo run --example memory
 //! ```
 
-use pjrt::{self, Buffer, Client, Device, HostBuffer, Memory, Result};
+use pjrt::{self, Client, Result};
 
 fn main() -> Result<()> {
     let plugin_path = std::env::var("PJRT_PLUGIN_PATH")

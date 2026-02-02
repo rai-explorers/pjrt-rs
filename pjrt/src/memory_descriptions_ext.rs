@@ -23,7 +23,7 @@
 use std::rc::Rc;
 
 use pjrt_sys::{
-    PJRT_DeviceDescription, PJRT_DeviceDescription_MemoryDescriptions_Args, PJRT_MemoryDescription,
+    PJRT_DeviceDescription_MemoryDescriptions_Args, PJRT_MemoryDescription,
     PJRT_MemoryDescription_Kind_Args, PJRT_MemoryDescriptions_Extension,
 };
 
@@ -66,7 +66,7 @@ unsafe impl Extension for MemoryDescriptionsExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*ext).clone()),
+            raw: Rc::new(*ext),
             api: api.clone(),
         })
     }
@@ -160,7 +160,7 @@ impl MemoryDescriptionsExtension {
         let mut args = PJRT_DeviceDescription_MemoryDescriptions_Args {
             struct_size: std::mem::size_of::<PJRT_DeviceDescription_MemoryDescriptions_Args>(),
             extension_start: std::ptr::null_mut(),
-            device_description: device_description.ptr as *mut PJRT_DeviceDescription,
+            device_description: device_description.ptr,
             memory_descriptions: std::ptr::null(),
             num_memory_descriptions: 0,
             default_memory_index: 0,

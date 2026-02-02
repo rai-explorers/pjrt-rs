@@ -82,7 +82,7 @@ unsafe impl Extension for RawBufferExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*raw_ext).clone()),
+            raw: Rc::new(*raw_ext),
             api: api.clone(),
         })
     }
@@ -221,7 +221,7 @@ impl<'a> RawBuffer<'a> {
         args.buffer = self.raw;
         args.src = src.as_ptr() as *const std::ffi::c_void;
         args.offset = offset;
-        args.transfer_size = (src.len() * std::mem::size_of::<T>()) as i64;
+        args.transfer_size = std::mem::size_of_val(src) as i64;
 
         let err = unsafe { ext_fn(&mut args) };
         self.client.api().err_or(err, ())?;
@@ -252,7 +252,7 @@ impl<'a> RawBuffer<'a> {
         args.buffer = self.raw;
         args.dst = dst.as_mut_ptr() as *mut std::ffi::c_void;
         args.offset = offset;
-        args.transfer_size = (dst.len() * std::mem::size_of::<T>()) as i64;
+        args.transfer_size = std::mem::size_of_val(dst) as i64;
 
         let err = unsafe { ext_fn(&mut args) };
         self.client.api().err_or(err, ())?;

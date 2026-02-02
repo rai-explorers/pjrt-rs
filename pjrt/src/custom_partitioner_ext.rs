@@ -67,7 +67,7 @@ unsafe impl Extension for CustomPartitionerExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*partitioner_ext).clone()),
+            raw: Rc::new(*partitioner_ext),
             api: api.clone(),
         })
     }

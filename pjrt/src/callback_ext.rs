@@ -28,7 +28,7 @@ use std::rc::Rc;
 use pjrt_sys::{
     PJRT_Callback_Extension, PJRT_Callback_InvokeCallback_Args,
     PJRT_Callback_RegisterCallback_Args, PJRT_Callback_Tpu_SliceBuilderArgs,
-    PJRT_Callback_Tpu_SliceFailureType, PJRT_Callback_Type, PJRT_Client,
+    PJRT_Callback_Tpu_SliceFailureType, PJRT_Callback_Type,
 };
 
 use crate::extension::{Extension, ExtensionType};
@@ -71,7 +71,7 @@ unsafe impl Extension for CallbackExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*ext).clone()),
+            raw: Rc::new(*ext),
             api: api.clone(),
         })
     }
@@ -89,7 +89,7 @@ pub enum CallbackType {
 }
 
 impl CallbackType {
-    fn to_raw(&self) -> PJRT_Callback_Type {
+    fn to_raw(self) -> PJRT_Callback_Type {
         match self {
             CallbackType::Unknown => pjrt_sys::PJRT_Callback_Type_PJRT_Callback_Type_Unknown,
             CallbackType::TpuSliceBuilder => {
@@ -118,6 +118,7 @@ pub enum TpuSliceFailureType {
 }
 
 impl TpuSliceFailureType {
+    #[allow(dead_code)]
     fn from_raw(raw: PJRT_Callback_Tpu_SliceFailureType) -> Self {
         match raw {
             pjrt_sys::PJRT_Callback_Tpu_SliceFailureType_SLICE_FAILURE_INIT_ERROR => {
@@ -141,12 +142,14 @@ impl TpuSliceFailureType {
 }
 
 /// Arguments passed to a TPU SliceBuilder callback
+#[allow(dead_code)]
 pub struct TpuSliceBuilderCallbackArgs {
     /// The type of failure that occurred
     pub failure_type: TpuSliceFailureType,
 }
 
 impl TpuSliceBuilderCallbackArgs {
+    #[allow(dead_code)]
     fn from_raw(raw: &PJRT_Callback_Tpu_SliceBuilderArgs) -> Self {
         Self {
             failure_type: TpuSliceFailureType::from_raw(raw.failure_type),
@@ -155,6 +158,7 @@ impl TpuSliceBuilderCallbackArgs {
 }
 
 /// Callback function type
+#[allow(dead_code)]
 pub type CallbackFn = Box<dyn Fn(*mut c_void, *mut c_void)>;
 
 impl CallbackExtension {
@@ -179,7 +183,7 @@ impl CallbackExtension {
     ) -> Result<()> {
         let mut args = PJRT_Callback_RegisterCallback_Args {
             struct_size: std::mem::size_of::<PJRT_Callback_RegisterCallback_Args>(),
-            client: client.ptr() as *mut PJRT_Client,
+            client: client.ptr(),
             type_: callback_type.to_raw(),
             callback: Some(callback),
             user_arg,
@@ -213,7 +217,7 @@ impl CallbackExtension {
     ) -> Result<()> {
         let mut args = PJRT_Callback_InvokeCallback_Args {
             struct_size: std::mem::size_of::<PJRT_Callback_InvokeCallback_Args>(),
-            client: client.ptr() as *mut PJRT_Client,
+            client: client.ptr(),
             type_: callback_type.to_raw(),
             args: callback_args,
         };
@@ -229,6 +233,7 @@ impl CallbackExtension {
 }
 
 /// Extension trait for accessing Callback extension from Client
+#[allow(dead_code)]
 pub trait CallbackExt {
     /// Get the Callback extension if available
     fn callback_extension(&self) -> Option<CallbackExtension>;

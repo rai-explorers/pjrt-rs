@@ -6,6 +6,7 @@
 //!
 //! - Error codes matching PJRT's canonical error space
 //! - Detailed error messages
+//! - The function name where the error occurred
 //! - Stack traces for debugging
 //! - Rust-style Result types for idiomatic error handling
 //!
@@ -29,13 +30,30 @@ use pjrt_sys::{
 
 use crate::{GlobalDeviceId, PrimitiveType};
 
+/// Error type for PJRT operations.
+///
+/// This enum represents all possible errors that can occur when using the PJRT API.
+/// Errors include both PJRT-specific errors (returned by the C API) and Rust-side
+/// errors (e.g., invalid arguments, null pointers).
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("pjrt error {msg}\n{backtrace}")]
+    /// An error returned by the PJRT C API.
+    ///
+    /// This variant includes:
+    /// - `function`: The PJRT function that returned the error
+    /// - `msg`: The error message from PJRT
+    /// - `code`: The PJRT error code
+    /// - `backtrace`: A captured Rust backtrace for debugging
+    #[error("{function}: {msg} (code: {code:?})\n{backtrace}")]
     #[allow(unused_assignments)]
     PjrtError {
+        /// The PJRT function that returned this error
+        function: &'static str,
+        /// The error message from PJRT
         msg: String,
+        /// The error code
         code: ErrorCode,
+        /// A captured backtrace
         backtrace: String,
     },
 
@@ -86,10 +104,23 @@ pub enum Error {
 }
 
 impl Error {
+    /// Returns the PJRT error code associated with this error.
+    ///
+    /// For `PjrtError` variants, returns the actual PJRT error code.
+    /// For other variants, returns `ErrorCode::Internal`.
     pub fn code(&self) -> ErrorCode {
         match self {
             Error::PjrtError { code, .. } => *code,
             _ => ErrorCode::Internal,
+        }
+    }
+
+    /// Returns the PJRT function name that caused this error, if available.
+    pub fn function(&self) -> Option<&'static str> {
+        match self {
+            Error::PjrtError { function, .. } => Some(function),
+            Error::NullFunctionPointer(name) => Some(name),
+            _ => None,
         }
     }
 }
@@ -257,6 +288,7 @@ mod tests {
     #[test]
     fn test_error_code_method() {
         let pjrt_err = Error::PjrtError {
+            function: "test_function",
             msg: "test error".to_string(),
             code: ErrorCode::InvalidArgument,
             backtrace: String::new(),

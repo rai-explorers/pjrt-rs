@@ -32,7 +32,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use pjrt_sys::{
-    PJRT_ExecuteContext, PJRT_FFI_Extension, PJRT_FFI_Handler_TraitsBits,
+    PJRT_FFI_Extension, PJRT_FFI_Handler_TraitsBits,
     PJRT_FFI_Handler_TraitsBits_PJRT_FFI_HANDLER_TRAITS_COMMAND_BUFFER_COMPATIBLE,
     PJRT_FFI_Register_Handler_Args, PJRT_FFI_Type_Info, PJRT_FFI_Type_Register_Args,
     PJRT_FFI_UserData, PJRT_FFI_UserData_Add_Args,
@@ -78,7 +78,7 @@ unsafe impl Extension for FfiExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*ffi_ext).clone()),
+            raw: Rc::new(*ffi_ext),
             api: api.clone(),
         })
     }
@@ -98,8 +98,7 @@ impl FfiHandlerTraits {
 
     /// Check if the command buffer compatible flag is set
     pub fn is_command_buffer_compatible(&self) -> bool {
-        self.bits
-            & (PJRT_FFI_Handler_TraitsBits_PJRT_FFI_HANDLER_TRAITS_COMMAND_BUFFER_COMPATIBLE as u32)
+        self.bits & PJRT_FFI_Handler_TraitsBits_PJRT_FFI_HANDLER_TRAITS_COMMAND_BUFFER_COMPATIBLE
             != 0
     }
 
@@ -107,18 +106,16 @@ impl FfiHandlerTraits {
     pub fn set_command_buffer_compatible(mut self, value: bool) -> Self {
         if value {
             self.bits |=
-                PJRT_FFI_Handler_TraitsBits_PJRT_FFI_HANDLER_TRAITS_COMMAND_BUFFER_COMPATIBLE
-                    as u32;
+                PJRT_FFI_Handler_TraitsBits_PJRT_FFI_HANDLER_TRAITS_COMMAND_BUFFER_COMPATIBLE;
         } else {
             self.bits &=
-                !(PJRT_FFI_Handler_TraitsBits_PJRT_FFI_HANDLER_TRAITS_COMMAND_BUFFER_COMPATIBLE
-                    as u32);
+                !PJRT_FFI_Handler_TraitsBits_PJRT_FFI_HANDLER_TRAITS_COMMAND_BUFFER_COMPATIBLE;
         }
         self
     }
 
-    fn to_raw(&self) -> PJRT_FFI_Handler_TraitsBits {
-        unsafe { std::mem::transmute(self.bits) }
+    fn to_raw(self) -> PJRT_FFI_Handler_TraitsBits {
+        self.bits
     }
 }
 
@@ -246,7 +243,7 @@ impl FfiExtension {
     ) -> Result<()> {
         let mut args = unsafe { std::mem::zeroed::<PJRT_FFI_UserData_Add_Args>() };
         args.struct_size = std::mem::size_of::<PJRT_FFI_UserData_Add_Args>();
-        args.context = context.ptr as *mut PJRT_ExecuteContext;
+        args.context = context.ptr;
         args.user_data = PJRT_FFI_UserData { type_id, data };
 
         let ext_fn = self
@@ -260,6 +257,7 @@ impl FfiExtension {
 }
 
 /// Extension trait for accessing FFI extension from Api
+#[allow(dead_code)]
 pub trait FfiExt {
     /// Get the FFI extension if available
     fn ffi_extension(&self) -> Option<FfiExtension>;

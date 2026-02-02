@@ -28,11 +28,60 @@ use crate::{
     KeyValueStore, NamedValue, Program, Result, TopologyDescription,
 };
 
+/// The main entry point for interacting with a PJRT plugin.
+///
+/// `Api` represents a loaded PJRT plugin and provides methods to create clients,
+/// compile programs, and access plugin metadata. It is the first object you need
+/// to create when using pjrt-rs.
+///
+/// # Thread Safety
+///
+/// `Api` implements `Send` and `Sync`, allowing it to be shared across threads.
+/// This is safe because:
+///
+/// 1. The PJRT C API is designed to be thread-safe. The API functions use proper
+///    synchronization internally.
+/// 2. All state is encapsulated in the PJRT runtime, which manages its own
+///    thread safety.
+/// 3. The `Arc<PJRT_Api>` ensures the API pointer remains valid as long as any
+///    `Api` instance exists.
+///
+/// **Important**: The thread-safety guarantee depends on the PJRT plugin being
+/// correctly implemented. The official PJRT plugins (CPU, GPU, TPU) are all
+/// thread-safe. If you are using a third-party plugin, verify it is thread-safe
+/// before sharing `Api` across threads.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use pjrt::{Api, plugin};
+///
+/// // Load the CPU plugin
+/// let api = plugin("path/to/pjrt_c_api_cpu_plugin.so")?;
+///
+/// // Create a client
+/// let client = api.create_client(vec![], None)?;
+///
+/// // The Api can be cloned and shared across threads
+/// let api_clone = api.clone();
+/// std::thread::spawn(move || {
+///     // Safe to use api_clone here
+///     let version = api_clone.version();
+/// });
+/// ```
 #[derive(Clone)]
 pub struct Api {
     raw: Arc<PJRT_Api>,
     version: Version,
 }
+
+// SAFETY: The PJRT C API is designed to be thread-safe. The PJRT_Api struct
+// is essentially a vtable of function pointers that don't change after
+// initialization. All state is managed by the PJRT runtime which handles
+// its own synchronization.
+//
+// See: https://github.com/openxla/xla/blob/main/xla/pjrt/c/pjrt_c_api.h
+// The PJRT API documentation states that the API is thread-safe.
 unsafe impl Send for Api {}
 unsafe impl Sync for Api {}
 
@@ -50,10 +99,17 @@ impl Api {
         api
     }
 
+    /// Returns the PJRT API version supported by this plugin.
     pub fn version(&self) -> Version {
         self.version
     }
 
+    /// Returns plugin-specific attributes as key-value pairs.
+    ///
+    /// Common attributes include:
+    /// - `xla_version`: The XLA version string
+    /// - `stablehlo_current_version`: The StableHLO version supported
+    /// - `stablehlo_minimum_version`: The minimum StableHLO version supported
     pub fn plugin_attributes(&self) -> NamedValueMap {
         let mut args = PJRT_Plugin_Attributes_Args::new();
         args = self
@@ -119,8 +175,14 @@ impl Api {
         CompileToExecutable::<T>::compile(self, program, topology, &options, client)
     }
 
+    /// Converts a PJRT error pointer to a Result, with the function name for context.
     #[allow(unused_assignments)]
-    pub(crate) fn err_or<T>(&self, err: *mut PJRT_Error, value: T) -> Result<T> {
+    pub(crate) fn err_or_with_fn<T>(
+        &self,
+        err: *mut PJRT_Error,
+        value: T,
+        function: &'static str,
+    ) -> Result<T> {
         if err.is_null() {
             Ok(value)
         } else {
@@ -137,11 +199,20 @@ impl Api {
             self.PJRT_Error_Destroy(&mut args)?;
             let backtrace = Backtrace::capture().to_string();
             Err(Error::PjrtError {
+                function,
                 msg,
                 code,
                 backtrace,
             })
         }
+    }
+
+    /// Converts a PJRT error pointer to a Result.
+    ///
+    /// This is a convenience method for code that doesn't have a function name.
+    #[allow(unused_assignments)]
+    pub(crate) fn err_or<T>(&self, err: *mut PJRT_Error, value: T) -> Result<T> {
+        self.err_or_with_fn(err, value, "<unknown>")
     }
 }
 
@@ -200,7 +271,7 @@ macro_rules! pjrt_api_fn_ret_err {
                     .$fn
                     .ok_or(Error::NullFunctionPointer(stringify!($fn)))?;
                 let err = unsafe { func(&mut args as *mut _) };
-                self.err_or(err, args)
+                self.err_or_with_fn(err, args, stringify!($fn))
             }
         }
     };

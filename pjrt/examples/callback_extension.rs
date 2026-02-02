@@ -166,6 +166,7 @@ fn register_custom_callbacks(_callback_ext: &pjrt::CallbackExtension) -> Result<
 }
 
 /// Example error handling strategy for callback failures
+#[allow(dead_code)]
 mod callback_error_handler {
     use pjrt::{Result, TpuSliceFailureType};
 

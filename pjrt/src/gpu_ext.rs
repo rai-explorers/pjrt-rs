@@ -67,7 +67,7 @@ unsafe impl Extension for GpuExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*gpu_ext).clone()),
+            raw: Rc::new(*gpu_ext),
             api: api.clone(),
         })
     }

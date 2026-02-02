@@ -96,7 +96,7 @@ pub enum ExtensionType {
 
 impl ExtensionType {
     /// Convert to the raw PJRT extension type
-    pub(crate) fn to_raw(&self) -> PJRT_Extension_Type {
+    pub(crate) fn to_raw(self) -> PJRT_Extension_Type {
         match self {
             ExtensionType::GpuCustomCall => PJRT_Extension_Type_PJRT_Extension_Type_Gpu_Custom_Call,
             ExtensionType::Profiler => PJRT_Extension_Type_PJRT_Extension_Type_Profiler,
@@ -152,6 +152,7 @@ pub unsafe trait Extension {
 }
 
 /// Iterator over extension chain
+#[allow(dead_code)]
 pub struct ExtensionIterator {
     current: *mut PJRT_Extension_Base,
 }
@@ -190,6 +191,7 @@ impl Iterator for ExtensionIterator {
 ///
 /// The `start` pointer must be a valid pointer to a PJRT_Extension_Base
 /// structure, or null.
+#[allow(dead_code)]
 pub(crate) unsafe fn find_extension(
     start: *mut PJRT_Extension_Base,
     ext_type: ExtensionType,
@@ -215,6 +217,7 @@ pub(crate) unsafe fn find_extension(
 ///
 /// The `start` pointer must be a valid pointer to a PJRT_Extension_Base
 /// structure, or null.
+#[allow(dead_code)]
 pub(crate) unsafe fn has_extension(
     start: *mut PJRT_Extension_Base,
     ext_type: ExtensionType,

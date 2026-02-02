@@ -65,7 +65,7 @@ unsafe impl Extension for StreamExtension {
         }
 
         Some(Self {
-            raw: Rc::new((*stream_ext).clone()),
+            raw: Rc::new(*stream_ext),
             api: api.clone(),
         })
     }
