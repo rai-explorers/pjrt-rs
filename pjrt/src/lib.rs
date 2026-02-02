@@ -105,7 +105,10 @@ mod named_value;
 pub use named_value::{NamedValue, NamedValueMap};
 
 mod execute;
-pub use execute::{ExecuteContext, ExecuteOptions, Execution, ExecutionInputs};
+pub use execute::{
+    CallLocation, CallbackError, ExecuteContext, ExecuteOptions, Execution, ExecutionInputs,
+    RecvCallback, RecvCallbackInfo, SendCallback, SendCallbackInfo, TransferMetadata,
+};
 
 mod device_stream;
 pub use device_stream::CopyToDeviceStream;
@@ -154,7 +157,34 @@ pub use memory_descriptions_ext::{
 mod phase_compile_ext;
 pub use phase_compile_ext::{PhaseCompileExtension, PhaseCompileOutput, PhaseCompiler};
 
+mod cross_host_transfers_ext;
+pub use cross_host_transfers_ext::CrossHostTransfersExtension;
+
+mod executable_metadata_ext;
+pub use executable_metadata_ext::ExecutableMetadataExtension;
+
+mod host_allocator_ext;
+pub use host_allocator_ext::HostAllocatorExtension;
+
+mod tpu_topology_ext;
+pub use tpu_topology_ext::TpuTopologyExtension;
+
+mod tpu_executable_ext;
+pub use tpu_executable_ext::TpuExecutableExtension;
+
+mod megascale_ext;
+pub use megascale_ext::MegascaleExtension;
+
+mod example_ext;
+pub use example_ext::ExampleExtension;
+
 mod async_transfer;
-pub use async_transfer::{AsyncHostToDeviceTransferManager, BufferShape};
+pub use async_transfer::{
+    AsyncHostToDeviceTransferManager, AsyncTransferBuilder, BufferShape, MultiBufTransfer,
+    RawAsyncTransfer, TypedAsyncTransfer,
+};
 // re-export pjrt-sys
 pub use pjrt_sys::protos;
+
+#[cfg(test)]
+mod tests;

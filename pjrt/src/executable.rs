@@ -72,6 +72,18 @@ impl Drop for Executable {
     }
 }
 
+impl std::fmt::Debug for Executable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Executable")
+            .field("name", &self.name())
+            .field("num_replicas", &self.num_replicas())
+            .field("num_partitions", &self.num_partitions())
+            .field("num_outputs", &self.num_outputs())
+            .field("code_size", &self.code_size())
+            .finish()
+    }
+}
+
 #[bon]
 impl Executable {
     pub(crate) fn wrap(api: &Api, ptr: *mut PJRT_Executable) -> Self {

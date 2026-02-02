@@ -13,6 +13,47 @@
 //! - `GlobalDeviceId`: Unique across all devices of the same type
 //! - `LocalDeviceId`: Unique within a client (-1 if undefined)
 //! - `LocalHardwareId`: Physical device ID, shared by logical devices on the same hardware
+//!
+//! # Examples
+//!
+//! ## Querying Device Information
+//!
+//! ```rust,ignore
+//! use pjrt::Client;
+//!
+//! let devices = client.devices();
+//! for device in &devices {
+//!     let desc = device.description();
+//!     println!("Device ID: {}", desc.id());
+//!     println!("Device Kind: {}", desc.kind());
+//!     println!("Is Addressable: {}", device.is_addressable());
+//!     println!("Local Hardware ID: {}", device.local_hardware_id());
+//! }
+//! ```
+//!
+//! ## Working with Device Memory
+//!
+//! ```rust,ignore
+//! // Get default memory space for a device
+//! let device = client.addressable_devices().first().unwrap();
+//! let memory = device.default_memory();
+//! println!("Memory kind: {}", memory.kind());
+//!
+//! // Get all addressable memories
+//! let memories = device.addressable_memories();
+//! for mem in memories {
+//!     println!("Memory: {} (id: {})", mem.kind(), mem.id());
+//! }
+//! ```
+//!
+//! ## Memory Statistics
+//!
+//! ```rust,ignore
+//! if let Ok(stats) = device.memory_stats() {
+//!     println!("Bytes in use: {:?}", stats.bytes_in_use);
+//!     println!("Peak bytes in use: {:?}", stats.peak_bytes_in_use);
+//! }
+//! ```
 
 use std::slice;
 
@@ -45,6 +86,18 @@ pub type LocalHardwareId = i32;
 pub struct Device {
     client: Client,
     pub(crate) ptr: *mut PJRT_Device,
+}
+
+impl std::fmt::Debug for Device {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let description = self.description();
+        f.debug_struct("Device")
+            .field("id", &description.id())
+            .field("kind", &description.kind())
+            .field("is_addressable", &self.is_addressable())
+            .field("local_hardware_id", &self.local_hardware_id())
+            .finish()
+    }
 }
 
 impl Device {
@@ -184,6 +237,12 @@ impl AsyncTrackingEvent {
     #[allow(dead_code)]
     pub(crate) fn ptr(&self) -> *mut pjrt_sys::PJRT_AsyncTrackingEvent {
         self.ptr
+    }
+}
+
+impl std::fmt::Debug for AsyncTrackingEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AsyncTrackingEvent").finish_non_exhaustive()
     }
 }
 

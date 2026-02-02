@@ -22,6 +22,7 @@ use pjrt_sys::{
     PJRT_LoadedExecutable_GetExecutable_Args, PJRT_LoadedExecutable_IsDeleted_Args,
 };
 
+use crate::execute::ExecuteOptionsRaw;
 use crate::{
     event, utils, Buffer, Client, CompileOptions, CompileToLoadedExecutable, Device, Event,
     Executable, ExecuteOptions, Execution, ExecutionInputs, Result,
@@ -61,6 +62,17 @@ impl Drop for LoadedExecutable {
             .api()
             .PJRT_LoadedExecutable_Destroy(args)
             .expect("PJRT_LoadedExecutable_Destroy");
+    }
+}
+
+impl std::fmt::Debug for LoadedExecutable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let executable = self.executable();
+        f.debug_struct("LoadedExecutable")
+            .field("name", &executable.name())
+            .field("is_deleted", &self.is_deleted())
+            .field("num_addressable_devices", &self.addressable_devices().len())
+            .finish()
     }
 }
 
@@ -139,10 +151,10 @@ impl LoadedExecutable {
         args.is_deleted
     }
 
-    pub fn call_execute<I>(
+    pub fn call_execute<'a, I>(
         &self,
         inputs: I,
-        options: &ExecuteOptions,
+        options: &'a ExecuteOptions<'a>,
     ) -> Result<(Vec<Event>, Vec<Vec<Buffer>>)>
     where
         I: ExecutionInputs,
@@ -167,9 +179,10 @@ impl LoadedExecutable {
         // allocate complete_events and let pjrt runtime to fill it
         let complete_events = vec![MaybeUninit::<*mut PJRT_Event>::uninit(); args.num_devices];
         args.device_complete_events = complete_events.as_ptr() as *mut *mut PJRT_Event;
-        // options
-        let mut options = options.into();
-        args.options = &mut options as *mut PJRT_ExecuteOptions;
+        // options - use ExecuteOptionsRaw to handle callback lifetimes
+        let mut raw_options = PJRT_ExecuteOptions::new();
+        let _options_raw = ExecuteOptionsRaw::new(options, &mut raw_options);
+        args.options = &mut raw_options as *mut PJRT_ExecuteOptions;
         args = self.client.api().PJRT_LoadedExecutable_Execute(args)?;
         let events =
             unsafe { slice::from_raw_parts(args.device_complete_events, args.num_devices) };
@@ -186,7 +199,11 @@ impl LoadedExecutable {
         Ok((events, output_buffers))
     }
 
-    pub fn execute_sync<I>(&self, inputs: I, options: &ExecuteOptions) -> Result<Vec<Vec<Buffer>>>
+    pub fn execute_sync<'a, I>(
+        &self,
+        inputs: I,
+        options: &'a ExecuteOptions<'a>,
+    ) -> Result<Vec<Vec<Buffer>>>
     where
         I: ExecutionInputs,
     {
@@ -197,7 +214,11 @@ impl LoadedExecutable {
         Ok(outputs)
     }
 
-    pub async fn execute<I>(&self, inputs: I, options: &ExecuteOptions) -> Result<Vec<Vec<Buffer>>>
+    pub async fn execute<'a, I>(
+        &self,
+        inputs: I,
+        options: &'a ExecuteOptions<'a>,
+    ) -> Result<Vec<Vec<Buffer>>>
     where
         I: ExecutionInputs,
     {

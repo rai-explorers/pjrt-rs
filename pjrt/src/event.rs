@@ -66,9 +66,13 @@ impl Drop for Event {
 
 impl std::fmt::Debug for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let is_ready = self.is_ready().unwrap_or(false);
         f.debug_struct("Event")
-            .field("ptr", &self.ptr)
-            .field("registered_callback", &self.registered_callback)
+            .field("is_ready", &is_ready)
+            .field(
+                "callback_registered",
+                &self.registered_callback.load(Ordering::SeqCst),
+            )
             .finish()
     }
 }

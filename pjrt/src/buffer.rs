@@ -10,6 +10,56 @@
 //! - Handle asynchronous operations
 //!
 //! Buffers are the primary way to move data in and out of PJRT computations.
+//!
+//! # Examples
+//!
+//! ## Creating and Transferring Buffers
+//!
+//! ```rust,ignore
+//! use pjrt::{Client, HostBuffer, F32};
+//!
+//! // Create a host buffer with f32 data
+//! let host_data = HostBuffer::from_data::<F32>(vec![1.0, 2.0, 3.0, 4.0], Some(vec![2, 2]), None);
+//!
+//! // Transfer to device (synchronous)
+//! let device_buffer = host_data.to_sync(&client).copy()?;
+//!
+//! // Query buffer properties
+//! println!("Type: {:?}", device_buffer.primitive_type());
+//! println!("Dims: {:?}", device_buffer.dims());
+//! println!("Size: {} bytes", device_buffer.on_device_size());
+//! ```
+//!
+//! ## Asynchronous Transfers
+//!
+//! ```rust,ignore
+//! // Transfer to device (async)
+//! let device_buffer = host_data.to(&client).copy().await?;
+//!
+//! // Wait for buffer to be ready
+//! let ready_event = device_buffer.ready_event()?;
+//! ready_event.await?;
+//! ```
+//!
+//! ## Copying Data Back to Host
+//!
+//! ```rust,ignore
+//! // Copy buffer data back to host (typed)
+//! let host_buffer = device_buffer.to_typed_host::<F32>()?;
+//! let data = host_buffer.data();
+//!
+//! // Or copy to raw bytes
+//! let mut bytes = vec![0u8; device_buffer.on_device_size()];
+//! device_buffer.copy_raw_to_host(&mut bytes).wait()?;
+//! ```
+//!
+//! ## Copying Between Devices
+//!
+//! ```rust,ignore
+//! // Copy buffer to another device
+//! let other_device = client.devices().get(1).unwrap();
+//! let copied_buffer = device_buffer.copy_to_device(other_device)?;
+//! ```
 
 use std::ffi::c_void;
 use std::future::Future;
@@ -49,8 +99,11 @@ impl Drop for Buffer {
 impl std::fmt::Debug for Buffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
-            .field("ptr", &self.ptr)
-            .field("client", &"...")
+            .field("primitive_type", &self.primitive_type())
+            .field("dims", &self.dims())
+            .field("on_device_size_in_bytes", &self.on_device_size())
+            .field("is_on_cpu", &self.is_on_cpu())
+            .field("is_deleted", &self.is_deleted())
             .finish()
     }
 }

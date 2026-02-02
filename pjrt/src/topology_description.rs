@@ -18,6 +18,16 @@ pub struct TopologyDescription {
     pub(crate) ptr: *mut PJRT_TopologyDescription,
 }
 
+impl std::fmt::Debug for TopologyDescription {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TopologyDescription")
+            .field("platform_name", &self.platform_name())
+            .field("platform_version", &self.platform_version())
+            .field("num_devices", &self.device_descriptions().len())
+            .finish()
+    }
+}
+
 impl Drop for TopologyDescription {
     fn drop(&mut self) {
         let mut args = PJRT_TopologyDescription_Destroy_Args::new();

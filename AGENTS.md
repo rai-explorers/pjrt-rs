@@ -50,10 +50,10 @@ cargo test test_error_code_values
 cargo test -p pjrt test_client_debug_impl
 
 # Run tests with output
-cargo test -- --nocapture
+cargo test -- --nocapture --all-features
 
 # Note: Integration tests and examples require PJRT_PLUGIN_PATH to be set
-cargo test -- --nocapture 2>&1 | head -20  # See which tests run/fail
+cargo test -- --nocapture --all-features 2>&1 | head -20  # See which tests run/fail
 
 # Run tests in release mode (faster for heavy tests)
 cargo test --release

@@ -10,6 +10,60 @@
 //!
 //! The module provides both compile-time and runtime configuration options
 //! for controlling how programs are compiled to device executables.
+//!
+//! # Examples
+//!
+//! ## Basic Compilation
+//!
+//! ```rust,ignore
+//! use pjrt::{Client, Program, ProgramFormat, CompileOptions};
+//!
+//! // Create a simple MLIR program
+//! let mlir = br#"
+//!     module @example {
+//!         func.func @main(%arg0: tensor<4xf32>) -> tensor<4xf32> {
+//!             %0 = stablehlo.add %arg0, %arg0 : tensor<4xf32>
+//!             return %0 : tensor<4xf32>
+//!         }
+//!     }
+//! "#;
+//! let program = Program::new(ProgramFormat::Mlir, mlir);
+//!
+//! // Compile with default options
+//! let executable = client.compile(&program, CompileOptions::default())?;
+//! ```
+//!
+//! ## Customizing Compilation
+//!
+//! ```rust,ignore
+//! use pjrt::{CompileOptions, ExecutableBuildOptions};
+//!
+//! // Configure build options
+//! let build_opts = ExecutableBuildOptions::new()
+//!     .num_replicas(4)       // For multi-replica training
+//!     .num_partitions(2)     // For model parallelism
+//!     .use_spmd_partitioning(true);
+//!
+//! let options = CompileOptions::new()
+//!     .executable_build_options(build_opts);
+//!
+//! let executable = client.compile(&program, options)?;
+//! ```
+//!
+//! ## Device Assignment
+//!
+//! ```rust,ignore
+//! // Get default device assignment for the specified topology
+//! let assignment = client.default_device_assignment(
+//!     4,  // num_replicas
+//!     2   // num_partitions
+//! )?;
+//!
+//! let build_opts = ExecutableBuildOptions::new()
+//!     .num_replicas(4)
+//!     .num_partitions(2)
+//!     .device_assignment(assignment);
+//! ```
 
 use pjrt_sys::protos::xla::{
     CompilationEnvironmentsProto, CompileOptionsProto, ExecutableBuildOptionsProto,

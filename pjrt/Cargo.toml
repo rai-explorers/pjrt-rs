@@ -10,6 +10,9 @@ categories.workspace = true
 repository = "https://github.com/rai-explorers/pjrt-rs"
 homepage = "https://github.com/rai-explorers/pjrt-rs"
 
+[features]
+integration-tests = []
+
 [dependencies]
 pjrt-sys = { workspace = true }
 prost = { workspace = true }

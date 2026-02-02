@@ -10,6 +10,58 @@
 //! - Manage topology descriptions
 //!
 //! The `Api` struct is thread-safe and can be cloned to share between threads.
+//!
+//! # Examples
+//!
+//! ## Loading a Plugin and Creating a Client
+//!
+//! ```rust,ignore
+//! use pjrt::{plugin, Client};
+//!
+//! // Load a PJRT plugin (e.g., CPU plugin)
+//! let api = plugin("/path/to/pjrt_c_api_cpu_plugin.so").load()?;
+//!
+//! // Create a client to interact with devices
+//! let client = Client::builder(&api).build()?;
+//!
+//! // Query API version
+//! let version = api.version();
+//! println!("PJRT API version: {}.{}", version.major(), version.minor());
+//!
+//! // Check available devices
+//! println!("Devices: {}", client.devices().len());
+//! ```
+//!
+//! ## Working with Extensions
+//!
+//! ```rust,ignore
+//! use pjrt::{plugin, Client, StreamExtension};
+//!
+//! let api = plugin("/path/to/pjrt_c_api_gpu_plugin.so").load()?;
+//!
+//! // Query for available extensions
+//! if let Some(stream_ext) = api.get_extension::<StreamExtension>() {
+//!     println!("Stream extension is available");
+//! }
+//! ```
+//!
+//! ## Plugin with Options
+//!
+//! ```rust,ignore
+//! use pjrt::{plugin, Client, NamedValue};
+//!
+//! let api = plugin("/path/to/plugin.so").load()?;
+//!
+//! // Create client with custom options
+//! let options = vec![
+//!     NamedValue::i64("device_count", 2),
+//!     NamedValue::bool("async_execution", true),
+//! ];
+//!
+//! let client = Client::builder(&api)
+//!     .options(options)
+//!     .build()?;
+//! ```
 
 use std::backtrace::Backtrace;
 use std::sync::Arc;
@@ -73,6 +125,14 @@ use crate::{
 pub struct Api {
     raw: Arc<PJRT_Api>,
     version: Version,
+}
+
+impl std::fmt::Debug for Api {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Api")
+            .field("version", &self.version)
+            .finish()
+    }
 }
 
 // SAFETY: The PJRT C API is designed to be thread-safe. The PJRT_Api struct

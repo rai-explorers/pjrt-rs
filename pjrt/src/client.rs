@@ -11,6 +11,51 @@
 //!
 //! Each client is associated with a specific PJRT plugin and encapsulates the runtime
 //! state for that plugin.
+//!
+//! # Examples
+//!
+//! ## Creating a Client
+//!
+//! ```rust,ignore
+//! use pjrt::{plugin, Client};
+//!
+//! // Load a PJRT plugin and create a client
+//! let api = plugin("path/to/pjrt_c_api_cpu_plugin.so").load()?;
+//! let client = Client::builder(&api).build()?;
+//!
+//! // Access client information
+//! println!("Platform: {}", client.platform_name());
+//! println!("Version: {}", client.platform_version());
+//! println!("Devices: {}", client.devices().len());
+//! ```
+//!
+//! ## Working with Devices
+//!
+//! ```rust,ignore
+//! // Get all available devices
+//! let devices = client.devices();
+//! for device in &devices {
+//!     println!("Device: {:?}", device);
+//! }
+//!
+//! // Get only addressable devices (local to this process)
+//! let addressable = client.addressable_devices();
+//!
+//! // Look up a specific device by ID
+//! let device = client.lookup_device(0)?;
+//! ```
+//!
+//! ## Compiling Programs
+//!
+//! ```rust,ignore
+//! use pjrt::{Program, ProgramFormat, CompileOptions};
+//!
+//! let mlir_code = include_bytes!("my_program.mlir");
+//! let program = Program::new(ProgramFormat::Mlir, mlir_code);
+//!
+//! let executable = client.compile(&program, CompileOptions::default())?;
+//! println!("Compiled: {:?}", executable);
+//! ```
 
 use std::borrow::Cow;
 use std::ffi::c_void;
@@ -62,7 +107,11 @@ pub struct Client {
 impl std::fmt::Debug for Client {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Client")
-            .field("ptr", &self.raw.ptr)
+            .field("platform_name", &self.platform_name())
+            .field("platform_version", &self.platform_version())
+            .field("process_index", &self.process_index())
+            .field("num_devices", &self.devices().len())
+            .field("num_addressable_devices", &self.addressable_devices().len())
             .finish()
     }
 }

@@ -37,6 +37,7 @@ use pjrt_sys::{
     PJRT_Extension_Base, PJRT_Extension_Type, PJRT_Extension_Type_PJRT_Extension_Type_Callback,
     PJRT_Extension_Type_PJRT_Extension_Type_CrossHostTransfers,
     PJRT_Extension_Type_PJRT_Extension_Type_Custom_Partitioner,
+    PJRT_Extension_Type_PJRT_Extension_Type_Example,
     PJRT_Extension_Type_PJRT_Extension_Type_ExecutableMetadata,
     PJRT_Extension_Type_PJRT_Extension_Type_FFI,
     PJRT_Extension_Type_PJRT_Extension_Type_Gpu_Custom_Call,
@@ -92,11 +93,19 @@ pub enum ExtensionType {
     Megascale,
     /// Phase compile extension for debugging and caching
     PhaseCompile,
+    /// Example extension for documentation and testing
+    ///
+    /// This extension type serves as a reference implementation and is
+    /// typically not implemented by production plugins. It's useful for:
+    /// - Learning how extensions work
+    /// - Testing extension discovery code
+    /// - Serving as a template for new extensions
+    Example,
 }
 
 impl ExtensionType {
     /// Convert to the raw PJRT extension type
-    pub(crate) fn to_raw(self) -> PJRT_Extension_Type {
+    pub fn to_raw(self) -> PJRT_Extension_Type {
         match self {
             ExtensionType::GpuCustomCall => PJRT_Extension_Type_PJRT_Extension_Type_Gpu_Custom_Call,
             ExtensionType::Profiler => PJRT_Extension_Type_PJRT_Extension_Type_Profiler,
@@ -123,6 +132,7 @@ impl ExtensionType {
             ExtensionType::TpuExecutable => PJRT_Extension_Type_PJRT_Extension_Type_TpuExecutable,
             ExtensionType::Megascale => PJRT_Extension_Type_PJRT_Extension_Type_Megascale,
             ExtensionType::PhaseCompile => PJRT_Extension_Type_PJRT_Extension_Type_PhaseCompile,
+            ExtensionType::Example => PJRT_Extension_Type_PJRT_Extension_Type_Example,
         }
     }
 }

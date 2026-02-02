@@ -12,6 +12,46 @@
 //! - Optimizing data placement for performance
 //! - Managing memory usage on device-limited systems
 //! - Implementing efficient multi-GPU algorithms
+//!
+//! # Examples
+//!
+//! ## Querying Memory Properties
+//!
+//! ```rust,ignore
+//! use pjrt::Client;
+//!
+//! // Get a device's default memory
+//! let device = client.addressable_devices().first().unwrap();
+//! let memory = device.default_memory();
+//!
+//! // Query memory properties
+//! println!("Memory ID: {}", memory.id());
+//! println!("Memory Kind: {}", memory.kind());
+//! println!("Kind ID: {}", memory.kind_id());
+//! println!("Debug: {}", memory.debug_string());
+//! ```
+//!
+//! ## Memory-Device Relationships
+//!
+//! ```rust,ignore
+//! // Find which devices can access this memory
+//! let devices = memory.addressable_by_devices();
+//! println!("Accessible by {} devices", devices.len());
+//! for device in devices {
+//!     let desc = device.description();
+//!     println!("  - Device {} ({})", desc.id(), desc.kind());
+//! }
+//! ```
+//!
+//! ## Addressable Memories
+//!
+//! ```rust,ignore
+//! // Get all addressable memories from the client
+//! let memories = client.addressable_memories();
+//! for memory in memories {
+//!     println!("{}", memory); // Uses Display implementation
+//! }
+//! ```
 
 use std::borrow::Cow;
 use std::fmt::{self, Debug, Display};

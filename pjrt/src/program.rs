@@ -8,6 +8,57 @@
 //! - Load programs from files or strings
 //! - Convert between program formats
 //! - Serialize/deserialize programs
+//!
+//! # Examples
+//!
+//! ## Creating a Program from Code
+//!
+//! ```rust
+//! use pjrt::{Program, ProgramFormat};
+//!
+//! // Create an MLIR program from inline code
+//! let mlir_code = br#"
+//!     module @example {
+//!         func.func @main(%arg0: tensor<4xf32>) -> tensor<4xf32> {
+//!             %0 = stablehlo.add %arg0, %arg0 : tensor<4xf32>
+//!             return %0 : tensor<4xf32>
+//!         }
+//!     }
+//! "#;
+//!
+//! let program = Program::new(ProgramFormat::MLIR, mlir_code.as_slice());
+//! assert_eq!(program.format(), ProgramFormat::MLIR);
+//! ```
+//!
+//! ## Loading from a File
+//!
+//! ```rust,ignore
+//! use pjrt::{Program, ProgramFormat};
+//!
+//! // Load MLIR from file
+//! let program = Program::from_file("model.mlir", ProgramFormat::MLIR)?;
+//!
+//! // Or use auto-detection based on extension
+//! let program = Program::from_file_auto("model.mlir")?;
+//! ```
+//!
+//! ## Program Formats
+//!
+//! ```rust
+//! use pjrt::ProgramFormat;
+//!
+//! // MLIR StableHLO format (recommended)
+//! let mlir = ProgramFormat::MLIR;
+//! assert_eq!(mlir.as_str(), "mlir");
+//!
+//! // HLO format
+//! let hlo = ProgramFormat::HLO;
+//! assert_eq!(hlo.as_str(), "hlo");
+//!
+//! // Parse from string
+//! let format: ProgramFormat = "mlir".try_into().unwrap();
+//! assert_eq!(format, ProgramFormat::MLIR);
+//! ```
 
 use std::fs;
 use std::path::Path;
