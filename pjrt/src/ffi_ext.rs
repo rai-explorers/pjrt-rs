@@ -87,7 +87,7 @@ unsafe impl Extension for FfiExtension {
 /// Traits for FFI handlers
 #[derive(Debug, Clone, Copy, Default)]
 pub struct FfiHandlerTraits {
-    bits: u32,
+    bits: PJRT_FFI_Handler_TraitsBits,
 }
 
 impl FfiHandlerTraits {
