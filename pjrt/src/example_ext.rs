@@ -185,7 +185,7 @@ impl ExampleExtension {
     /// Returns the extension type ID as a raw u32 value.
     ///
     /// This is primarily useful for debugging and logging.
-    pub fn type_id(&self) -> u32 {
+    pub fn type_id(&self) -> PJRT_Extension_Type {
         PJRT_EXTENSION_TYPE_EXAMPLE
     }
 }
@@ -199,7 +199,7 @@ mod tests {
         // Verify the Example extension type constant is defined
         assert_eq!(
             PJRT_EXTENSION_TYPE_EXAMPLE,
-            pjrt_sys::PJRT_Extension_Type_PJRT_Extension_Type_Example as u32
+            pjrt_sys::PJRT_Extension_Type_PJRT_Extension_Type_Example
         );
     }
 
