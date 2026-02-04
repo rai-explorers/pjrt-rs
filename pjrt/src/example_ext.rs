@@ -97,7 +97,8 @@ use crate::Api;
 /// It is defined between `PJRT_Extension_Type_PhaseCompile` and
 /// `PJRT_Extension_Type_Unknown` in the extension type enum.
 #[allow(dead_code)]
-const PJRT_EXTENSION_TYPE_EXAMPLE: u32 = pjrt_sys::PJRT_Extension_Type_PJRT_Extension_Type_Example;
+const PJRT_EXTENSION_TYPE_EXAMPLE: u32 =
+    pjrt_sys::PJRT_Extension_Type_PJRT_Extension_Type_Example as u32;
 
 /// Safe wrapper for PJRT Example extension.
 ///
@@ -196,7 +197,7 @@ mod tests {
         // Verify the Example extension type constant is defined
         assert_eq!(
             PJRT_EXTENSION_TYPE_EXAMPLE,
-            pjrt_sys::PJRT_Extension_Type_PJRT_Extension_Type_Example
+            pjrt_sys::PJRT_Extension_Type_PJRT_Extension_Type_Example as u32
         );
     }
 
