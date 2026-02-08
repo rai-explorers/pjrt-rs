@@ -140,7 +140,7 @@ impl LayoutsExtension {
             unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_Layouts_PJRT_Client_GetDefaultLayout_Args>();
         args.client = client.ptr();
-        args.type_ = ty as i32 as std::ffi::c_uint;
+        args.type_ = ty as i32 as pjrt_sys::PJRT_Buffer_Type;
         args.dims = dims.as_ptr();
         args.num_dims = dims.len();
 
@@ -184,7 +184,7 @@ impl LayoutsExtension {
             unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_Layouts_PJRT_Topology_GetDefaultLayout_Args>();
         args.topology_description = topology.ptr;
-        args.type_ = ty as i32 as std::ffi::c_uint;
+        args.type_ = ty as i32 as pjrt_sys::PJRT_Buffer_Type;
         args.dims = dims.as_ptr();
         args.num_dims = dims.len();
 
