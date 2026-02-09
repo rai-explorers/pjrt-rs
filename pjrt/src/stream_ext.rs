@@ -159,13 +159,7 @@ pub trait StreamExt {
 
 impl StreamExt for Api {
     fn stream_extension(&self) -> Option<StreamExtension> {
-        unsafe {
-            let api_ptr = self as *const Api as *mut pjrt_sys::PJRT_Api;
-            if api_ptr.is_null() {
-                return None;
-            }
-            let ext_start = (*api_ptr).extension_start;
-            StreamExtension::from_raw(ext_start, self)
-        }
+        let ext_start = self.extension_start();
+        unsafe { StreamExtension::from_raw(ext_start, self) }
     }
 }

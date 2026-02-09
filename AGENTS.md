@@ -65,6 +65,7 @@ cargo test --release
 - PJRT Plugin: Required for integration tests and examples, assume it is configurated by user.
   - Set `PJRT_PLUGIN_PATH` environment variable to the path of the PJRT plugin (e.g., `pjrt_c_api_cpu_plugin.so`)
   - Example: `export PJRT_PLUGIN_PATH=/path/to/pjrt_c_api_cpu_plugin.so`
+- .env defined required environment required to run the examples
 
 ## Code Style Guidelines
 

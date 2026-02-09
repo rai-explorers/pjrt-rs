@@ -20,17 +20,26 @@ impl DeviceAssignment {
         num_replicas: usize,
         num_partitions: usize,
         assignments: Vec<GlobalDeviceId>,
-    ) -> Self {
-        assert_eq!(num_replicas * num_partitions, assignments.len());
+    ) -> Result<Self> {
+        let expected = num_replicas * num_partitions;
+        if expected != assignments.len() {
+            return Err(Error::InvalidArgument(format!(
+                "device assignment length mismatch: expected {} ({}x{}), got {}",
+                expected,
+                num_replicas,
+                num_partitions,
+                assignments.len()
+            )));
+        }
         let mut assignments2d = Vec::with_capacity(num_replicas);
         for c in assignments.chunks_exact(num_partitions) {
             assignments2d.push(c.to_vec());
         }
-        Self {
+        Ok(Self {
             num_replicas,
             num_partitions,
             assignments: assignments2d,
-        }
+        })
     }
 
     pub fn num_replicas(&self) -> usize {
@@ -172,7 +181,7 @@ mod tests {
     fn test_device_assignment_new_single_replica_single_partition() {
         // 1x1 device assignment
         let assignments = vec![0i32];
-        let da = DeviceAssignment::new(1, 1, assignments);
+        let da = DeviceAssignment::new(1, 1, assignments).unwrap();
 
         assert_eq!(da.num_replicas(), 1);
         assert_eq!(da.num_partitions(), 1);
@@ -182,7 +191,7 @@ mod tests {
     fn test_device_assignment_new_multiple_replicas() {
         // 2x1 device assignment
         let assignments = vec![0i32, 1i32];
-        let da = DeviceAssignment::new(2, 1, assignments);
+        let da = DeviceAssignment::new(2, 1, assignments).unwrap();
 
         assert_eq!(da.num_replicas(), 2);
         assert_eq!(da.num_partitions(), 1);
@@ -192,7 +201,7 @@ mod tests {
     fn test_device_assignment_new_multiple_partitions() {
         // 1x2 device assignment
         let assignments = vec![0i32, 1i32];
-        let da = DeviceAssignment::new(1, 2, assignments);
+        let da = DeviceAssignment::new(1, 2, assignments).unwrap();
 
         assert_eq!(da.num_replicas(), 1);
         assert_eq!(da.num_partitions(), 2);
@@ -202,7 +211,7 @@ mod tests {
     fn test_device_assignment_new_2x2() {
         // 2x2 device assignment (4 devices)
         let assignments = vec![0i32, 1i32, 2i32, 3i32];
-        let da = DeviceAssignment::new(2, 2, assignments);
+        let da = DeviceAssignment::new(2, 2, assignments).unwrap();
 
         assert_eq!(da.num_replicas(), 2);
         assert_eq!(da.num_partitions(), 2);
@@ -214,7 +223,7 @@ mod tests {
         // Replica 0: [device 0, device 1]
         // Replica 1: [device 2, device 3]
         let assignments = vec![0i32, 1i32, 2i32, 3i32];
-        let da = DeviceAssignment::new(2, 2, assignments);
+        let da = DeviceAssignment::new(2, 2, assignments).unwrap();
 
         // Device 0 should be at replica 0, partition 0
         let logical_id = da.lookup_logical_id(0).unwrap();
@@ -240,7 +249,7 @@ mod tests {
     #[test]
     fn test_device_assignment_lookup_not_found() {
         let assignments = vec![0i32, 1i32];
-        let da = DeviceAssignment::new(1, 2, assignments);
+        let da = DeviceAssignment::new(1, 2, assignments).unwrap();
 
         let result = da.lookup_logical_id(99);
         assert!(result.is_err());
@@ -253,7 +262,7 @@ mod tests {
     #[test]
     fn test_device_assignment_get_lookup_map() {
         let assignments = vec![0i32, 1i32, 2i32, 3i32];
-        let da = DeviceAssignment::new(2, 2, assignments);
+        let da = DeviceAssignment::new(2, 2, assignments).unwrap();
         let map = da.get_lookup_map();
 
         assert_eq!(map.len(), 4);
@@ -290,7 +299,7 @@ mod tests {
     #[test]
     fn test_device_assignment_clone() {
         let assignments = vec![0i32, 1i32];
-        let da = DeviceAssignment::new(1, 2, assignments);
+        let da = DeviceAssignment::new(1, 2, assignments).unwrap();
         let cloned = da.clone();
 
         assert_eq!(da.num_replicas(), cloned.num_replicas());
@@ -299,9 +308,9 @@ mod tests {
 
     #[test]
     fn test_device_assignment_equality() {
-        let da1 = DeviceAssignment::new(1, 2, vec![0i32, 1i32]);
-        let da2 = DeviceAssignment::new(1, 2, vec![0i32, 1i32]);
-        let da3 = DeviceAssignment::new(2, 1, vec![0i32, 1i32]);
+        let da1 = DeviceAssignment::new(1, 2, vec![0i32, 1i32]).unwrap();
+        let da2 = DeviceAssignment::new(1, 2, vec![0i32, 1i32]).unwrap();
+        let da3 = DeviceAssignment::new(2, 1, vec![0i32, 1i32]).unwrap();
 
         assert_eq!(da1, da2);
         assert_ne!(da1, da3);
@@ -309,7 +318,7 @@ mod tests {
 
     #[test]
     fn test_device_assignment_debug() {
-        let da = DeviceAssignment::new(1, 2, vec![0i32, 1i32]);
+        let da = DeviceAssignment::new(1, 2, vec![0i32, 1i32]).unwrap();
         let debug = format!("{:?}", da);
         assert!(debug.contains("DeviceAssignment"));
         assert!(debug.contains("1")); // num_replicas
@@ -317,9 +326,15 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_device_assignment_new_wrong_length() {
-        // Should panic because we expect 2*2=4 devices but only provide 3
-        DeviceAssignment::new(2, 2, vec![0i32, 1i32, 2i32]);
+        // Should return Err because we expect 2*2=4 devices but only provide 3
+        let result = DeviceAssignment::new(2, 2, vec![0i32, 1i32, 2i32]);
+        assert!(result.is_err());
+        match result {
+            Err(Error::InvalidArgument(msg)) => {
+                assert!(msg.contains("length mismatch"));
+            }
+            _ => panic!("Expected InvalidArgument error"),
+        }
     }
 }

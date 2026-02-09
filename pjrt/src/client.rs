@@ -270,7 +270,7 @@ impl Client {
         args.default_assignment = default_assignment.as_mut_ptr();
         args.default_assignment_size = default_assignment.len();
         _ = self.api().PJRT_Client_DefaultDeviceAssignment(args)?;
-        let assignment = DeviceAssignment::new(num_replicas, num_partitions, default_assignment);
+        let assignment = DeviceAssignment::new(num_replicas, num_partitions, default_assignment)?;
         Ok(assignment)
     }
 
@@ -521,16 +521,8 @@ pub trait LayoutsExt {
 
 impl LayoutsExt for Client {
     fn layouts_extension(&self) -> Option<LayoutsExtension> {
-        unsafe {
-            // Extensions are accessed through the Api's extension chain
-            // The PJRT_Api struct has an extension_start field
-            let api_ptr = self.api() as *const Api as *mut pjrt_sys::PJRT_Api;
-            if api_ptr.is_null() {
-                return None;
-            }
-            let ext_start = (*api_ptr).extension_start;
-            LayoutsExtension::from_raw(ext_start, self.api())
-        }
+        let ext_start = self.api().extension_start();
+        unsafe { LayoutsExtension::from_raw(ext_start, self.api()) }
     }
 }
 
@@ -542,15 +534,8 @@ pub trait CallbackExt {
 
 impl CallbackExt for Client {
     fn callback_extension(&self) -> Option<CallbackExtension> {
-        unsafe {
-            // Extensions are accessed through the Api's extension chain
-            let api_ptr = self.api() as *const Api as *mut pjrt_sys::PJRT_Api;
-            if api_ptr.is_null() {
-                return None;
-            }
-            let ext_start = (*api_ptr).extension_start;
-            CallbackExtension::from_raw(ext_start, self.api())
-        }
+        let ext_start = self.api().extension_start();
+        unsafe { CallbackExtension::from_raw(ext_start, self.api()) }
     }
 }
 

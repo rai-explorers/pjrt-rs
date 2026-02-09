@@ -207,7 +207,7 @@ impl Executable {
         )
     }
 
-    pub fn cost_analysis(&self) -> NamedValueMap {
+    pub fn cost_analysis(&self) -> Result<NamedValueMap> {
         let mut args = PJRT_Executable_GetCostAnalysis_Args::new();
         args.executable = self.ptr;
         args = self

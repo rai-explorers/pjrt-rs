@@ -5,7 +5,7 @@ use std::slice;
 
 use pjrt_sys::PJRT_NamedValue;
 
-use crate::NamedValueMap;
+use crate::{NamedValueMap, Result};
 
 pub(crate) fn str_from_raw<'a>(ptr: *const c_char, size: usize) -> Cow<'a, str> {
     if ptr.is_null() {
@@ -53,12 +53,15 @@ pub(crate) fn byte_strides(shape: &[i64], elem_ty_size: usize) -> Vec<i64> {
     strides
 }
 
-pub(super) fn to_named_value_map(values: *const PJRT_NamedValue, size: usize) -> NamedValueMap {
+pub(super) fn to_named_value_map(
+    values: *const PJRT_NamedValue,
+    size: usize,
+) -> Result<NamedValueMap> {
     if size == 0 || values.is_null() {
-        NamedValueMap::new()
+        Ok(NamedValueMap::new())
     } else {
         let attributes = unsafe { std::slice::from_raw_parts(values, size) };
-        attributes.into()
+        Ok(attributes.try_into()?)
     }
 }
 
@@ -160,10 +163,10 @@ mod tests {
 
     #[test]
     fn test_to_named_value_map_empty() {
-        let map = to_named_value_map(std::ptr::null(), 0);
+        let map = to_named_value_map(std::ptr::null(), 0).unwrap();
         assert!(map.into_inner().is_empty());
 
-        let map = to_named_value_map(std::ptr::null(), 5);
+        let map = to_named_value_map(std::ptr::null(), 5).unwrap();
         assert!(map.into_inner().is_empty());
     }
 }

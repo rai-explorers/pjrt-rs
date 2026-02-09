@@ -99,7 +99,7 @@ impl TopologyDescription {
             .collect()
     }
 
-    pub fn attributes(&self) -> NamedValueMap {
+    pub fn attributes(&self) -> Result<NamedValueMap> {
         let mut args = PJRT_TopologyDescription_Attributes_Args::new();
         args.topology = self.ptr;
         args = self

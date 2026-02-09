@@ -265,13 +265,7 @@ pub trait FfiExt {
 
 impl FfiExt for Api {
     fn ffi_extension(&self) -> Option<FfiExtension> {
-        unsafe {
-            let api_ptr = self as *const Api as *mut pjrt_sys::PJRT_Api;
-            if api_ptr.is_null() {
-                return None;
-            }
-            let ext_start = (*api_ptr).extension_start;
-            FfiExtension::from_raw(ext_start, self)
-        }
+        let ext_start = self.extension_start();
+        unsafe { FfiExtension::from_raw(ext_start, self) }
     }
 }

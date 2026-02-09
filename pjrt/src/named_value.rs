@@ -24,7 +24,7 @@ use pjrt_sys::{
     PJRT_NamedValue_Type_PJRT_NamedValue_kInt64List, PJRT_NamedValue_Type_PJRT_NamedValue_kString,
 };
 
-use crate::utils;
+use crate::{utils, Error};
 
 /// A named value with a strongly-typed value.
 ///
@@ -134,9 +134,11 @@ impl<'a> From<&'a NamedValue> for PJRT_NamedValue {
     }
 }
 
-impl<'a> From<&'a PJRT_NamedValue> for NamedValue {
+impl<'a> TryFrom<&'a PJRT_NamedValue> for NamedValue {
+    type Error = Error;
+
     #[allow(non_upper_case_globals)]
-    fn from(value: &'a PJRT_NamedValue) -> Self {
+    fn try_from(value: &'a PJRT_NamedValue) -> std::result::Result<Self, Self::Error> {
         let name = utils::str_from_raw(value.name, value.name_size).into_owned();
         let value = match value.type_ {
             PJRT_NamedValue_Type_PJRT_NamedValue_kInt64 => {
@@ -166,10 +168,9 @@ impl<'a> From<&'a PJRT_NamedValue> for NamedValue {
                 };
                 Value::I64List(value.to_vec())
             }
-            // using try_from instead?
-            _ => panic!("Unknown PJRT_NamedValue_Type"),
+            unknown => return Err(Error::InvalidNamedValueType(unknown as i32)),
         };
-        Self { name, value }
+        Ok(Self { name, value })
     }
 }
 
@@ -244,16 +245,18 @@ impl<const N: usize> From<[NamedValue; N]> for NamedValueMap {
     }
 }
 
-impl<'a> From<&'a [PJRT_NamedValue]> for NamedValueMap {
-    fn from(values: &'a [PJRT_NamedValue]) -> Self {
+impl<'a> TryFrom<&'a [PJRT_NamedValue]> for NamedValueMap {
+    type Error = Error;
+
+    fn try_from(values: &'a [PJRT_NamedValue]) -> std::result::Result<Self, Self::Error> {
         let map = values
             .iter()
             .map(|v| {
-                let v = NamedValue::from(v);
-                (v.name, v.value)
+                let v = NamedValue::try_from(v)?;
+                Ok((v.name, v.value))
             })
-            .collect::<HashMap<String, Value>>();
-        Self { inner: map }
+            .collect::<std::result::Result<HashMap<String, Value>, Error>>()?;
+        Ok(Self { inner: map })
     }
 }
 

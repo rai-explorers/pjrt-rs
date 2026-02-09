@@ -17,7 +17,7 @@ async fn main() -> Result<()> {
     let plugin_path = std::env::var("PJRT_PLUGIN_PATH")
         .expect("PJRT_PLUGIN_PATH environment variable must be set");
     let api = pjrt::plugin(&plugin_path).load()?;
-    println!("{:?}", api.plugin_attributes());
+    println!("{:?}", api.plugin_attributes()?);
 
     let client = Client::builder(&api).build()?;
 

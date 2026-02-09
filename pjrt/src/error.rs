@@ -69,11 +69,14 @@ pub enum Error {
     #[error("invalid primitive type: {0}")]
     InvalidPrimitiveType(i32),
 
-    #[error("invalid errro code: {0}")]
+    #[error("invalid error code: {0}")]
     InvalidErrorCode(i32),
 
     #[error("invalid memory layout type: {0}")]
     InvalidMemoryLayoutType(i32),
+
+    #[error("invalid named value type: {0}")]
+    InvalidNamedValueType(i32),
 
     #[error("device not in device assignment: {0}")]
     DeviceNotInDeviceAssignment(GlobalDeviceId),
@@ -100,7 +103,7 @@ pub enum Error {
     PoisonError(String),
 
     #[error("unimplemented")]
-    Unimplemeted,
+    Unimplemented,
 }
 
 impl Error {
@@ -137,13 +140,13 @@ pub enum ErrorCode {
     NotFound = PJRT_Error_Code_PJRT_Error_Code_NOT_FOUND as i32,
     AlreadyExists = PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS as i32,
     PermissionDenied = PJRT_Error_Code_PJRT_Error_Code_PERMISSION_DENIED as i32,
-    ResourceExhaused = PJRT_Error_Code_PJRT_Error_Code_RESOURCE_EXHAUSTED as i32,
+    ResourceExhausted = PJRT_Error_Code_PJRT_Error_Code_RESOURCE_EXHAUSTED as i32,
     FailedPrecondition = PJRT_Error_Code_PJRT_Error_Code_FAILED_PRECONDITION as i32,
     Aborted = PJRT_Error_Code_PJRT_Error_Code_ABORTED as i32,
     OutOfRange = PJRT_Error_Code_PJRT_Error_Code_OUT_OF_RANGE as i32,
-    Unimplemeted = PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED as i32,
+    Unimplemented = PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED as i32,
     Internal = PJRT_Error_Code_PJRT_Error_Code_INTERNAL as i32,
-    Unavaliable = PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE as i32,
+    Unavailable = PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE as i32,
     DataLoss = PJRT_Error_Code_PJRT_Error_Code_DATA_LOSS as i32,
     Unauthenticated = PJRT_Error_Code_PJRT_Error_Code_UNAUTHENTICATED as i32,
 }
@@ -161,13 +164,13 @@ impl TryFrom<PJRT_Error_Code> for ErrorCode {
             PJRT_Error_Code_PJRT_Error_Code_NOT_FOUND => Ok(Self::NotFound),
             PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS => Ok(Self::AlreadyExists),
             PJRT_Error_Code_PJRT_Error_Code_PERMISSION_DENIED => Ok(Self::PermissionDenied),
-            PJRT_Error_Code_PJRT_Error_Code_RESOURCE_EXHAUSTED => Ok(Self::ResourceExhaused),
+            PJRT_Error_Code_PJRT_Error_Code_RESOURCE_EXHAUSTED => Ok(Self::ResourceExhausted),
             PJRT_Error_Code_PJRT_Error_Code_FAILED_PRECONDITION => Ok(Self::FailedPrecondition),
             PJRT_Error_Code_PJRT_Error_Code_ABORTED => Ok(Self::Aborted),
             PJRT_Error_Code_PJRT_Error_Code_OUT_OF_RANGE => Ok(Self::OutOfRange),
-            PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED => Ok(Self::Unimplemeted),
+            PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED => Ok(Self::Unimplemented),
             PJRT_Error_Code_PJRT_Error_Code_INTERNAL => Ok(Self::Internal),
-            PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE => Ok(Self::Unavaliable),
+            PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE => Ok(Self::Unavailable),
             PJRT_Error_Code_PJRT_Error_Code_DATA_LOSS => Ok(Self::DataLoss),
             PJRT_Error_Code_PJRT_Error_Code_UNAUTHENTICATED => Ok(Self::Unauthenticated),
             _ => Err(Error::InvalidErrorCode(code as i32)),
@@ -248,7 +251,7 @@ mod tests {
             PJRT_Error_Code_PJRT_Error_Code_PERMISSION_DENIED as i32
         );
         assert_eq!(
-            ErrorCode::ResourceExhaused as i32,
+            ErrorCode::ResourceExhausted as i32,
             PJRT_Error_Code_PJRT_Error_Code_RESOURCE_EXHAUSTED as i32
         );
         assert_eq!(
@@ -264,7 +267,7 @@ mod tests {
             PJRT_Error_Code_PJRT_Error_Code_OUT_OF_RANGE as i32
         );
         assert_eq!(
-            ErrorCode::Unimplemeted as i32,
+            ErrorCode::Unimplemented as i32,
             PJRT_Error_Code_PJRT_Error_Code_UNIMPLEMENTED as i32
         );
         assert_eq!(
@@ -272,7 +275,7 @@ mod tests {
             PJRT_Error_Code_PJRT_Error_Code_INTERNAL as i32
         );
         assert_eq!(
-            ErrorCode::Unavaliable as i32,
+            ErrorCode::Unavailable as i32,
             PJRT_Error_Code_PJRT_Error_Code_UNAVAILABLE as i32
         );
         assert_eq!(
@@ -322,7 +325,7 @@ mod tests {
 
         let err = Error::InvalidErrorCode(888);
         let display = format!("{}", err);
-        assert!(display.contains("invalid errro code: 888"));
+        assert!(display.contains("invalid error code: 888"));
 
         let err = Error::InvalidMemoryLayoutType(777);
         let display = format!("{}", err);
@@ -348,7 +351,7 @@ mod tests {
         let display = format!("{}", err);
         assert!(display.contains("plugin not found: test_plugin"));
 
-        let err = Error::Unimplemeted;
+        let err = Error::Unimplemented;
         let display = format!("{}", err);
         assert!(display.contains("unimplemented"));
 

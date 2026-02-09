@@ -164,13 +164,18 @@ impl Api {
         self.version
     }
 
+    /// Returns the head of the extension linked list, if any.
+    pub(crate) fn extension_start(&self) -> *mut pjrt_sys::PJRT_Extension_Base {
+        self.raw.extension_start
+    }
+
     /// Returns plugin-specific attributes as key-value pairs.
     ///
     /// Common attributes include:
     /// - `xla_version`: The XLA version string
     /// - `stablehlo_current_version`: The StableHLO version supported
     /// - `stablehlo_minimum_version`: The minimum StableHLO version supported
-    pub fn plugin_attributes(&self) -> NamedValueMap {
+    pub fn plugin_attributes(&self) -> Result<NamedValueMap> {
         let mut args = PJRT_Plugin_Attributes_Args::new();
         args = self
             .PJRT_Plugin_Attributes(args)

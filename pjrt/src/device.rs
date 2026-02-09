@@ -246,55 +246,60 @@ impl std::fmt::Debug for AsyncTrackingEvent {
     }
 }
 
+/// Memory usage statistics for a device.
+///
+/// `bytes_in_use` is always available. All other fields are optional
+/// because not every PJRT plugin reports them.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MemoryStats {
+    /// Current bytes in use.
     pub bytes_in_use: i64,
-    pub peak_bytes_in_use: i64,
-    pub peak_bytes_in_use_is_set: bool,
-    pub num_allocs: i64,
-    pub num_allocs_is_set: bool,
-    pub largest_alloc_size: i64,
-    pub largest_alloc_size_is_set: bool,
-    pub bytes_limit: i64,
-    pub bytes_limit_is_set: bool,
-    pub bytes_reserved: i64,
-    pub bytes_reserved_is_set: bool,
-    pub peak_bytes_reserved: i64,
-    pub peak_bytes_reserved_is_set: bool,
-    pub bytes_reservable_limit: i64,
-    pub bytes_reservable_limit_is_set: bool,
-    pub largest_free_block_bytes: i64,
-    pub largest_free_block_bytes_is_set: bool,
-    pub pool_bytes: i64,
-    pub pool_bytes_is_set: bool,
-    pub peak_pool_bytes: i64,
-    pub peak_pool_bytes_is_set: bool,
+    /// Peak bytes in use over the lifetime of the allocator.
+    pub peak_bytes_in_use: Option<i64>,
+    /// Number of allocations made.
+    pub num_allocs: Option<i64>,
+    /// Size of the largest single allocation.
+    pub largest_alloc_size: Option<i64>,
+    /// Memory limit (if set by the runtime).
+    pub bytes_limit: Option<i64>,
+    /// Current bytes reserved by the allocator.
+    pub bytes_reserved: Option<i64>,
+    /// Peak bytes reserved by the allocator.
+    pub peak_bytes_reserved: Option<i64>,
+    /// Limit on reservable bytes.
+    pub bytes_reservable_limit: Option<i64>,
+    /// Largest free block available in the pool.
+    pub largest_free_block_bytes: Option<i64>,
+    /// Current bytes in the memory pool.
+    pub pool_bytes: Option<i64>,
+    /// Peak bytes in the memory pool.
+    pub peak_pool_bytes: Option<i64>,
 }
 
 impl From<PJRT_Device_MemoryStats_Args> for MemoryStats {
     fn from(args: PJRT_Device_MemoryStats_Args) -> Self {
         Self {
             bytes_in_use: args.bytes_in_use,
-            peak_bytes_in_use: args.peak_bytes_in_use,
-            peak_bytes_in_use_is_set: args.peak_bytes_in_use_is_set,
-            num_allocs: args.num_allocs,
-            num_allocs_is_set: args.num_allocs_is_set,
-            largest_alloc_size: args.largest_alloc_size,
-            largest_alloc_size_is_set: args.largest_alloc_size_is_set,
-            bytes_limit: args.bytes_limit,
-            bytes_limit_is_set: args.bytes_limit_is_set,
-            bytes_reserved: args.bytes_reserved,
-            bytes_reserved_is_set: args.bytes_reserved_is_set,
-            peak_bytes_reserved: args.peak_bytes_reserved,
-            peak_bytes_reserved_is_set: args.peak_bytes_reserved_is_set,
-            bytes_reservable_limit: args.bytes_reservable_limit,
-            bytes_reservable_limit_is_set: args.bytes_reservable_limit_is_set,
-            largest_free_block_bytes: args.largest_free_block_bytes,
-            largest_free_block_bytes_is_set: args.largest_free_block_bytes_is_set,
-            pool_bytes: args.pool_bytes,
-            pool_bytes_is_set: args.pool_bytes_is_set,
-            peak_pool_bytes: args.peak_pool_bytes,
-            peak_pool_bytes_is_set: args.peak_pool_bytes_is_set,
+            peak_bytes_in_use: args
+                .peak_bytes_in_use_is_set
+                .then_some(args.peak_bytes_in_use),
+            num_allocs: args.num_allocs_is_set.then_some(args.num_allocs),
+            largest_alloc_size: args
+                .largest_alloc_size_is_set
+                .then_some(args.largest_alloc_size),
+            bytes_limit: args.bytes_limit_is_set.then_some(args.bytes_limit),
+            bytes_reserved: args.bytes_reserved_is_set.then_some(args.bytes_reserved),
+            peak_bytes_reserved: args
+                .peak_bytes_reserved_is_set
+                .then_some(args.peak_bytes_reserved),
+            bytes_reservable_limit: args
+                .bytes_reservable_limit_is_set
+                .then_some(args.bytes_reservable_limit),
+            largest_free_block_bytes: args
+                .largest_free_block_bytes_is_set
+                .then_some(args.largest_free_block_bytes),
+            pool_bytes: args.pool_bytes_is_set.then_some(args.pool_bytes),
+            peak_pool_bytes: args.peak_pool_bytes_is_set.then_some(args.peak_pool_bytes),
         }
     }
 }

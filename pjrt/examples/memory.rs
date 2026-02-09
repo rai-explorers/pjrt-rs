@@ -180,32 +180,31 @@ fn demonstrate_memory_stats(client: &Client) -> Result<()> {
                 println!("     - Bytes in use: {}", stats.bytes_in_use);
 
                 // Bytes limit (check if set)
-                if stats.bytes_limit_is_set {
-                    println!("     - Bytes limit: {}", stats.bytes_limit);
+                if let Some(limit) = stats.bytes_limit {
+                    println!("     - Bytes limit: {}", limit);
                 } else {
                     println!("     - Bytes limit: unlimited");
                 }
 
                 // Peak bytes (check if set)
-                if stats.peak_bytes_in_use_is_set {
-                    println!("     - Peak bytes in use: {}", stats.peak_bytes_in_use);
+                if let Some(peak) = stats.peak_bytes_in_use {
+                    println!("     - Peak bytes in use: {}", peak);
                 }
 
                 // Calculate utilization if limit is set
-                if stats.bytes_limit_is_set && stats.bytes_limit > 0 {
-                    let utilization =
-                        (stats.bytes_in_use as f64 / stats.bytes_limit as f64) * 100.0;
-                    println!("     - Current utilization: {:.1}%", utilization);
+                if let Some(limit) = stats.bytes_limit {
+                    if limit > 0 {
+                        let utilization = (stats.bytes_in_use as f64 / limit as f64) * 100.0;
+                        println!("     - Current utilization: {:.1}%", utilization);
+                    }
                 }
 
                 // Calculate peak utilization if both are set
-                if stats.peak_bytes_in_use_is_set
-                    && stats.bytes_limit_is_set
-                    && stats.bytes_limit > 0
-                {
-                    let peak_util =
-                        (stats.peak_bytes_in_use as f64 / stats.bytes_limit as f64) * 100.0;
-                    println!("     - Peak utilization: {:.1}%", peak_util);
+                if let (Some(peak), Some(limit)) = (stats.peak_bytes_in_use, stats.bytes_limit) {
+                    if limit > 0 {
+                        let peak_util = (peak as f64 / limit as f64) * 100.0;
+                        println!("     - Peak utilization: {:.1}%", peak_util);
+                    }
                 }
             }
             Err(e) => {

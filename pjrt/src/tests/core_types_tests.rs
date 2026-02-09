@@ -371,28 +371,28 @@ mod device_assignment_tests {
 
     #[test]
     fn test_device_assignment_creation() {
-        let assignment = DeviceAssignment::new(2, 2, vec![0, 1, 2, 3]);
+        let assignment = DeviceAssignment::new(2, 2, vec![0, 1, 2, 3]).unwrap();
         assert_eq!(assignment.num_replicas(), 2);
         assert_eq!(assignment.num_partitions(), 2);
     }
 
     #[test]
     fn test_device_assignment_multi_device() {
-        let assignment = DeviceAssignment::new(4, 2, vec![0, 1, 2, 3, 4, 5, 6, 7]);
+        let assignment = DeviceAssignment::new(4, 2, vec![0, 1, 2, 3, 4, 5, 6, 7]).unwrap();
         assert_eq!(assignment.num_replicas(), 4);
         assert_eq!(assignment.num_partitions(), 2);
     }
 
     #[test]
     fn test_device_assignment_single() {
-        let assignment = DeviceAssignment::new(1, 1, vec![0]);
+        let assignment = DeviceAssignment::new(1, 1, vec![0]).unwrap();
         assert_eq!(assignment.num_replicas(), 1);
         assert_eq!(assignment.num_partitions(), 1);
     }
 
     #[test]
     fn test_device_assignment_lookup_logical_id() {
-        let assignment = DeviceAssignment::new(2, 2, vec![0, 1, 2, 3]);
+        let assignment = DeviceAssignment::new(2, 2, vec![0, 1, 2, 3]).unwrap();
         let logical_id = assignment.lookup_logical_id(2).unwrap();
         assert_eq!(logical_id.replica_id, 1);
         assert_eq!(logical_id.partition_id, 0);
@@ -471,7 +471,7 @@ mod comprehensive_error_tests {
             Error::PluginNotFound("test".to_string()),
             Error::IoError(std::io::Error::other("test")),
             Error::PoisonError("test".to_string()),
-            Error::Unimplemeted,
+            Error::Unimplemented,
         ];
 
         for err in variants {
@@ -494,13 +494,13 @@ mod comprehensive_error_tests {
             ErrorCode::NotFound,
             ErrorCode::AlreadyExists,
             ErrorCode::PermissionDenied,
-            ErrorCode::ResourceExhaused,
+            ErrorCode::ResourceExhausted,
             ErrorCode::FailedPrecondition,
             ErrorCode::Aborted,
             ErrorCode::OutOfRange,
-            ErrorCode::Unimplemeted,
+            ErrorCode::Unimplemented,
             ErrorCode::Internal,
-            ErrorCode::Unavaliable,
+            ErrorCode::Unavailable,
             ErrorCode::DataLoss,
             ErrorCode::Unauthenticated,
         ];
@@ -532,7 +532,7 @@ mod comprehensive_error_tests {
             Error::PluginNotFound("test".to_string()),
             Error::IoError(std::io::Error::other("test")),
             Error::PoisonError("test".to_string()),
-            Error::Unimplemeted,
+            Error::Unimplemented,
         ];
 
         for err in variants {
@@ -575,13 +575,13 @@ mod comprehensive_error_tests {
             (ErrorCode::NotFound, "NotFound"),
             (ErrorCode::AlreadyExists, "AlreadyExists"),
             (ErrorCode::PermissionDenied, "PermissionDenied"),
-            (ErrorCode::ResourceExhaused, "ResourceExhaused"),
+            (ErrorCode::ResourceExhausted, "ResourceExhausted"),
             (ErrorCode::FailedPrecondition, "FailedPrecondition"),
             (ErrorCode::Aborted, "Aborted"),
             (ErrorCode::OutOfRange, "OutOfRange"),
-            (ErrorCode::Unimplemeted, "Unimplemeted"),
+            (ErrorCode::Unimplemented, "Unimplemented"),
             (ErrorCode::Internal, "Internal"),
-            (ErrorCode::Unavaliable, "Unavaliable"),
+            (ErrorCode::Unavailable, "Unavailable"),
             (ErrorCode::DataLoss, "DataLoss"),
             (ErrorCode::Unauthenticated, "Unauthenticated"),
         ];
@@ -645,7 +645,7 @@ mod comprehensive_error_tests {
             Error::PluginNotFound("test".to_string()),
             Error::IoError(std::io::Error::other("test")),
             Error::PoisonError("test".to_string()),
-            Error::Unimplemeted,
+            Error::Unimplemented,
         ];
 
         for err in variants {
@@ -739,13 +739,13 @@ mod comprehensive_error_tests {
             ErrorCode::NotFound as i32,
             ErrorCode::AlreadyExists as i32,
             ErrorCode::PermissionDenied as i32,
-            ErrorCode::ResourceExhaused as i32,
+            ErrorCode::ResourceExhausted as i32,
             ErrorCode::FailedPrecondition as i32,
             ErrorCode::Aborted as i32,
             ErrorCode::OutOfRange as i32,
-            ErrorCode::Unimplemeted as i32,
+            ErrorCode::Unimplemented as i32,
             ErrorCode::Internal as i32,
-            ErrorCode::Unavaliable as i32,
+            ErrorCode::Unavailable as i32,
             ErrorCode::DataLoss as i32,
             ErrorCode::Unauthenticated as i32,
         ];
@@ -1860,52 +1860,32 @@ mod memory_stats_tests {
     fn create_test_memory_stats() -> MemoryStats {
         MemoryStats {
             bytes_in_use: 1000,
-            peak_bytes_in_use: 2000,
-            peak_bytes_in_use_is_set: true,
-            num_allocs: 50,
-            num_allocs_is_set: true,
-            largest_alloc_size: 500,
-            largest_alloc_size_is_set: true,
-            bytes_limit: 10000,
-            bytes_limit_is_set: true,
-            bytes_reserved: 3000,
-            bytes_reserved_is_set: true,
-            peak_bytes_reserved: 4000,
-            peak_bytes_reserved_is_set: true,
-            bytes_reservable_limit: 8000,
-            bytes_reservable_limit_is_set: true,
-            largest_free_block_bytes: 2500,
-            largest_free_block_bytes_is_set: true,
-            pool_bytes: 5000,
-            pool_bytes_is_set: true,
-            peak_pool_bytes: 6000,
-            peak_pool_bytes_is_set: true,
+            peak_bytes_in_use: Some(2000),
+            num_allocs: Some(50),
+            largest_alloc_size: Some(500),
+            bytes_limit: Some(10000),
+            bytes_reserved: Some(3000),
+            peak_bytes_reserved: Some(4000),
+            bytes_reservable_limit: Some(8000),
+            largest_free_block_bytes: Some(2500),
+            pool_bytes: Some(5000),
+            peak_pool_bytes: Some(6000),
         }
     }
 
     fn create_minimal_memory_stats() -> MemoryStats {
         MemoryStats {
             bytes_in_use: 100,
-            peak_bytes_in_use: 0,
-            peak_bytes_in_use_is_set: false,
-            num_allocs: 0,
-            num_allocs_is_set: false,
-            largest_alloc_size: 0,
-            largest_alloc_size_is_set: false,
-            bytes_limit: 0,
-            bytes_limit_is_set: false,
-            bytes_reserved: 0,
-            bytes_reserved_is_set: false,
-            peak_bytes_reserved: 0,
-            peak_bytes_reserved_is_set: false,
-            bytes_reservable_limit: 0,
-            bytes_reservable_limit_is_set: false,
-            largest_free_block_bytes: 0,
-            largest_free_block_bytes_is_set: false,
-            pool_bytes: 0,
-            pool_bytes_is_set: false,
-            peak_pool_bytes: 0,
-            peak_pool_bytes_is_set: false,
+            peak_bytes_in_use: None,
+            num_allocs: None,
+            largest_alloc_size: None,
+            bytes_limit: None,
+            bytes_reserved: None,
+            peak_bytes_reserved: None,
+            bytes_reservable_limit: None,
+            largest_free_block_bytes: None,
+            pool_bytes: None,
+            peak_pool_bytes: None,
         }
     }
 
@@ -1914,18 +1894,16 @@ mod memory_stats_tests {
         let stats = create_test_memory_stats();
 
         assert_eq!(stats.bytes_in_use, 1000);
-        assert_eq!(stats.peak_bytes_in_use, 2000);
-        assert!(stats.peak_bytes_in_use_is_set);
-        assert_eq!(stats.num_allocs, 50);
-        assert!(stats.num_allocs_is_set);
-        assert_eq!(stats.largest_alloc_size, 500);
-        assert_eq!(stats.bytes_limit, 10000);
-        assert_eq!(stats.bytes_reserved, 3000);
-        assert_eq!(stats.peak_bytes_reserved, 4000);
-        assert_eq!(stats.bytes_reservable_limit, 8000);
-        assert_eq!(stats.largest_free_block_bytes, 2500);
-        assert_eq!(stats.pool_bytes, 5000);
-        assert_eq!(stats.peak_pool_bytes, 6000);
+        assert_eq!(stats.peak_bytes_in_use, Some(2000));
+        assert_eq!(stats.num_allocs, Some(50));
+        assert_eq!(stats.largest_alloc_size, Some(500));
+        assert_eq!(stats.bytes_limit, Some(10000));
+        assert_eq!(stats.bytes_reserved, Some(3000));
+        assert_eq!(stats.peak_bytes_reserved, Some(4000));
+        assert_eq!(stats.bytes_reservable_limit, Some(8000));
+        assert_eq!(stats.largest_free_block_bytes, Some(2500));
+        assert_eq!(stats.pool_bytes, Some(5000));
+        assert_eq!(stats.peak_pool_bytes, Some(6000));
     }
 
     #[test]
@@ -1973,26 +1951,16 @@ mod memory_stats_tests {
     fn test_memory_stats_partial_ord() {
         let stats1 = MemoryStats {
             bytes_in_use: 100,
-            peak_bytes_in_use: 200,
-            peak_bytes_in_use_is_set: true,
-            num_allocs: 10,
-            num_allocs_is_set: true,
-            largest_alloc_size: 50,
-            largest_alloc_size_is_set: true,
-            bytes_limit: 1000,
-            bytes_limit_is_set: true,
-            bytes_reserved: 300,
-            bytes_reserved_is_set: true,
-            peak_bytes_reserved: 400,
-            peak_bytes_reserved_is_set: true,
-            bytes_reservable_limit: 800,
-            bytes_reservable_limit_is_set: true,
-            largest_free_block_bytes: 250,
-            largest_free_block_bytes_is_set: true,
-            pool_bytes: 500,
-            pool_bytes_is_set: true,
-            peak_pool_bytes: 600,
-            peak_pool_bytes_is_set: true,
+            peak_bytes_in_use: Some(200),
+            num_allocs: Some(10),
+            largest_alloc_size: Some(50),
+            bytes_limit: Some(1000),
+            bytes_reserved: Some(300),
+            peak_bytes_reserved: Some(400),
+            bytes_reservable_limit: Some(800),
+            largest_free_block_bytes: Some(250),
+            pool_bytes: Some(500),
+            peak_pool_bytes: Some(600),
         };
 
         let stats2 = MemoryStats {
@@ -2061,107 +2029,66 @@ mod memory_stats_tests {
     #[test]
     fn test_memory_stats_optional_fields_pattern() {
         let stats = create_minimal_memory_stats();
-
-        let peak = if stats.peak_bytes_in_use_is_set {
-            Some(stats.peak_bytes_in_use)
-        } else {
-            None
-        };
-        assert!(peak.is_none());
+        assert!(stats.peak_bytes_in_use.is_none());
 
         let full_stats = create_test_memory_stats();
-        let peak_full = if full_stats.peak_bytes_in_use_is_set {
-            Some(full_stats.peak_bytes_in_use)
-        } else {
-            None
-        };
-        assert_eq!(peak_full, Some(2000));
+        assert_eq!(full_stats.peak_bytes_in_use, Some(2000));
     }
 
     #[test]
     fn test_memory_stats_zero_values_with_set_flag() {
         let stats = MemoryStats {
             bytes_in_use: 0,
-            peak_bytes_in_use: 0,
-            peak_bytes_in_use_is_set: true,
-            num_allocs: 0,
-            num_allocs_is_set: true,
-            largest_alloc_size: 0,
-            largest_alloc_size_is_set: true,
-            bytes_limit: 0,
-            bytes_limit_is_set: true,
-            bytes_reserved: 0,
-            bytes_reserved_is_set: true,
-            peak_bytes_reserved: 0,
-            peak_bytes_reserved_is_set: true,
-            bytes_reservable_limit: 0,
-            bytes_reservable_limit_is_set: true,
-            largest_free_block_bytes: 0,
-            largest_free_block_bytes_is_set: true,
-            pool_bytes: 0,
-            pool_bytes_is_set: true,
-            peak_pool_bytes: 0,
-            peak_pool_bytes_is_set: true,
+            peak_bytes_in_use: Some(0),
+            num_allocs: Some(0),
+            largest_alloc_size: Some(0),
+            bytes_limit: Some(0),
+            bytes_reserved: Some(0),
+            peak_bytes_reserved: Some(0),
+            bytes_reservable_limit: Some(0),
+            largest_free_block_bytes: Some(0),
+            pool_bytes: Some(0),
+            peak_pool_bytes: Some(0),
         };
 
-        assert!(stats.peak_bytes_in_use_is_set);
-        assert!(stats.bytes_limit_is_set);
+        assert!(stats.peak_bytes_in_use.is_some());
+        assert!(stats.bytes_limit.is_some());
     }
 
     #[test]
     fn test_memory_stats_large_values() {
         let stats = MemoryStats {
             bytes_in_use: 16 * 1024 * 1024 * 1024,
-            peak_bytes_in_use: 32 * 1024 * 1024 * 1024,
-            peak_bytes_in_use_is_set: true,
-            num_allocs: 1_000_000,
-            num_allocs_is_set: true,
-            largest_alloc_size: 4 * 1024 * 1024 * 1024,
-            largest_alloc_size_is_set: true,
-            bytes_limit: 64 * 1024 * 1024 * 1024,
-            bytes_limit_is_set: true,
-            bytes_reserved: 48 * 1024 * 1024 * 1024,
-            bytes_reserved_is_set: true,
-            peak_bytes_reserved: 56 * 1024 * 1024 * 1024,
-            peak_bytes_reserved_is_set: true,
-            bytes_reservable_limit: 60 * 1024 * 1024 * 1024,
-            bytes_reservable_limit_is_set: true,
-            largest_free_block_bytes: 8 * 1024 * 1024 * 1024,
-            largest_free_block_bytes_is_set: true,
-            pool_bytes: 40 * 1024 * 1024 * 1024,
-            pool_bytes_is_set: true,
-            peak_pool_bytes: 50 * 1024 * 1024 * 1024,
-            peak_pool_bytes_is_set: true,
+            peak_bytes_in_use: Some(32 * 1024 * 1024 * 1024),
+            num_allocs: Some(1_000_000),
+            largest_alloc_size: Some(4 * 1024 * 1024 * 1024),
+            bytes_limit: Some(64 * 1024 * 1024 * 1024),
+            bytes_reserved: Some(48 * 1024 * 1024 * 1024),
+            peak_bytes_reserved: Some(56 * 1024 * 1024 * 1024),
+            bytes_reservable_limit: Some(60 * 1024 * 1024 * 1024),
+            largest_free_block_bytes: Some(8 * 1024 * 1024 * 1024),
+            pool_bytes: Some(40 * 1024 * 1024 * 1024),
+            peak_pool_bytes: Some(50 * 1024 * 1024 * 1024),
         };
 
         assert_eq!(stats.bytes_in_use, 17179869184);
-        assert!(stats.bytes_limit > stats.bytes_in_use);
+        assert!(stats.bytes_limit.unwrap() > stats.bytes_in_use);
     }
 
     #[test]
     fn test_memory_stats_negative_values() {
         let stats = MemoryStats {
             bytes_in_use: -1,
-            peak_bytes_in_use: 0,
-            peak_bytes_in_use_is_set: false,
-            num_allocs: 0,
-            num_allocs_is_set: false,
-            largest_alloc_size: 0,
-            largest_alloc_size_is_set: false,
-            bytes_limit: 0,
-            bytes_limit_is_set: false,
-            bytes_reserved: 0,
-            bytes_reserved_is_set: false,
-            peak_bytes_reserved: 0,
-            peak_bytes_reserved_is_set: false,
-            bytes_reservable_limit: 0,
-            bytes_reservable_limit_is_set: false,
-            largest_free_block_bytes: 0,
-            largest_free_block_bytes_is_set: false,
-            pool_bytes: 0,
-            pool_bytes_is_set: false,
-            peak_pool_bytes: 0,
-            peak_pool_bytes_is_set: false,
+            peak_bytes_in_use: None,
+            num_allocs: None,
+            largest_alloc_size: None,
+            bytes_limit: None,
+            bytes_reserved: None,
+            peak_bytes_reserved: None,
+            bytes_reservable_limit: None,
+            largest_free_block_bytes: None,
+            pool_bytes: None,
+            peak_pool_bytes: None,
         };
 
         assert_eq!(stats.bytes_in_use, -1);
@@ -2182,49 +2109,41 @@ mod memory_stats_tests {
     }
 
     #[test]
-    fn test_memory_stats_all_is_set_flags() {
+    fn test_memory_stats_all_optional_fields() {
         let stats = create_test_memory_stats();
 
-        assert!(stats.peak_bytes_in_use_is_set);
-        assert!(stats.num_allocs_is_set);
-        assert!(stats.largest_alloc_size_is_set);
-        assert!(stats.bytes_limit_is_set);
-        assert!(stats.bytes_reserved_is_set);
-        assert!(stats.peak_bytes_reserved_is_set);
-        assert!(stats.bytes_reservable_limit_is_set);
-        assert!(stats.largest_free_block_bytes_is_set);
-        assert!(stats.pool_bytes_is_set);
-        assert!(stats.peak_pool_bytes_is_set);
+        assert!(stats.peak_bytes_in_use.is_some());
+        assert!(stats.num_allocs.is_some());
+        assert!(stats.largest_alloc_size.is_some());
+        assert!(stats.bytes_limit.is_some());
+        assert!(stats.bytes_reserved.is_some());
+        assert!(stats.peak_bytes_reserved.is_some());
+        assert!(stats.bytes_reservable_limit.is_some());
+        assert!(stats.largest_free_block_bytes.is_some());
+        assert!(stats.pool_bytes.is_some());
+        assert!(stats.peak_pool_bytes.is_some());
     }
 
     #[test]
     fn test_memory_stats_helper_functions() {
-        fn get_peak_bytes(stats: &MemoryStats) -> Option<i64> {
-            stats
-                .peak_bytes_in_use_is_set
-                .then_some(stats.peak_bytes_in_use)
-        }
-
-        fn get_bytes_limit(stats: &MemoryStats) -> Option<i64> {
-            stats.bytes_limit_is_set.then_some(stats.bytes_limit)
-        }
-
         fn utilization_percent(stats: &MemoryStats) -> Option<f64> {
-            if stats.bytes_limit_is_set && stats.bytes_limit > 0 {
-                Some((stats.bytes_in_use as f64 / stats.bytes_limit as f64) * 100.0)
-            } else {
-                None
-            }
+            stats.bytes_limit.and_then(|limit| {
+                if limit > 0 {
+                    Some((stats.bytes_in_use as f64 / limit as f64) * 100.0)
+                } else {
+                    None
+                }
+            })
         }
 
         let stats = create_test_memory_stats();
-        assert_eq!(get_peak_bytes(&stats), Some(2000));
-        assert_eq!(get_bytes_limit(&stats), Some(10000));
+        assert_eq!(stats.peak_bytes_in_use, Some(2000));
+        assert_eq!(stats.bytes_limit, Some(10000));
         assert!((utilization_percent(&stats).unwrap() - 10.0).abs() < 0.01);
 
         let minimal = create_minimal_memory_stats();
-        assert_eq!(get_peak_bytes(&minimal), None);
-        assert_eq!(get_bytes_limit(&minimal), None);
+        assert_eq!(minimal.peak_bytes_in_use, None);
+        assert_eq!(minimal.bytes_limit, None);
         assert!(utilization_percent(&minimal).is_none());
     }
 }

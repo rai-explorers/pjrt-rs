@@ -325,7 +325,7 @@ impl TryFrom<PrimitiveType> for Box<dyn DType> {
 impl PrimitiveType {
     pub fn try_into_dtype(&self) -> Result<Box<dyn DType>> {
         match self {
-            PrimitiveType::Invalid => Err(Error::Unimplemeted),
+            PrimitiveType::Invalid => Err(Error::Unimplemented),
             PrimitiveType::Pred => Ok(Bool.boxed_dtype()),
             PrimitiveType::S8 => Ok(I8.boxed_dtype()),
             PrimitiveType::S16 => Ok(I16.boxed_dtype()),
@@ -341,16 +341,16 @@ impl PrimitiveType {
             PrimitiveType::BF16 => Ok(BF16.boxed_dtype()),
             PrimitiveType::C64 => Ok(C64.boxed_dtype()),
             PrimitiveType::C128 => Ok(C128.boxed_dtype()),
-            PrimitiveType::F8E5M2 => Err(Error::Unimplemeted),
-            PrimitiveType::F8E4M3FN => Err(Error::Unimplemeted),
-            PrimitiveType::F8E4M3B11FNUZ => Err(Error::Unimplemeted),
-            PrimitiveType::F8E5M2FNUZ => Err(Error::Unimplemeted),
-            PrimitiveType::F8E4M3FNUZ => Err(Error::Unimplemeted),
-            PrimitiveType::S4 => Err(Error::Unimplemeted),
-            PrimitiveType::U4 => Err(Error::Unimplemeted),
-            PrimitiveType::Token => Err(Error::Unimplemeted),
-            PrimitiveType::S2 => Err(Error::Unimplemeted),
-            PrimitiveType::U2 => Err(Error::Unimplemeted),
+            PrimitiveType::F8E5M2 => Err(Error::Unimplemented),
+            PrimitiveType::F8E4M3FN => Err(Error::Unimplemented),
+            PrimitiveType::F8E4M3B11FNUZ => Err(Error::Unimplemented),
+            PrimitiveType::F8E5M2FNUZ => Err(Error::Unimplemented),
+            PrimitiveType::F8E4M3FNUZ => Err(Error::Unimplemented),
+            PrimitiveType::S4 => Err(Error::Unimplemented),
+            PrimitiveType::U4 => Err(Error::Unimplemented),
+            PrimitiveType::Token => Err(Error::Unimplemented),
+            PrimitiveType::S2 => Err(Error::Unimplemented),
+            PrimitiveType::U2 => Err(Error::Unimplemented),
         }
     }
 }
@@ -381,7 +381,7 @@ impl TryFrom<PJRT_Buffer_Type> for PrimitiveType {
             PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2 => Ok(Self::F8E5M2),
             PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN => Ok(Self::F8E4M3FN),
             PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ => Ok(Self::F8E4M3B11FNUZ),
-            PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ => Ok(Self::F8E4M3FNUZ),
+            PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ => Ok(Self::F8E5M2FNUZ),
             PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ => Ok(Self::F8E4M3FNUZ),
             PJRT_Buffer_Type_PJRT_Buffer_Type_S4 => Ok(Self::S4),
             PJRT_Buffer_Type_PJRT_Buffer_Type_U4 => Ok(Self::U4),

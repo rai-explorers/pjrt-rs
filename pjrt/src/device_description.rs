@@ -9,7 +9,7 @@ use pjrt_sys::{
 };
 
 use crate::named_value::NamedValueMap;
-use crate::{utils, Api, GlobalDeviceId};
+use crate::{utils, Api, GlobalDeviceId, Result};
 
 pub struct DeviceDescription {
     api: Api,
@@ -49,7 +49,7 @@ impl DeviceDescription {
         args.process_index
     }
 
-    pub fn attributes(&self) -> NamedValueMap {
+    pub fn attributes(&self) -> Result<NamedValueMap> {
         let mut args = PJRT_DeviceDescription_Attributes_Args::new();
         args.device_description = self.ptr;
         args = self
