@@ -45,9 +45,7 @@ impl Drop for TopologyDescription {
         let mut args = PJRT_TopologyDescription_Destroy_Args::new();
         args.topology = self.ptr;
         if self.client.is_none() {
-            self.api
-                .PJRT_TopologyDescription_Destroy(args)
-                .expect("PJRT_TopologyDescription_Destroy");
+            let _ = self.api.PJRT_TopologyDescription_Destroy(args);
         }
     }
 }

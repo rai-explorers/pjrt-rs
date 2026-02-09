@@ -22,7 +22,7 @@ use pjrt::{self, KeyValueStore, Result};
 /// A simple in-memory KeyValueStore implementation for demonstration
 #[derive(Debug, Clone)]
 struct InMemoryKeyValueStore {
-    data: Arc<Mutex<HashMap<String, String>>>,
+    data: Arc<Mutex<HashMap<String, Vec<u8>>>>,
 }
 
 impl InMemoryKeyValueStore {
@@ -34,7 +34,7 @@ impl InMemoryKeyValueStore {
 }
 
 impl KeyValueStore for InMemoryKeyValueStore {
-    fn get(&self, key: &str, timeout_in_ms: i32) -> Result<String> {
+    fn get(&self, key: &str, timeout_in_ms: i32) -> Result<Vec<u8>> {
         println!("   KV Store: GET '{}' (timeout={}ms)", key, timeout_in_ms);
 
         let data = self.data.lock().unwrap();
@@ -56,15 +56,19 @@ impl KeyValueStore for InMemoryKeyValueStore {
         }
     }
 
-    fn put(&self, key: &str, value: &str) -> Result<()> {
-        println!("   KV Store: PUT '{}' = '{}'", key, value);
+    fn put(&self, key: &str, value: &[u8]) -> Result<()> {
+        println!(
+            "   KV Store: PUT '{}' = '{}'",
+            key,
+            String::from_utf8_lossy(value)
+        );
 
         let mut data = self.data.lock().unwrap();
-        data.insert(key.to_string(), value.to_string());
+        data.insert(key.to_string(), value.to_vec());
         Ok(())
     }
 
-    fn try_get(&self, key: &str) -> Result<Option<String>> {
+    fn try_get(&self, key: &str) -> Result<Option<Vec<u8>>> {
         println!("   KV Store: TRY_GET '{}'", key);
 
         let data = self.data.lock().unwrap();
@@ -103,33 +107,33 @@ fn demonstrate_kv_store_trait() -> Result<()> {
 
     // Demonstrate PUT operations
     println!("   Storing configuration data:");
-    store.put("cluster/size", "4")?;
-    store.put("cluster/node0/address", "192.168.1.10:8080")?;
-    store.put("cluster/node1/address", "192.168.1.11:8080")?;
-    store.put("cluster/node2/address", "192.168.1.12:8080")?;
-    store.put("cluster/node3/address", "192.168.1.13:8080")?;
+    store.put("cluster/size", b"4")?;
+    store.put("cluster/node0/address", b"192.168.1.10:8080")?;
+    store.put("cluster/node1/address", b"192.168.1.11:8080")?;
+    store.put("cluster/node2/address", b"192.168.1.12:8080")?;
+    store.put("cluster/node3/address", b"192.168.1.13:8080")?;
 
     println!();
 
     // Demonstrate GET operations
     println!("   Retrieving data with GET:");
     let size = store.get("cluster/size", 5000)?;
-    println!("   Cluster size: {}", size);
+    println!("   Cluster size: {}", String::from_utf8_lossy(&size));
 
     let node0 = store.get("cluster/node0/address", 5000)?;
-    println!("   Node 0 address: {}", node0);
+    println!("   Node 0 address: {}", String::from_utf8_lossy(&node0));
 
     println!();
 
     // Demonstrate TRY_GET operations
     println!("   Retrieving data with TRY_GET (non-blocking):");
     match store.try_get("cluster/node1/address")? {
-        Some(value) => println!("   Node 1 address: {}", value),
+        Some(value) => println!("   Node 1 address: {}", String::from_utf8_lossy(&value)),
         None => println!("   Node 1 address not found"),
     }
 
     match store.try_get("cluster/nonexistent")? {
-        Some(value) => println!("   Nonexistent: {}", value),
+        Some(value) => println!("   Nonexistent: {}", String::from_utf8_lossy(&value)),
         None => println!("   Nonexistent key returns None (as expected)"),
     }
 
@@ -220,17 +224,17 @@ mod advanced_kv_store {
     }
 
     impl KeyValueStore for RetryableKeyValueStore {
-        fn get(&self, key: &str, timeout_in_ms: i32) -> Result<String> {
+        fn get(&self, key: &str, timeout_in_ms: i32) -> Result<Vec<u8>> {
             // For GET, we respect the timeout but also add retries
             let effective_timeout = timeout_in_ms.max(1000); // Minimum 1 second
             self.with_retry(|| self.inner.get(key, effective_timeout))
         }
 
-        fn put(&self, key: &str, value: &str) -> Result<()> {
+        fn put(&self, key: &str, value: &[u8]) -> Result<()> {
             self.with_retry(|| self.inner.put(key, value))
         }
 
-        fn try_get(&self, key: &str) -> Result<Option<String>> {
+        fn try_get(&self, key: &str) -> Result<Option<Vec<u8>>> {
             self.with_retry(|| self.inner.try_get(key))
         }
     }

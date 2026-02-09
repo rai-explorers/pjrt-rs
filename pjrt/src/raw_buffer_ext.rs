@@ -24,7 +24,7 @@
 //! let host_ptr = raw_buffer.get_host_pointer()?;
 //!
 //! // Copy data to/from the raw buffer
-//! let event = raw_buffer.copy_raw_host_to_device(&src_data, 0)?;
+//! let event = unsafe { raw_buffer.copy_raw_host_to_device(&src_data, 0)? };
 //! ```
 
 use std::marker::PhantomData;
@@ -214,7 +214,12 @@ impl<'a> RawBuffer<'a> {
     /// # Returns
     ///
     /// An `Event` that completes when the transfer is done
-    pub fn copy_raw_host_to_device<T>(&self, src: &[T], offset: i64) -> Result<Event> {
+    ///
+    /// # Safety
+    ///
+    /// - `offset + size_of_val(src)` must not exceed the buffer's on-device size.
+    /// - The caller must ensure no concurrent writes to the same region.
+    pub unsafe fn copy_raw_host_to_device<T: Copy>(&self, src: &[T], offset: i64) -> Result<Event> {
         let ext_fn =
             self.ext
                 .PJRT_RawBuffer_CopyRawHostToDevice
@@ -247,7 +252,17 @@ impl<'a> RawBuffer<'a> {
     /// # Returns
     ///
     /// An `Event` that completes when the transfer is done
-    pub fn copy_raw_device_to_host<T>(&self, dst: &mut [T], offset: i64) -> Result<Event> {
+    ///
+    /// # Safety
+    ///
+    /// - `offset + size_of_val(dst)` must not exceed the buffer's on-device size.
+    /// - The caller must ensure no concurrent writes to the same region.
+    /// - The resulting bytes must represent valid `T` values.
+    pub unsafe fn copy_raw_device_to_host<T: Copy>(
+        &self,
+        dst: &mut [T],
+        offset: i64,
+    ) -> Result<Event> {
         let ext_fn =
             self.ext
                 .PJRT_RawBuffer_CopyRawDeviceToHost

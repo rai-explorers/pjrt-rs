@@ -1,10 +1,18 @@
+/// Creates a `new()` constructor for PJRT C-API structs.
+///
+/// **Always use `T::new()` instead of `T::default()`** for types with `struct_size`.
+/// The `new()` method correctly initializes `struct_size` to the compile-time
+/// constant, while `Default::default()` (from bindgen) zero-initializes everything
+/// including `struct_size`, which can cause the C API to reject the struct.
 macro_rules! impl_new {
     ($t:ident, $s:ident) => {
         impl $crate::$t {
             pub const STRUCT_SIZE: usize = $crate::$s as usize;
 
             pub fn new() -> Self {
-                let mut t = $crate::$t::default();
+                // SAFETY: All PJRT C-API structs are plain-old-data (POD).
+                // Zero-initialization is valid; we then set the required struct_size.
+                let mut t: Self = unsafe { std::mem::zeroed() };
                 t.struct_size = Self::STRUCT_SIZE;
                 t
             }

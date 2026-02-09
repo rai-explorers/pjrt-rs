@@ -70,9 +70,7 @@ impl Drop for Executable {
     fn drop(&mut self) {
         let mut args = PJRT_Executable_Destroy_Args::new();
         args.executable = self.ptr;
-        self.api
-            .PJRT_Executable_Destroy(args)
-            .expect("PJRT_Executable_Destroy");
+        let _ = self.api.PJRT_Executable_Destroy(args);
     }
 }
 
@@ -203,12 +201,12 @@ impl Executable {
         args.executable = self.ptr;
         // first call to get the size
         args = self.api.PJRT_Executable_OptimizedProgram(args)?;
-        // prepare the code buffer
-        let mut prog = unsafe { *args.program };
-        let mut code: Vec<u8> = vec![0; prog.code_size];
-        #[allow(unused_assignments)]
-        {
-            prog.code = code.as_mut_ptr() as *mut _;
+        // prepare the code buffer — write directly to the pointed-to struct,
+        // not a local copy, so the second call sees the buffer pointer.
+        let code_size = unsafe { (*args.program).code_size };
+        let mut code: Vec<u8> = vec![0; code_size];
+        unsafe {
+            (*args.program).code = code.as_mut_ptr() as *mut _;
         }
         // second call to get the code
         args = self.api.PJRT_Executable_OptimizedProgram(args)?;

@@ -159,7 +159,12 @@ impl HostAllocatorExtension {
     /// # Safety
     ///
     /// The caller must ensure the returned memory is freed with [`free`](Self::free).
-    pub fn allocate(&self, client: &Client, size: usize, alignment: usize) -> Result<*mut c_void> {
+    pub unsafe fn allocate(
+        &self,
+        client: &Client,
+        size: usize,
+        alignment: usize,
+    ) -> Result<*mut c_void> {
         let mut args: PJRT_HostAllocator_Allocate_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_HostAllocator_Allocate_Args>();
         args.extension_start = self.raw_ptr();
@@ -188,7 +193,7 @@ impl HostAllocatorExtension {
     /// # Safety
     ///
     /// The caller must ensure `ptr` was allocated by this extension's `allocate` method.
-    pub fn free(&self, client: &Client, ptr: *mut c_void) -> Result<()> {
+    pub unsafe fn free(&self, client: &Client, ptr: *mut c_void) -> Result<()> {
         let mut args: PJRT_HostAllocator_Free_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_HostAllocator_Free_Args>();
         args.extension_start = self.raw_ptr();

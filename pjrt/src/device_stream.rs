@@ -15,9 +15,7 @@ impl Drop for CopyToDeviceStream {
     fn drop(&mut self) {
         let mut args = PJRT_CopyToDeviceStream_Destroy_Args::new();
         args.stream = self.ptr;
-        self.api
-            .PJRT_CopyToDeviceStream_Destroy(args)
-            .expect("PJRT_CopyToDeviceStream_Destroy");
+        let _ = self.api.PJRT_CopyToDeviceStream_Destroy(args);
     }
 }
 

@@ -63,10 +63,7 @@ impl Drop for LoadedExecutable {
     fn drop(&mut self) {
         let mut args = PJRT_LoadedExecutable_Destroy_Args::new();
         args.executable = self.ptr;
-        self.client
-            .api()
-            .PJRT_LoadedExecutable_Destroy(args)
-            .expect("PJRT_LoadedExecutable_Destroy");
+        let _ = self.client.api().PJRT_LoadedExecutable_Destroy(args);
     }
 }
 

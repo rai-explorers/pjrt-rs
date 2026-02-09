@@ -4,85 +4,85 @@ Fresh module-by-module review of the entire `pjrt-rs` crate.
 
 ---
 
-## Critical Bugs (UB / Memory Safety)
+## Critical Bugs (UB / Memory Safety) — **ALL FIXED**
 
-### 1. Extension chain not walked — only first extension ever discovered
+### 1. ~~Extension chain not walked — only first extension ever discovered~~ ✅ FIXED
 
-`extension.rs` has a correct `find_extension()` + `ExtensionIterator` that walks the `next` linked list, but they're `#[allow(dead_code)]` and unused. Every `from_raw()` implementation (all 18 extensions) checks only the single pointer it receives. `Api::get_extension()` passes `extension_start()` (chain head) directly to `from_raw()`. **If a plugin's first extension isn't the requested type, discovery fails even though the extension exists further in the chain.**
+`extension.rs` had a correct `find_extension()` + `ExtensionIterator` that walks the `next` linked list, but they were `#[allow(dead_code)]` and unused. `Api::get_extension()` now calls `find_extension()` to walk the chain before `from_raw()`.
 
-**Files:** `extension.rs`, `api.rs` L208, all `*_ext.rs` `from_raw()` impls
+**Fix:** `api.rs` — `get_extension()` uses `find_extension()`. `extension.rs` — removed `#[allow(dead_code)]` from `ExtensionIterator` and `find_extension()`.
 
-### 2. Dangling pointer to stack-local `PJRT_Buffer_MemoryLayout` (5 sites)
+### 2. ~~Dangling pointer to stack-local `PJRT_Buffer_MemoryLayout` (5 sites)~~ ✅ FIXED
 
-When `layout` is `Some`, a local `layout_c` is created inside an `if let` block and dropped before the C API call executes:
+Fixed by moving `layout_c` to outer scope via `Option::map()` so it lives until after the C API call.
 
-- `client.rs` L354-357 — `create_uninitialized_buffer`
-- `client.rs` L384-386 — `create_error_buffer`
-- `client.rs` L410-412 — `create_alias_buffer`
-- `buffer.rs` L298-306 — `call_copy_to_host`
-- `host_buffer.rs` L217-221 — `call_copy_to`
+**Fix:** `client.rs` (3 sites), `buffer.rs` (1 site), `host_buffer.rs` (1 site)
 
-All result in **use-after-free** when `layout` is provided.
+### 3. ~~`async_transfer.rs` `add_metadata` unsound pointer cast~~ ✅ FIXED
 
-### 3. `async_transfer.rs` `add_metadata` unsound pointer cast
+Now converts `&[NamedValue]` to `Vec<pjrt_sys::PJRT_NamedValue>` via proper `From` conversion.
 
-`async_transfer.rs` L379: `metadata.as_ptr() as *const PJRT_NamedValue` casts `&[NamedValue]` (Rust struct: `{name: String, value: Value}`) directly to `*const PJRT_NamedValue` (C struct with raw pointers). **Completely different layouts → UB.** Needs conversion through `From<&NamedValue> for PJRT_NamedValue`.
+**Fix:** `async_transfer.rs` — `add_metadata()` uses `.iter().map(PJRT_NamedValue::from).collect()`
 
-### 4. `host_buffer.rs` `from_bytes` violates allocator contract
+### 4. ~~`host_buffer.rs` `from_bytes` violates allocator contract~~ ✅ FIXED
 
-`host_buffer.rs` L158: `Vec::from_raw_parts` reinterprets a `Vec<u8>` allocation (align=1) as `Vec<T::ElemType>` (e.g. align=4 for f32). When the resulting Vec is dropped, `dealloc` is called with a mismatched `Layout` → **UB per the global allocator contract**.
+Now allocates a properly aligned `Vec<T::ElemType>` and copies bytes into it.
 
-### 5. `executable.rs` `output_dims` incorrect flat-array indexing
+**Fix:** `host_buffer.rs` — `from_bytes()` uses `Vec::with_capacity(length)` + `copy_nonoverlapping`
 
-`executable.rs` L175: `args.dims.add(i)` indexes by output index instead of cumulative offset. If output 0 has rank 2 and output 1 has rank 1, output 1's dims are read from offset 1 instead of offset 2. **Produces wrong dimensions for multi-output executables with rank > 1.**
+### 5. ~~`executable.rs` `output_dims` incorrect flat-array indexing~~ ✅ FIXED
 
-### 6. `triton_ext.rs` `from_utf8_unchecked` on C-provided bytes
+Uses cumulative offset tracking instead of index-based access.
 
-`triton_ext.rs` L147: Uses `from_utf8_unchecked` for the output path from the C API. No guarantee these bytes are valid UTF-8 → **UB**. (The `asm_code` on the same function correctly uses `from_utf8_lossy`.)
+**Fix:** `executable.rs` — `output_dims()` uses running `offset` sum
 
-### 7. `event.rs` panicking in `extern "C"` callback
+### 6. ~~`triton_ext.rs` `from_utf8_unchecked` on C-provided bytes~~ ✅ FIXED
 
-`event.rs` L29: `on_ready_callback` is `extern "C"` and calls `.expect("PJRT_Error_Destroy")`. **Panicking across an FFI boundary is UB** per Rust's reference. Needs `catch_unwind`.
+**Fix:** `triton_ext.rs` — replaced with `String::from_utf8_lossy(bytes).into_owned()`
 
-### 8. `api.rs` `err_or_with_fn` leaks PJRT error on early return
+### 7. ~~`event.rs` panicking in `extern "C"` callback~~ ✅ FIXED
 
-`api.rs` L293-315: If `PJRT_Error_Message`, `PJRT_Error_GetCode`, or `args.code.try_into()` fails via `?`, the original PJRT error (`err`) is **never destroyed** via `PJRT_Error_Destroy`. Resource leak on every error-path failure.
+**Fix:** `event.rs` — `on_ready_callback` wrapped in `catch_unwind`, null-checks error before destroy
+
+### 8. ~~`api.rs` `err_or_with_fn` leaks PJRT error on early return~~ ✅ FIXED
+
+**Fix:** `api.rs` — split into `extract_error_info()` helper + guaranteed `PJRT_Error_Destroy` call
 
 ---
 
-## High-Priority Warnings
+## High-Priority Warnings — **ALL FIXED**
 
-### 9. `event.rs` `Future::poll` never updates the `Waker`
+### 9. ~~`event.rs` `Future::poll` never updates the `Waker`~~ ✅ FIXED
 
-`event.rs` L136: The callback is registered once with the initial waker. If the executor provides a different waker on re-poll (permitted by `Future` contract), the stale waker is woken instead → **task can hang forever**.
+**Fix:** `event.rs` — Introduced `Arc<CallbackState>` with `Mutex<Option<Waker>>` shared between `Event` and callback. Waker updated on every `poll()` call. Callback reads waker from shared state.
 
-### 10. `executable.rs` `optimize()` writes to local copy instead of C-owned struct
+### 10. ~~`executable.rs` `optimize()` writes to local copy instead of C-owned struct~~ ✅ FIXED
 
-`executable.rs` L204-208: `let mut prog = unsafe { *args.program }` copies the struct locally. The code/code_size assignment goes to the local copy, not `args.program`. The C API never sees the update → **returned `Program` has zero-filled code buffer**.
+**Fix:** `executable.rs` — Write `code` pointer directly to `(*args.program).code` instead of copying the struct locally.
 
-### 11. `Drop` impls panic via `.expect()` (systemic, 7+ sites)
+### 11. ~~`Drop` impls panic via `.expect()` (systemic, 10 sites)~~ ✅ FIXED
 
-`Buffer`, `Event`, `ClientRaw`, `CopyToDeviceStream`, `AsyncTrackingEvent`, `AsyncHostToDeviceTransferManager`, `TopologyDescription` — all panic in `Drop`. During stack unwinding → **double-panic abort**. Library code should never panic in `Drop`.
+**Fix:** All 10 Drop impls (`Buffer`, `Event`, `ClientRaw`, `CopyToDeviceStream`, `AsyncTrackingEvent`, `AsyncHostToDeviceTransferManager`, `TopologyDescription`, `Executable`, `LoadedExecutable`, `ExecuteContext`) — replaced `.expect()` with `let _ =`.
 
-### 12. `raw_buffer_ext.rs` safe methods perform raw memory operations
+### 12. ~~`raw_buffer_ext.rs` safe methods perform raw memory operations~~ ✅ FIXED
 
-`copy_raw_host_to_device` and `copy_raw_device_to_host` accept generic `&[T]`/`&mut [T]` with no `T: Copy` bound, and are not `unsafe fn` despite writing/reading arbitrary memory through FFI.
+**Fix:** `raw_buffer_ext.rs` — `copy_raw_host_to_device` and `copy_raw_device_to_host` marked `unsafe fn` with `T: Copy` bound and `# Safety` docs.
 
-### 13. `host_allocator_ext.rs` safe `allocate`/`free` should be `unsafe`
+### 13. ~~`host_allocator_ext.rs` safe `allocate`/`free` should be `unsafe`~~ ✅ FIXED
 
-`host_allocator_ext.rs` L155: Returns `*mut c_void` from a safe function. Similarly, `free` deallocates raw memory from a safe function.
+**Fix:** `host_allocator_ext.rs` — Both methods marked `unsafe fn`.
 
-### 14. `profiler_ext.rs` lifetime gap between `ProfilerApi` and `ProfilerExtension`
+### 14. ~~`profiler_ext.rs` lifetime gap between `ProfilerApi` and `ProfilerExtension`~~ ✅ FIXED
 
-`ProfilerApi` stores a raw pointer to `PLUGIN_Profiler_Api` owned by the `Rc<PJRT_Profiler_Extension>` in `ProfilerExtension`. If `ProfilerExtension` is dropped while `ProfilerApi`/`Profiler` is still live, the pointer dangles.
+**Fix:** `profiler_ext.rs` — Added `_ext: Rc<PJRT_Profiler_Extension>` to `ProfilerApi` to keep extension alive.
 
-### 15. `pjrt-sys` `Default` vs `new()` produce different structs
+### 15. ~~`pjrt-sys` `Default` vs `new()` produce different structs~~ ✅ FIXED
 
-`structs.rs`: `impl_new` macro generates `new()` with correct `struct_size`, but `derive_default(true)` in bindgen also generates a `Default` with all-zeros (missing `struct_size`). Using `::default()` instead of `::new()` silently passes `struct_size = 0` to the C API.
+**Fix:** `structs.rs` — `impl_new!` macro's `new()` now uses `unsafe { std::mem::zeroed() }` + sets `struct_size` directly, independent of `Default`. Added doc comment warning to use `new()` over `default()`.
 
-### 16. `kv_store.rs` uses lossy UTF-8 for binary data
+### 16. ~~`kv_store.rs` uses lossy UTF-8 for binary data~~ ✅ FIXED
 
-`kv_store.rs` L115: `kv_put_callback` converts raw bytes via `from_utf8_lossy`, corrupting any binary data containing invalid UTF-8. `KeyValueStore` trait uses `String` values instead of `Vec<u8>`.
+**Fix:** `kv_store.rs` — `KeyValueStore` trait changed from `String` to `Vec<u8>`/`&[u8]`. Callbacks use length-prefixed allocation for binary data instead of CString. Updated example.
 
 ---
 

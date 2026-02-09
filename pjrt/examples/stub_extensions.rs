@@ -86,7 +86,7 @@ fn demonstrate_host_allocator(api: &pjrt::Api, client: &Client) {
             // Allocate a small host buffer, write to it, then free.
             let size = 1024;
             let alignment = 64;
-            match ext.allocate(client, size, alignment) {
+            match unsafe { ext.allocate(client, size, alignment) } {
                 Ok(ptr) => {
                     println!(
                         "  allocated {} bytes at {:p} (alignment={})",
@@ -96,7 +96,7 @@ fn demonstrate_host_allocator(api: &pjrt::Api, client: &Client) {
                     unsafe {
                         std::ptr::write_bytes(ptr as *mut u8, 0xAB, size);
                     }
-                    match ext.free(client, ptr) {
+                    match unsafe { ext.free(client, ptr) } {
                         Ok(()) => println!("  freed successfully"),
                         Err(e) => println!("  free error: {e}"),
                     }

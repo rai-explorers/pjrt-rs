@@ -110,6 +110,7 @@ impl ProfilerExtension {
             // is valid for the lifetime of the plugin which is held alive by _api.
             Some(ProfilerApi {
                 raw: self.raw.profiler_api,
+                _ext: Rc::clone(&self.raw),
             })
         }
     }
@@ -139,6 +140,8 @@ impl ProfilerExtension {
 #[derive(Debug)]
 pub struct ProfilerApi {
     raw: *mut PLUGIN_Profiler_Api,
+    /// Prevent the extension struct from being dropped while we hold the raw pointer.
+    _ext: Rc<PJRT_Profiler_Extension>,
 }
 
 impl ProfilerApi {
@@ -488,8 +491,10 @@ mod tests {
         let mut api_table = PLUGIN_Profiler_Api::default();
         api_table.struct_size = std::mem::size_of::<PLUGIN_Profiler_Api>();
 
+        let ext = unsafe { std::mem::zeroed::<PJRT_Profiler_Extension>() };
         let profiler_api = ProfilerApi {
             raw: &mut api_table as *mut _,
+            _ext: Rc::new(ext),
         };
 
         let result = profiler_api.create("");
@@ -519,8 +524,10 @@ mod tests {
         let mut api_table = PLUGIN_Profiler_Api::default();
         api_table.struct_size = std::mem::size_of::<PLUGIN_Profiler_Api>();
 
+        let ext = unsafe { std::mem::zeroed::<PJRT_Profiler_Extension>() };
         let profiler_api = ProfilerApi {
             raw: &mut api_table as *mut _,
+            _ext: Rc::new(ext),
         };
 
         // Null error should be Ok

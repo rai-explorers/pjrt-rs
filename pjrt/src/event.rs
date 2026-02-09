@@ -13,9 +13,9 @@
 
 use std::ffi::c_void;
 use std::future::Future;
-use std::mem;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
 use pjrt_sys::{
@@ -26,16 +26,32 @@ use pjrt_sys::{
 
 use crate::{Api, ErrorCode, Result};
 
+/// Shared state between the Event and the on-ready callback.
+///
+/// The `waker` is updated on each `Future::poll` call and read by the
+/// `extern "C"` callback when the PJRT event completes. An `Arc<Mutex<>>`
+/// is used because the callback may fire on a different thread.
+struct CallbackState {
+    api: Api,
+    waker: Mutex<Option<Waker>>,
+}
+
 extern "C" fn on_ready_callback(err: *mut PJRT_Error, cb_data: *mut c_void) {
     // Wrap in catch_unwind to prevent panicking across the FFI boundary (UB).
     let _ = std::panic::catch_unwind(|| {
-        let (api, waker) = unsafe { *Box::from_raw(cb_data as *mut (Api, Waker)) };
+        // SAFETY: cb_data was created by Arc::into_raw in register_on_ready_callback.
+        let state = unsafe { Arc::from_raw(cb_data as *const CallbackState) };
         if !err.is_null() {
             let mut args = PJRT_Error_Destroy_Args::new();
             args.error = err;
-            let _ = api.PJRT_Error_Destroy(&mut args);
+            let _ = state.api.PJRT_Error_Destroy(&mut args);
         }
-        waker.wake();
+        // Extract the waker while holding the lock, then drop the guard
+        // before `state` is dropped (satisfies the borrow checker).
+        let waker = state.waker.lock().ok().and_then(|guard| guard.clone());
+        if let Some(w) = waker {
+            w.wake();
+        }
     });
 }
 
@@ -62,15 +78,15 @@ pub struct Event {
     api: Api,
     ptr: *mut PJRT_Event,
     registered_callback: AtomicBool,
+    /// Shared state for the waker, updated on each poll and read by the callback.
+    callback_state: Arc<CallbackState>,
 }
 
 impl Drop for Event {
     fn drop(&mut self) {
         let mut args = PJRT_Event_Destroy_Args::new();
         args.event = self.ptr;
-        self.api
-            .PJRT_Event_Destroy(args)
-            .expect("PJRT_Event_Destroy");
+        let _ = self.api.PJRT_Event_Destroy(args);
     }
 }
 
@@ -94,6 +110,10 @@ impl Event {
             api: api.clone(),
             ptr,
             registered_callback: AtomicBool::new(false),
+            callback_state: Arc::new(CallbackState {
+                api: api.clone(),
+                waker: Mutex::new(None),
+            }),
         }
     }
 
@@ -115,14 +135,26 @@ impl Event {
     }
 
     fn register_on_ready_callback(&self, waker: &Waker) -> Result<()> {
-        let mut cb_data = Box::new((self.api.clone(), waker.clone()));
+        // Update the waker in shared state (used by the callback).
+        if let Ok(mut guard) = self.callback_state.waker.lock() {
+            *guard = Some(waker.clone());
+        }
+        let state_ptr = Arc::into_raw(Arc::clone(&self.callback_state));
         let mut args = PJRT_Event_OnReady_Args::new();
         args.event = self.ptr;
-        args.user_arg = cb_data.as_mut() as *mut _ as *mut c_void;
+        args.user_arg = state_ptr as *mut c_void;
         args.callback = Some(on_ready_callback);
-        let args = self.api.PJRT_Event_OnReady(args);
-        mem::forget(cb_data);
-        args.map(|_| self.registered_callback.store(true, Ordering::SeqCst))
+        match self.api.PJRT_Event_OnReady(args) {
+            Ok(_) => {
+                self.registered_callback.store(true, Ordering::SeqCst);
+                Ok(())
+            }
+            Err(e) => {
+                // Registration failed — reclaim the Arc to avoid leak.
+                unsafe { Arc::from_raw(state_ptr) };
+                Err(e)
+            }
+        }
     }
 
     #[must_use = "handle wait result"]
@@ -171,6 +203,12 @@ impl Future for Event {
                     Poll::Ready(self.error())
                 } else {
                     if self.registered_callback.load(Ordering::SeqCst) {
+                        // Callback already registered — update the waker in case
+                        // the executor provided a different one (permitted by the
+                        // Future contract).
+                        if let Ok(mut guard) = self.callback_state.waker.lock() {
+                            *guard = Some(cx.waker().clone());
+                        }
                         return Poll::Pending;
                     }
                     match self.register_on_ready_callback(cx.waker()) {

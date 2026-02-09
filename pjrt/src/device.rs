@@ -216,9 +216,7 @@ impl Drop for AsyncTrackingEvent {
     fn drop(&mut self) {
         let mut args = PJRT_AsyncTrackingEvent_Destroy_Args::new();
         args.event = self.ptr;
-        self.api
-            .PJRT_AsyncTrackingEvent_Destroy(args)
-            .expect("PJRT_AsyncTrackingEvent_Destroy");
+        let _ = self.api.PJRT_AsyncTrackingEvent_Destroy(args);
     }
 }
 

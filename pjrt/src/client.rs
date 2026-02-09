@@ -93,9 +93,7 @@ impl Drop for ClientRaw {
     fn drop(&mut self) {
         let mut args = PJRT_Client_Destroy_Args::new();
         args.client = self.ptr;
-        self.api
-            .PJRT_Client_Destroy(args)
-            .expect("PJRT_Client_Destroy");
+        let _ = self.api.PJRT_Client_Destroy(args);
     }
 }
 

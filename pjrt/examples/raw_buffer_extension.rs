@@ -90,7 +90,7 @@ fn main() -> Result<()> {
     println!("\n4. Raw Device→Host Copy");
     println!("   ----------------------");
     let mut output = vec![0.0f32; 6];
-    let event = raw.copy_raw_device_to_host(&mut output, 0)?;
+    let event = unsafe { raw.copy_raw_device_to_host(&mut output, 0)? };
     event.wait()?;
     println!("   Copied: {:?}", output);
 
@@ -98,13 +98,13 @@ fn main() -> Result<()> {
     println!("\n5. Raw Host→Device Copy");
     println!("   ----------------------");
     let modified = [10.0f32, 20.0, 30.0, 40.0, 50.0, 60.0];
-    let event = raw.copy_raw_host_to_device(&modified, 0)?;
+    let event = unsafe { raw.copy_raw_host_to_device(&modified, 0)? };
     event.wait()?;
     println!("   Wrote: {:?}", modified);
 
     // Verify by reading back
     let mut verify = vec![0.0f32; 6];
-    let event = raw.copy_raw_device_to_host(&mut verify, 0)?;
+    let event = unsafe { raw.copy_raw_device_to_host(&mut verify, 0)? };
     event.wait()?;
     println!("   Verified: {:?}", verify);
 

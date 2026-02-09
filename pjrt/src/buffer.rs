@@ -96,10 +96,7 @@ impl Drop for Buffer {
     fn drop(&mut self) {
         let mut args = PJRT_Buffer_Destroy_Args::new();
         args.buffer = self.ptr;
-        self.client
-            .api()
-            .PJRT_Buffer_Destroy(args)
-            .expect("PJRT_Buffer_Destroy");
+        let _ = self.client.api().PJRT_Buffer_Destroy(args);
     }
 }
 

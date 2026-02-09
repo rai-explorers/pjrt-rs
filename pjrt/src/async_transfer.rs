@@ -207,10 +207,10 @@ impl Drop for AsyncHostToDeviceTransferManager {
     fn drop(&mut self) {
         let mut args = PJRT_AsyncHostToDeviceTransferManager_Destroy_Args::new();
         args.transfer_manager = self.ptr;
-        self.client
+        let _ = self
+            .client
             .api()
-            .PJRT_AsyncHostToDeviceTransferManager_Destroy(args)
-            .expect("PJRT_AsyncHostToDeviceTransferManager_Destroy");
+            .PJRT_AsyncHostToDeviceTransferManager_Destroy(args);
     }
 }
 
