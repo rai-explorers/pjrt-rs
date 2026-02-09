@@ -3,9 +3,10 @@
 This document provides a comprehensive code review of each Rust module in the `pjrt` crate,
 covering implementation quality, developer experience (UX), and safety.
 
-**Review Date**: 2026-02-09  
+**Review Date**: 2025-07-24  
 **Crate Version**: 0.2.0  
-**Rust Edition**: 2021
+**Rust Edition**: 2021  
+**XLA Commit**: `72873a36069b2c8920e3ba7a81977bed2552fc40`
 
 ---
 
@@ -82,7 +83,10 @@ The `pjrt` crate provides a well-designed safe Rust wrapper over the PJRT C API.
 - ~~`MemoryStats` uses `_is_set` booleans~~ ✅ Refactored to idiomatic `Option<i64>`
 - ~~Some `From` impls panic on unknown variants instead of using `TryFrom`~~ ✅ Fixed: `From<&PJRT_NamedValue>` replaced with `TryFrom`
 - ~~Questionable `&Api` to `*mut PJRT_Api` casts in extension traits~~ ✅ Fixed: added `Api::extension_start()` accessor
-- Missing `Type` trait implementations for F8/S2/S4/U2/U4/Token types
+- ~~Missing `Type` trait implementations for F8 types~~ ✅ Fixed: 5 F8 types now have full `Type`/`ElemType` implementations
+- ~~Public API methods using `.expect()` instead of returning `Result`~~ ✅ Fixed: ~70+ methods converted, ~126 call sites updated
+- Remaining: `S2`/`S4`/`U2`/`U4`/`Token`/`F8E4M3`/`F8E3M4`/`F8E8M0FNU`/`F4E2M1FN` types still lack `Type` trait implementations
+- Remaining: `Program` struct has self-referential internal pointers (could benefit from `Pin<Box<>>` protection)
 
 ---
 
@@ -306,13 +310,13 @@ Plugin (.so/.dylib)
 - No unsafe code in this module
 
 **Issues**:
-- **Typos in public API names** (breaking change to fix):
-  - `ErrorCode::Unimplemeted` → should be `Unimplemented`
-  - `ErrorCode::Unavaliable` → should be `Unavailable`
-  - `ErrorCode::ResourceExhaused` → should be `ResourceExhausted`
-  - `Error::Unimplemeted` → should be `Unimplemented`
-- **Typo in error message**: `"invalid errro code: {0}"` → should be `"invalid error code"`
-- These are in the published API and would require semver-breaking changes or deprecation aliases to fix.
+- ~~**Typos in public API names**~~ ✅ **Fixed**: All spelling errors corrected:
+  - `ErrorCode::Unimplemented` (was `Unimplemeted`)
+  - `ErrorCode::Unavailable` (was `Unavaliable`)
+  - `ErrorCode::ResourceExhausted` (was `ResourceExhaused`)
+  - `Error::Unimplemented` (was `Unimplemeted`)
+- ~~**Typo in error message**~~ ✅ **Fixed**: `"invalid error code: {0}"` (was `"invalid errro code"`)
+- These were fixed as semver-breaking changes.
 
 ---
 
@@ -335,11 +339,7 @@ Plugin (.so/.dylib)
 - Type mappings ensure correct element sizes and alignments
 
 **Issues**:
-- **Bug**: In `TryFrom<PJRT_Buffer_Type> for PrimitiveType`:
-  ```rust
-  PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ => Ok(Self::F8E4M3FNUZ),  // BUG!
-  ```
-  `F8E5M2FNUZ` is incorrectly mapped to `F8E4M3FNUZ` instead of `F8E5M2FNUZ`. This is a copy-paste error that causes silent data corruption when converted back.
+- ~~**Bug**: In `TryFrom<PJRT_Buffer_Type> for PrimitiveType`~~ ✅ **Fixed**: `F8E5M2FNUZ` now correctly maps to `PrimitiveType::F8E5M2FNUZ`.
 
 - ~~**Gap**: F8 types lacked `Type` trait implementations~~ ✅ Fixed — All 5 F8 types (`F8E5M2`, `F8E4M3FN`, `F8E4M3B11FNUZ`, `F8E5M2FNUZ`, `F8E4M3FNUZ`) now have `Type`/`ElemType` implementations with `#[repr(transparent)]` u8 newtype wrappers.
 
@@ -750,14 +750,15 @@ Plugin (.so/.dylib)
 
 **Purpose**: Triton kernel compilation extension.
 
-**Implementation**: ★★★☆☆
+**Implementation**: ★★★★☆ *(was ★★★☆☆)* ✅ Updated
 - `compile()` method wraps C API call
+- v2 API support: returns `TritonCompileResult` with `path: Option<String>` for the new `out_path` field
 
 **UX**: ★★★★☆
-- `TritonCompileResult` with `asm_code`, `asm_size`, `smem_bytes`
+- `TritonCompileResult` with `asm_code`, `asm_size`, `smem_bytes`, `path`
 
-**Safety**: ★★★☆☆
-- **Issue**: ASM code conversion uses `.map(|b| b as char)` instead of `String::from_utf8_lossy()`. This is incorrect for non-ASCII bytes and could produce invalid strings.
+**Safety**: ★★★★☆ *(was ★★★☆☆)* ✅ Fixed
+- ~~**Issue**: ASM code conversion uses `.map(|b| b as char)` instead of `String::from_utf8_lossy()`~~ ✅ Fixed: now uses `String::from_utf8_lossy()` for correct non-ASCII handling
 
 ---
 
@@ -863,7 +864,7 @@ This provides excellent discoverability and compile-time validation.
 
 - Consistent `Result<T>` with `thiserror`-derived `Error` enum throughout
 - FFI errors converted via `api.err_or()` which extracts the error message, code, and backtrace
-- Minor inconsistency: some core module methods use `.expect()` instead of `?` for operations that "should never fail" (e.g., `PJRT_Device_GetDescription`)
+- ~~Minor inconsistency: some core module methods use `.expect()` instead of `?` for operations that "should never fail"~~ ✅ Fixed — all ~70+ public API methods converted from `.expect()` to returning `Result`, including `buffer.rs` (13), `client.rs` (8), `device.rs` (5), `device_description.rs` (5), `topology_description.rs` (5), `executable.rs` (16), `loaded_executable.rs` (4), `memory.rs` (6), `device_stream.rs` (3), `async_transfer.rs` (3), `execute.rs` (2). ~126 call sites updated across 16 files.
 - ~~All extension modules used `.expect()` for function pointer lookups and CString creation~~ ✅ Fixed — all 34 `expect()` calls in 10 extension files replaced with proper `Result`-based error handling
 
 ### 3. RAII / Resource Management ★★★★★
@@ -900,14 +901,14 @@ Every FFI handle has a `Drop` implementation:
 
 | # | Severity | Location | Description |
 |---|----------|----------|-------------|
-| 1 | **High** | `ty.rs` | `F8E5M2FNUZ` maps to `F8E4M3FNUZ` in `TryFrom<PJRT_Buffer_Type>` — copy-paste bug causes silent type misidentification |
-| 2 | **Medium** | `error.rs` | `ErrorCode::Unimplemeted` — typo in public enum variant (should be `Unimplemented`) |
-| 3 | **Medium** | `error.rs` | `ErrorCode::Unavaliable` — typo (should be `Unavailable`) |
-| 4 | **Medium** | `error.rs` | `ErrorCode::ResourceExhaused` — typo (should be `ResourceExhausted`) |
-| 5 | **Low** | `error.rs` | `"invalid errro code"` — typo in error display message |
+| 1 | ~~**High**~~ | `ty.rs` | ~~`F8E5M2FNUZ` maps to `F8E4M3FNUZ` in `TryFrom<PJRT_Buffer_Type>` — copy-paste bug causes silent type misidentification~~ ✅ Fixed |
+| 2 | ~~**Medium**~~ | `error.rs` | ~~`ErrorCode::Unimplemeted` — typo in public enum variant~~ ✅ Fixed: `Unimplemented` |
+| 3 | ~~**Medium**~~ | `error.rs` | ~~`ErrorCode::Unavaliable` — typo~~ ✅ Fixed: `Unavailable` |
+| 4 | ~~**Medium**~~ | `error.rs` | ~~`ErrorCode::ResourceExhaused` — typo~~ ✅ Fixed: `ResourceExhausted` |
+| 5 | ~~**Low**~~ | `error.rs` | ~~`"invalid errro code"` — typo in error display message~~ ✅ Fixed |
 | 6 | ~~**Medium**~~ | `named_value.rs` | ~~`From<&PJRT_NamedValue>` panics on unknown type~~ ✅ Fixed: replaced with `TryFrom` |
 | 7 | ~~**Medium**~~ | `client.rs`, `stream_ext.rs` | ~~`&Api` to `*mut PJRT_Api` cast in extension trait impls~~ ✅ Fixed: uses `Api::extension_start()` |
-| 8 | **Low** | `triton_ext.rs` | ASM conversion uses `b as char` instead of proper UTF-8 handling |
+| 8 | ~~**Low**~~ | `triton_ext.rs` | ~~ASM conversion uses `b as char` instead of proper UTF-8 handling~~ ✅ Fixed: uses `String::from_utf8_lossy()` |
 
 ---
 

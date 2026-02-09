@@ -4,8 +4,9 @@ This document tracks the coverage of the PJRT C API by the `pjrt` Rust crate.
 It maps every C API function pointer in `PJRT_Api` and every extension function
 to their Rust wrapper status.
 
-**Review Date**: 2026-02-09  
+**Review Date**: 2025-07-24  
 **Crate Version**: 0.2.0  
+**XLA Commit**: `72873a36069b2c8920e3ba7a81977bed2552fc40`  
 **PJRT C API Version**: Based on vendored headers in `pjrt-sys/include/`
 
 ---
@@ -305,7 +306,7 @@ to their Rust wrapper status.
 
 | C API Function | Status | Rust Location | Notes |
 |----------------|--------|---------------|-------|
-| `PJRT_Triton_Compile` | ✅ | `triton_ext.rs` → `TritonExtension::compile()` | |
+| `PJRT_Triton_Compile` | ✅ | `triton_ext.rs` → `TritonExtension::compile()` | v2: `out_path` exposed as `TritonCompileResult::path` |
 
 ### RawBuffer Extension (7/7 — 100%)
 
@@ -429,6 +430,11 @@ These types can be used with `TypedHostBuffer<T>` for compile-time type safety:
 | `BF16` | `BF16` | `half::bf16` | 2 |
 | `C64` | `C64` | `Complex<f32>` | 8 |
 | `C128` | `C128` | `Complex<f64>` | 16 |
+| `F8E5M2` | `F8E5M2` | `F8E5M2Elem(u8)` | 1 |
+| `F8E4M3FN` | `F8E4M3FN` | `F8E4M3FNElem(u8)` | 1 |
+| `F8E4M3B11FNUZ` | `F8E4M3B11FNUZ` | `F8E4M3B11FNUZElem(u8)` | 1 |
+| `F8E5M2FNUZ` | `F8E5M2FNUZ` | `F8E5M2FNUZElem(u8)` | 1 |
+| `F8E4M3FNUZ` | `F8E4M3FNUZ` | `F8E4M3FNUZElem(u8)` | 1 |
 
 ### Types with `PrimitiveType` Only (No `Type` Trait)
 
@@ -436,11 +442,6 @@ These types are recognized by `PrimitiveType` but cannot be used with typed APIs
 
 | PJRT Type | PrimitiveType Variant | Reason |
 |-----------|----------------------|--------|
-| `F8E5M2` | `F8E5M2` | No Rust f8 type |
-| `F8E4M3FN` | `F8E4M3FN` | No Rust f8 type |
-| `F8E4M3B11FNUZ` | `F8E4M3B11FNUZ` | No Rust f8 type |
-| `F8E5M2FNUZ` | `F8E5M2FNUZ` | No Rust f8 type |
-| `F8E4M3FNUZ` | `F8E4M3FNUZ` | No Rust f8 type |
 | `F8E4M3` | `F8E4M3` | No Rust f8 type |
 | `F8E3M4` | `F8E3M4` | No Rust f8 type |
 | `F8E8M0FNU` | `F8E8M0FNU` | No Rust f8 type |
@@ -462,12 +463,6 @@ These C API functions are macro-generated at the `Api` level but lack dedicated 
 | C API Function | Status | Notes |
 |----------------|--------|-------|
 | `PJRT_LoadedExecutable_Fingerprint` | 🔧 | DEPRECATED in C API — intentionally not exposed |
-
-### Known Bugs Affecting Coverage
-
-| Issue | Impact |
-|-------|--------|
-| `F8E5M2FNUZ` maps to `F8E4M3FNUZ` in `TryFrom` | Type misidentification for F8E5M2FNUZ buffers |
 
 ### Stub Extensions
 
@@ -532,6 +527,6 @@ The `pjrt` crate achieves **~97% coverage** of the PJRT C API core functions and
 
 1. One deprecated function (`LoadedExecutable_Fingerprint`) — intentionally low-level only
 2. Six stub extensions — mostly TPU-specific or experimental with no public function pointers to wrap
-3. 14 data types lacking `Type` trait implementations — primarily F8 and sub-byte types that lack standard Rust representations
+3. 9 data types lacking `Type` trait implementations — primarily uncommon F8 variants (F8E4M3, F8E3M4, F8E8M0FNU, F4E2M1FN) and sub-byte types (S2, S4, U2, U4, TOKEN)
 
-The overall C API coverage is excellent and sufficient for production use on CPU, GPU, and TPU platforms.
+All public API methods return `Result` for proper error propagation. The overall C API coverage is excellent and sufficient for production use on CPU, GPU, and TPU platforms.

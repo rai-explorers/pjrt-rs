@@ -44,7 +44,7 @@ pub struct TritonExtension {
 impl std::fmt::Debug for TritonExtension {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TritonExtension")
-            .field("api_version", &1i32) // Version 1
+            .field("api_version", &2i32) // Version 2
             .finish()
     }
 }
@@ -83,6 +83,8 @@ pub struct TritonCompileResult {
     pub asm_size: usize,
     /// The amount of shared memory required in bytes
     pub smem_bytes: i64,
+    /// The output path (e.g., compiled binary path), if provided by the plugin
+    pub path: Option<String>,
 }
 
 impl TritonExtension {
@@ -131,19 +133,32 @@ impl TritonExtension {
         let asm_code = if args.out_asm.is_null() {
             String::new()
         } else {
-            unsafe {
+            let bytes = unsafe {
                 std::slice::from_raw_parts(args.out_asm as *const u8, args.out_asm_size)
-                    .to_vec()
-                    .into_iter()
-                    .map(|b| b as char)
-                    .collect()
-            }
+            };
+            String::from_utf8_lossy(bytes).into_owned()
+        };
+
+        // Convert the output path to a String (v2 field, may be null)
+        let path = if args.out_path.is_null() || args.out_path_size == 0 {
+            None
+        } else {
+            Some(
+                unsafe {
+                    std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+                        args.out_path as *const u8,
+                        args.out_path_size,
+                    ))
+                }
+                .to_owned(),
+            )
         };
 
         Ok(TritonCompileResult {
             asm_code,
             asm_size: args.out_asm_size,
             smem_bytes: args.out_smem_bytes,
+            path,
         })
     }
 }
