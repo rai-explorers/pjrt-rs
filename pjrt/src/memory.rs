@@ -65,6 +65,13 @@ use pjrt_sys::{
 
 use crate::{utils, Client, Device};
 
+/// A memory space attached to a PJRT device.
+///
+/// # Thread Safety
+///
+/// `Memory` is `!Send + !Sync` because it holds a [`Client`] reference
+/// (which uses `Rc` internally). All memory operations must occur on the
+/// thread that created the parent [`Client`].
 pub struct Memory {
     client: Client,
     pub(crate) ptr: *mut PJRT_Memory,

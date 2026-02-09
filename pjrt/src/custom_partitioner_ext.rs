@@ -28,7 +28,7 @@ use pjrt_sys::{
 };
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, Result};
+use crate::{Api, Error, Result};
 
 /// Safe wrapper for PJRT Custom Partitioner extension
 ///
@@ -93,7 +93,8 @@ impl CustomPartitionerExtension {
         name: &str,
         callbacks: *mut pjrt_sys::JAX_CustomCallPartitioner_Callbacks,
     ) -> Result<()> {
-        let name_cstr = CString::new(name).expect("name contains null bytes");
+        let name_cstr = CString::new(name)
+            .map_err(|_| Error::InvalidArgument("name contains null byte".into()))?;
 
         let mut args = unsafe { std::mem::zeroed::<PJRT_Register_Custom_Partitioner_Args>() };
         args.struct_size = std::mem::size_of::<PJRT_Register_Custom_Partitioner_Args>();
@@ -104,7 +105,9 @@ impl CustomPartitionerExtension {
         let ext_fn = self
             .raw
             .register_custom_partitioner
-            .expect("PJRT_Register_Custom_Partitioner not implemented");
+            .ok_or(Error::NullFunctionPointer(
+                "PJRT_Register_Custom_Partitioner",
+            ))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())
@@ -119,7 +122,8 @@ impl CustomPartitionerExtension {
     ///
     /// * `name` - The name of the custom call
     pub fn register_batch_partitionable(&self, name: &str) -> Result<()> {
-        let name_cstr = CString::new(name).expect("name contains null bytes");
+        let name_cstr = CString::new(name)
+            .map_err(|_| Error::InvalidArgument("name contains null byte".into()))?;
 
         let mut args = unsafe { std::mem::zeroed::<PJRT_Register_Batch_Partitionable_Args>() };
         args.struct_size = std::mem::size_of::<PJRT_Register_Batch_Partitionable_Args>();
@@ -129,9 +133,134 @@ impl CustomPartitionerExtension {
         let ext_fn = self
             .raw
             .register_batch_partitionable
-            .expect("PJRT_Register_Batch_Partitionable not implemented");
+            .ok_or(Error::NullFunctionPointer(
+                "PJRT_Register_Batch_Partitionable",
+            ))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(
+            CustomPartitionerExtension::extension_type(),
+            ExtensionType::CustomPartitioner
+        );
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { CustomPartitionerExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Custom_Partitioner_Extension>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            CustomPartitionerExtension::from_raw(
+                &mut ext as *mut PJRT_Custom_Partitioner_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Custom_Partitioner_Extension>() };
+        ext.base.type_ = ExtensionType::CustomPartitioner.to_raw();
+        let result = unsafe {
+            CustomPartitionerExtension::from_raw(
+                &mut ext as *mut PJRT_Custom_Partitioner_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Custom_Partitioner_Extension>() };
+        ext.base.type_ = ExtensionType::CustomPartitioner.to_raw();
+        let cp = unsafe {
+            CustomPartitionerExtension::from_raw(
+                &mut ext as *mut PJRT_Custom_Partitioner_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", cp);
+        assert!(debug.contains("CustomPartitionerExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_register_custom_partitioner_null_function_pointer() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Custom_Partitioner_Extension>() };
+        ext.base.type_ = ExtensionType::CustomPartitioner.to_raw();
+        let cp = unsafe {
+            CustomPartitionerExtension::from_raw(
+                &mut ext as *mut PJRT_Custom_Partitioner_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let result = unsafe { cp.register_custom_partitioner("test", std::ptr::null_mut()) };
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("PJRT_Register_Custom_Partitioner"));
+    }
+
+    #[test]
+    fn test_register_batch_partitionable_null_function_pointer() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Custom_Partitioner_Extension>() };
+        ext.base.type_ = ExtensionType::CustomPartitioner.to_raw();
+        let cp = unsafe {
+            CustomPartitionerExtension::from_raw(
+                &mut ext as *mut PJRT_Custom_Partitioner_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let result = cp.register_batch_partitionable("test");
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("PJRT_Register_Batch_Partitionable"));
+    }
+
+    #[test]
+    fn test_null_byte_in_name_returns_error() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Custom_Partitioner_Extension>() };
+        ext.base.type_ = ExtensionType::CustomPartitioner.to_raw();
+        let cp = unsafe {
+            CustomPartitionerExtension::from_raw(
+                &mut ext as *mut PJRT_Custom_Partitioner_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        // Name with embedded null byte
+        let result = cp.register_batch_partitionable("test\0name");
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("null byte"));
     }
 }

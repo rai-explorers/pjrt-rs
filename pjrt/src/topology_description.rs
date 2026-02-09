@@ -12,6 +12,12 @@ use pjrt_sys::{
 
 use crate::{utils, Api, Client, DeviceDescription, NamedValue, NamedValueMap, Result};
 
+/// A description of the topology of devices available in a PJRT runtime.
+///
+/// # Thread Safety
+///
+/// `TopologyDescription` is `!Send + !Sync` because it may hold a
+/// [`Client`] reference (which uses `Rc`) and contains a raw pointer.
 pub struct TopologyDescription {
     pub(crate) api: Api,
     pub(crate) client: Option<Client>,

@@ -99,6 +99,28 @@ impl Drop for ClientRaw {
     }
 }
 
+/// A PJRT client representing a connection to a specific hardware backend.
+///
+/// `Client` is the central type for interacting with PJRT devices. It provides
+/// methods for enumerating devices, compiling programs, transferring data, and
+/// managing the runtime.
+///
+/// # Thread Safety
+///
+/// `Client` is `!Send + !Sync` because it uses `Rc` for internal reference
+/// counting. All operations on a `Client` and any objects derived from it
+/// ([`Device`], [`Buffer`], [`LoadedExecutable`], [`Memory`], etc.) must occur
+/// on the same thread that created the client.
+///
+/// To use PJRT from multiple threads, create a separate `Client` per thread.
+/// The underlying [`Api`] is `Send + Sync` and can be shared across threads
+/// to create independent clients.
+///
+/// [`Device`]: crate::Device
+/// [`Buffer`]: crate::Buffer
+/// [`LoadedExecutable`]: crate::LoadedExecutable
+/// [`Memory`]: crate::Memory
+/// [`Api`]: crate::Api
 #[derive(Clone)]
 pub struct Client {
     raw: Rc<ClientRaw>,

@@ -101,6 +101,15 @@ impl TryFrom<&str> for ProgramFormat {
     }
 }
 
+/// A compiled program (MLIR or HLO) ready to be loaded on a client.
+///
+/// # Thread Safety
+///
+/// `Program` is `!Send + !Sync` because the internal `PJRT_Program` struct
+/// contains raw pointers into the owned `code` and `format` data. The
+/// program itself is logically immutable after construction and could be
+/// made `Send + Sync` with an `unsafe impl` if cross-thread compilation
+/// is needed.
 pub struct Program {
     format: ProgramFormat,
     code: Vec<u8>,

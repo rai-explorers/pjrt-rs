@@ -623,6 +623,10 @@ impl<'a> From<&'a ExecuteOptions<'a>> for PJRT_ExecuteOptions {
 /// // Or run synchronously
 /// let outputs = execution.run_sync()?;
 /// ```
+/// # Thread Safety
+///
+/// `Execution` is `!Send + !Sync` because it borrows a
+/// [`LoadedExecutable`] which is itself `!Send`.
 pub struct Execution<'a, T> {
     pub loaded_executable: &'a LoadedExecutable,
     pub inputs: T,

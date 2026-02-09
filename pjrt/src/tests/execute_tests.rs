@@ -476,11 +476,6 @@ mod transfer_metadata_tests {
             PrimitiveType::U2,
             PrimitiveType::S4,
             PrimitiveType::U4,
-            PrimitiveType::F8E5M2,
-            PrimitiveType::F8E4M3FN,
-            PrimitiveType::F8E4M3B11FNUZ,
-            PrimitiveType::F8E5M2FNUZ,
-            PrimitiveType::F8E4M3FNUZ,
         ];
 
         for ptype in unsupported_types {
@@ -488,6 +483,28 @@ mod transfer_metadata_tests {
             assert!(
                 metadata.size_in_bytes().is_none(),
                 "Expected None for type {:?}",
+                ptype
+            );
+        }
+    }
+
+    #[test]
+    fn test_transfer_metadata_f8_types_return_some() {
+        let f8_types = [
+            PrimitiveType::F8E5M2,
+            PrimitiveType::F8E4M3FN,
+            PrimitiveType::F8E4M3B11FNUZ,
+            PrimitiveType::F8E5M2FNUZ,
+            PrimitiveType::F8E4M3FNUZ,
+        ];
+
+        for ptype in f8_types {
+            let metadata = TransferMetadata::new(vec![2, 3], ptype);
+            // F8 types are 1 byte each, so 2*3*1 = 6 bytes
+            assert_eq!(
+                metadata.size_in_bytes(),
+                Some(6),
+                "Expected Some(6) for F8 type {:?}",
                 ptype
             );
         }

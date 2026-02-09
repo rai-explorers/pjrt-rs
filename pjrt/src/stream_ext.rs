@@ -25,7 +25,7 @@ use pjrt_sys::{
 };
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, Buffer, Device, Result};
+use crate::{Api, Buffer, Device, Error, Result};
 
 /// Safe wrapper for PJRT Stream extension
 ///
@@ -91,10 +91,9 @@ impl StreamExtension {
         args.struct_size = std::mem::size_of::<PJRT_Get_Stream_For_External_Ready_Events_Args>();
         args.device = device.ptr;
 
-        let ext_fn = self
-            .raw
-            .get_stream
-            .expect("PJRT_Get_Stream_For_External_Ready_Events not implemented");
+        let ext_fn = self.raw.get_stream.ok_or(Error::NullFunctionPointer(
+            "PJRT_Get_Stream_For_External_Ready_Events",
+        ))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -137,9 +136,9 @@ impl DeviceStream {
     ///
     /// `Ok(())` when the buffer is ready, or an error if the wait fails
     pub fn wait_until_buffer_ready(&self, buffer: &Buffer) -> Result<()> {
-        let waiter = self
-            .waiter
-            .expect("PJRT_Wait_Until_Buffer_Ready_On_Stream not implemented");
+        let waiter = self.waiter.ok_or(Error::NullFunctionPointer(
+            "PJRT_Wait_Until_Buffer_Ready_On_Stream",
+        ))?;
 
         let mut args: PJRT_Wait_Until_Buffer_Ready_On_Stream_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_Wait_Until_Buffer_Ready_On_Stream_Args>();
@@ -161,5 +160,75 @@ impl StreamExt for Api {
     fn stream_extension(&self) -> Option<StreamExtension> {
         let ext_start = self.extension_start();
         unsafe { StreamExtension::from_raw(ext_start, self) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(StreamExtension::extension_type(), ExtensionType::Stream);
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { StreamExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Stream_Extension>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            StreamExtension::from_raw(
+                &mut ext as *mut PJRT_Stream_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Stream_Extension>() };
+        ext.base.type_ = ExtensionType::Stream.to_raw();
+        let result = unsafe {
+            StreamExtension::from_raw(
+                &mut ext as *mut PJRT_Stream_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Stream_Extension>() };
+        ext.base.type_ = ExtensionType::Stream.to_raw();
+        let stream = unsafe {
+            StreamExtension::from_raw(
+                &mut ext as *mut PJRT_Stream_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", stream);
+        assert!(debug.contains("StreamExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_stream_ext_trait_returns_none_for_empty_api() {
+        let api = unsafe { Api::empty_for_testing() };
+        // extension_start is null for empty_for_testing
+        let result = api.stream_extension();
+        assert!(result.is_none());
     }
 }

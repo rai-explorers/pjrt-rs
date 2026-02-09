@@ -48,6 +48,12 @@ extern "C" fn on_ready_callback(err: *mut PJRT_Error, cb_data: *mut c_void) {
 /// let event = buffer.ready_event()?;
 /// event.await?; // Wait for the buffer to be ready
 /// ```
+/// # Thread Safety
+///
+/// `Event` is `!Send + !Sync` due to the raw `*mut PJRT_Event` pointer.
+/// Although `Api` and `AtomicBool` are both `Send + Sync`, the raw pointer
+/// prevents auto-derivation. Events must be awaited or waited on the same
+/// thread that created them.
 pub struct Event {
     api: Api,
     ptr: *mut PJRT_Event,

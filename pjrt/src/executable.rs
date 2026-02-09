@@ -57,6 +57,10 @@ use crate::{
 /// // Serialize for later use
 /// let serialized = executable.serialize();
 /// ```
+/// # Thread Safety
+///
+/// `Executable` is `!Send + !Sync` due to the raw `*mut PJRT_Executable`
+/// pointer. It must be used on the same thread where it was created.
 pub struct Executable {
     api: Api,
     pub(crate) ptr: *mut PJRT_Executable,

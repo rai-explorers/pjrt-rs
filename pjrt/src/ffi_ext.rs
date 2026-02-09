@@ -39,7 +39,7 @@ use pjrt_sys::{
 };
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, ExecuteContext, Result};
+use crate::{Api, Error, ExecuteContext, Result};
 
 /// Safe wrapper for PJRT FFI extension
 ///
@@ -154,7 +154,8 @@ impl FfiExtension {
         type_info: &FfiTypeInfo,
         type_id: i64,
     ) -> Result<i64> {
-        let name = CString::new(type_name).expect("type_name contains null bytes");
+        let name = CString::new(type_name)
+            .map_err(|_| Error::InvalidArgument("type_name contains null byte".into()))?;
 
         let raw_type_info = PJRT_FFI_Type_Info {
             deleter: type_info.deleter,
@@ -172,7 +173,7 @@ impl FfiExtension {
         let ext_fn = self
             .raw
             .type_register
-            .expect("PJRT_FFI_Type_Register not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_FFI_Type_Register"))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -201,8 +202,10 @@ impl FfiExtension {
         handler: FfiHandler,
         traits: FfiHandlerTraits,
     ) -> Result<()> {
-        let target = CString::new(target_name).expect("target_name contains null bytes");
-        let platform = CString::new(platform_name).expect("platform_name contains null bytes");
+        let target = CString::new(target_name)
+            .map_err(|_| Error::InvalidArgument("target_name contains null byte".into()))?;
+        let platform = CString::new(platform_name)
+            .map_err(|_| Error::InvalidArgument("platform_name contains null byte".into()))?;
 
         let mut args = unsafe { std::mem::zeroed::<PJRT_FFI_Register_Handler_Args>() };
         args.struct_size = std::mem::size_of::<PJRT_FFI_Register_Handler_Args>();
@@ -216,7 +219,7 @@ impl FfiExtension {
         let ext_fn = self
             .raw
             .register_handler
-            .expect("PJRT_FFI_Register_Handler not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_FFI_Register_Handler"))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())
@@ -249,7 +252,7 @@ impl FfiExtension {
         let ext_fn = self
             .raw
             .user_data_add
-            .expect("PJRT_FFI_UserData_Add not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_FFI_UserData_Add"))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())
@@ -267,5 +270,157 @@ impl FfiExt for Api {
     fn ffi_extension(&self) -> Option<FfiExtension> {
         let ext_start = self.extension_start();
         unsafe { FfiExtension::from_raw(ext_start, self) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(FfiExtension::extension_type(), ExtensionType::Ffi);
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { FfiExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_FFI_Extension>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            FfiExtension::from_raw(
+                &mut ext as *mut PJRT_FFI_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_FFI_Extension>() };
+        ext.base.type_ = ExtensionType::Ffi.to_raw();
+        let result = unsafe {
+            FfiExtension::from_raw(
+                &mut ext as *mut PJRT_FFI_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_FFI_Extension>() };
+        ext.base.type_ = ExtensionType::Ffi.to_raw();
+        let ffi = unsafe {
+            FfiExtension::from_raw(
+                &mut ext as *mut PJRT_FFI_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", ffi);
+        assert!(debug.contains("FfiExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_register_type_null_function_pointer() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_FFI_Extension>() };
+        ext.base.type_ = ExtensionType::Ffi.to_raw();
+        let ffi = unsafe {
+            FfiExtension::from_raw(
+                &mut ext as *mut PJRT_FFI_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let type_info = FfiTypeInfo {
+            deleter: None,
+            _serialize: PhantomData,
+            _deserialize: PhantomData,
+        };
+        let result = ffi.register_type("test_type", &type_info, 0);
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("PJRT_FFI_Type_Register"));
+    }
+
+    #[test]
+    fn test_register_handler_null_function_pointer() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_FFI_Extension>() };
+        ext.base.type_ = ExtensionType::Ffi.to_raw();
+        let ffi = unsafe {
+            FfiExtension::from_raw(
+                &mut ext as *mut PJRT_FFI_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let result = unsafe {
+            ffi.register_handler(
+                "target",
+                "CUDA",
+                std::ptr::null_mut(),
+                FfiHandlerTraits::empty(),
+            )
+        };
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("PJRT_FFI_Register_Handler"));
+    }
+
+    #[test]
+    fn test_register_type_null_byte_in_name() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_FFI_Extension>() };
+        ext.base.type_ = ExtensionType::Ffi.to_raw();
+        let ffi = unsafe {
+            FfiExtension::from_raw(
+                &mut ext as *mut PJRT_FFI_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let type_info = FfiTypeInfo {
+            deleter: None,
+            _serialize: PhantomData,
+            _deserialize: PhantomData,
+        };
+        let result = ffi.register_type("test\0type", &type_info, 0);
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("null byte"));
+    }
+
+    #[test]
+    fn test_ffi_handler_traits_empty() {
+        let traits = FfiHandlerTraits::empty();
+        assert!(!traits.is_command_buffer_compatible());
+    }
+
+    #[test]
+    fn test_ffi_handler_traits_command_buffer_compatible() {
+        let traits = FfiHandlerTraits::empty().set_command_buffer_compatible(true);
+        assert!(traits.is_command_buffer_compatible());
+
+        let traits = traits.set_command_buffer_compatible(false);
+        assert!(!traits.is_command_buffer_compatible());
+    }
+
+    #[test]
+    fn test_ffi_ext_trait_returns_none_for_empty_api() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = api.ffi_extension();
+        assert!(result.is_none());
     }
 }

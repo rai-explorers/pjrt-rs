@@ -784,8 +784,9 @@ mod comprehensive_type_tests {
     use num_complex::Complex;
 
     use crate::{
-        AsDType, Bool, DType, ElemType, PrimitiveType, Type, BF16, C128, C64, F16, F32, F64, I16,
-        I32, I64, I8, U16, U32, U64, U8,
+        AsDType, Bool, DType, ElemType, F8E4M3B11FNUZElem, F8E4M3FNElem, F8E4M3FNUZElem,
+        F8E5M2Elem, F8E5M2FNUZElem, PrimitiveType, Type, BF16, C128, C64, F16, F32, F64, I16, I32,
+        I64, I8, U16, U32, U64, U8,
     };
 
     #[test]
@@ -908,9 +909,11 @@ mod comprehensive_type_tests {
     fn test_try_into_dtype_unsupported_types() {
         let unsupported = vec![
             PrimitiveType::Invalid,
-            PrimitiveType::F8E5M2,
-            PrimitiveType::F8E4M3FN,
             PrimitiveType::Token,
+            PrimitiveType::S2,
+            PrimitiveType::U2,
+            PrimitiveType::S4,
+            PrimitiveType::U4,
         ];
 
         for primitive_type in unsupported {
@@ -920,6 +923,29 @@ mod comprehensive_type_tests {
                 "Expected error for unsupported type {:?}",
                 primitive_type
             );
+        }
+    }
+
+    #[test]
+    fn test_try_into_dtype_f8_types() {
+        let f8_types = vec![
+            (PrimitiveType::F8E5M2, "f8e5m2"),
+            (PrimitiveType::F8E4M3FN, "f8e4m3fn"),
+            (PrimitiveType::F8E4M3B11FNUZ, "f8e4m3b11fnuz"),
+            (PrimitiveType::F8E5M2FNUZ, "f8e5m2fnuz"),
+            (PrimitiveType::F8E4M3FNUZ, "f8e4m3fnuz"),
+        ];
+
+        for (primitive_type, expected_name) in f8_types {
+            let dtype = primitive_type.try_into_dtype();
+            assert!(
+                dtype.is_ok(),
+                "Expected Ok for F8 type {:?}",
+                primitive_type
+            );
+            let dtype = dtype.unwrap();
+            assert_eq!(dtype.name(), expected_name);
+            assert_eq!(dtype.size(), 1);
         }
     }
 
@@ -940,6 +966,11 @@ mod comprehensive_type_tests {
         assert_eq!(<half::bf16 as ElemType>::Type::NAME, "bf16");
         assert_eq!(<Complex<f32> as ElemType>::Type::NAME, "c64");
         assert_eq!(<Complex<f64> as ElemType>::Type::NAME, "c128");
+        assert_eq!(<F8E5M2Elem as ElemType>::Type::NAME, "f8e5m2");
+        assert_eq!(<F8E4M3FNElem as ElemType>::Type::NAME, "f8e4m3fn");
+        assert_eq!(<F8E4M3B11FNUZElem as ElemType>::Type::NAME, "f8e4m3b11fnuz");
+        assert_eq!(<F8E5M2FNUZElem as ElemType>::Type::NAME, "f8e5m2fnuz");
+        assert_eq!(<F8E4M3FNUZElem as ElemType>::Type::NAME, "f8e4m3fnuz");
     }
 
     #[test]

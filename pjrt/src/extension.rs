@@ -242,3 +242,108 @@ pub(crate) unsafe fn has_extension(
 // - raw_buffer_ext.rs: RawBufferExtension implementation
 // - gpu_ext.rs: GpuExtension implementation
 // - profiler_ext.rs: ProfilerExtension implementation
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_iterator_null_start() {
+        let iter = unsafe { ExtensionIterator::new(std::ptr::null_mut()) };
+        assert_eq!(iter.count(), 0);
+    }
+
+    #[test]
+    fn test_extension_iterator_single_element() {
+        let mut base = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Stream.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        let iter = unsafe { ExtensionIterator::new(&mut base) };
+        let items: Vec<_> = iter.collect();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0], &mut base as *mut PJRT_Extension_Base);
+    }
+
+    #[test]
+    fn test_extension_iterator_chain() {
+        let mut third = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Ffi.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        let mut second = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Layouts.to_raw(),
+            next: &mut third,
+        };
+        let mut first = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Stream.to_raw(),
+            next: &mut second,
+        };
+        let iter = unsafe { ExtensionIterator::new(&mut first) };
+        let items: Vec<_> = iter.collect();
+        assert_eq!(items.len(), 3);
+    }
+
+    #[test]
+    fn test_find_extension_found() {
+        let mut second = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Layouts.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        let mut first = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Stream.to_raw(),
+            next: &mut second,
+        };
+        let result = unsafe { find_extension(&mut first, ExtensionType::Layouts) };
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), &mut second as *mut PJRT_Extension_Base);
+    }
+
+    #[test]
+    fn test_find_extension_not_found() {
+        let mut base = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Stream.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        let result = unsafe { find_extension(&mut base, ExtensionType::Ffi) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_extension_null_start() {
+        let result = unsafe { find_extension(std::ptr::null_mut(), ExtensionType::Stream) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_has_extension_true() {
+        let mut base = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Profiler.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        assert!(unsafe { has_extension(&mut base, ExtensionType::Profiler) });
+    }
+
+    #[test]
+    fn test_has_extension_false() {
+        let mut base = PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<PJRT_Extension_Base>(),
+            type_: ExtensionType::Profiler.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        assert!(!unsafe { has_extension(&mut base, ExtensionType::Triton) });
+    }
+
+    #[test]
+    fn test_has_extension_null() {
+        assert!(!unsafe { has_extension(std::ptr::null_mut(), ExtensionType::Stream) });
+    }
+}

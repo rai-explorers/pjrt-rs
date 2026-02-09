@@ -30,7 +30,7 @@ use std::rc::Rc;
 use pjrt_sys::{PJRT_Triton, PJRT_Triton_Compile_Args};
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, Result};
+use crate::{Api, Error, Result};
 
 /// Safe wrapper for PJRT Triton extension
 ///
@@ -75,6 +75,7 @@ unsafe impl Extension for TritonExtension {
 }
 
 /// Result of compiling a Triton kernel
+#[derive(Debug)]
 pub struct TritonCompileResult {
     /// The compiled assembly code
     pub asm_code: String,
@@ -121,7 +122,7 @@ impl TritonExtension {
         let ext_fn = self
             .raw
             .compile
-            .expect("PJRT_Triton_Compile not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_Triton_Compile"))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -144,5 +145,89 @@ impl TritonExtension {
             asm_size: args.out_asm_size,
             smem_bytes: args.out_smem_bytes,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(TritonExtension::extension_type(), ExtensionType::Triton);
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { TritonExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Triton>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            TritonExtension::from_raw(
+                &mut ext as *mut PJRT_Triton as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Triton>() };
+        ext.base.type_ = ExtensionType::Triton.to_raw();
+        let result = unsafe {
+            TritonExtension::from_raw(
+                &mut ext as *mut PJRT_Triton as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Triton>() };
+        ext.base.type_ = ExtensionType::Triton.to_raw();
+        let triton = unsafe {
+            TritonExtension::from_raw(
+                &mut ext as *mut PJRT_Triton as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", triton);
+        assert!(debug.contains("TritonExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_compile_null_function_pointer() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Triton>() };
+        ext.base.type_ = ExtensionType::Triton.to_raw();
+        // compile is None (zeroed)
+        let triton = unsafe {
+            TritonExtension::from_raw(
+                &mut ext as *mut PJRT_Triton as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let result = triton.compile("module", "sm_80", 4, 1, 3);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            format!("{}", err).contains("PJRT_Triton_Compile"),
+            "Error should mention the null function pointer name"
+        );
     }
 }

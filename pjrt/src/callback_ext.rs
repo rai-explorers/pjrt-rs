@@ -32,7 +32,7 @@ use pjrt_sys::{
 };
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, Client, Result};
+use crate::{Api, Client, Error, Result};
 
 /// Safe wrapper for PJRT Callback extension
 ///
@@ -192,7 +192,7 @@ impl CallbackExtension {
         let ext_fn = self
             .raw
             .register_callback
-            .expect("PJRT_Register_Callback not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_Register_Callback"))?;
 
         let err = ext_fn(&mut args);
         self.api.err_or(err, ())
@@ -225,7 +225,7 @@ impl CallbackExtension {
         let ext_fn = self
             .raw
             .invoke_callback
-            .expect("PJRT_Callback_InvokeCallback not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_Callback_InvokeCallback"))?;
 
         let err = ext_fn(&mut args);
         self.api.err_or(err, ())
@@ -237,4 +237,121 @@ impl CallbackExtension {
 pub trait CallbackExt {
     /// Get the Callback extension if available
     fn callback_extension(&self) -> Option<CallbackExtension>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(CallbackExtension::extension_type(), ExtensionType::Callback);
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { CallbackExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Callback_Extension>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            CallbackExtension::from_raw(
+                &mut ext as *mut PJRT_Callback_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Callback_Extension>() };
+        ext.base.type_ = ExtensionType::Callback.to_raw();
+        let result = unsafe {
+            CallbackExtension::from_raw(
+                &mut ext as *mut PJRT_Callback_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Callback_Extension>() };
+        ext.base.type_ = ExtensionType::Callback.to_raw();
+        let cb = unsafe {
+            CallbackExtension::from_raw(
+                &mut ext as *mut PJRT_Callback_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", cb);
+        assert!(debug.contains("CallbackExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_callback_type_to_raw() {
+        // Verify all callback types convert to raw without panic
+        let types = [
+            CallbackType::Unknown,
+            CallbackType::TpuSliceBuilder,
+            CallbackType::Prefatal,
+        ];
+        for ty in types {
+            let _ = ty.to_raw();
+        }
+    }
+
+    #[test]
+    fn test_tpu_slice_failure_type_from_raw_unknown() {
+        let ft = TpuSliceFailureType::from_raw(999);
+        assert_eq!(ft, TpuSliceFailureType::Unknown);
+    }
+
+    #[test]
+    fn test_tpu_slice_failure_type_roundtrips() {
+        use pjrt_sys::*;
+        let cases = [
+            (
+                PJRT_Callback_Tpu_SliceFailureType_SLICE_FAILURE_INIT_ERROR,
+                TpuSliceFailureType::InitError,
+            ),
+            (
+                PJRT_Callback_Tpu_SliceFailureType_SLICE_FAILURE_WORKER_UNAVAILABLE,
+                TpuSliceFailureType::WorkerUnavailable,
+            ),
+            (
+                PJRT_Callback_Tpu_SliceFailureType_SLICE_FAILURE_FLAPPING_TASK_ERROR,
+                TpuSliceFailureType::FlappingTaskError,
+            ),
+            (
+                PJRT_Callback_Tpu_SliceFailureType_SLICE_FAILURE_SW_INJECT_ERROR,
+                TpuSliceFailureType::SoftwareInjectedError,
+            ),
+            (
+                PJRT_Callback_Tpu_SliceFailureType_SLICE_FAILURE_CHIP_DRIVER_ERROR,
+                TpuSliceFailureType::ChipDriverError,
+            ),
+        ];
+        for (raw, expected) in cases {
+            assert_eq!(TpuSliceFailureType::from_raw(raw), expected);
+        }
+    }
+
+    #[test]
+    fn test_callback_type_equality() {
+        assert_eq!(CallbackType::Unknown, CallbackType::Unknown);
+        assert_ne!(CallbackType::Unknown, CallbackType::Prefatal);
+    }
 }

@@ -80,6 +80,14 @@ use pjrt_sys::{
 use crate::event::Event;
 use crate::{Client, Device, ErrorCode, HostBuffer, Memory, MemoryLayout, PrimitiveType, Result};
 
+/// A buffer holding data on a PJRT device.
+///
+/// # Thread Safety
+///
+/// `Buffer` is `!Send + !Sync` because it holds a [`Client`] reference
+/// (which uses `Rc` internally) and a raw pointer to the device buffer.
+/// All buffer operations must occur on the thread that created the parent
+/// [`Client`].
 pub struct Buffer {
     client: Client,
     pub(crate) ptr: *mut PJRT_Buffer,

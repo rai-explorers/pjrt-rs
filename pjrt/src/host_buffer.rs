@@ -114,6 +114,12 @@ use crate::{
 ///
 /// The type parameter `T` must implement the `Type` trait, which includes
 /// all supported PJRT types like `F32`, `F64`, `I32`, etc.
+///
+/// # Thread Safety
+///
+/// `TypedHostBuffer` is `!Send + !Sync` because it uses `Rc` to share
+/// the backing data. This allows zero-copy cloning within a single thread
+/// but prevents cross-thread sharing.
 #[derive(Debug)]
 pub struct TypedHostBuffer<T: Type> {
     data: Rc<Vec<T::ElemType>>,
@@ -284,6 +290,11 @@ impl_from_typed_buffer![C128];
 ///
 /// This is useful when the type is only known at runtime, or when you
 /// need to store buffers of different types in a collection.
+///
+/// # Thread Safety
+///
+/// `HostBuffer` is `!Send + !Sync` because all variants contain a
+/// [`TypedHostBuffer`] which uses `Rc` internally.
 #[derive(Debug)]
 pub enum HostBuffer {
     BF16(TypedHostBuffer<BF16>),

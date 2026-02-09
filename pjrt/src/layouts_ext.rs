@@ -38,7 +38,7 @@ use pjrt_sys::{
 };
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, Buffer, Client, Executable, PrimitiveType, Result, TopologyDescription};
+use crate::{Api, Buffer, Client, Error, Executable, PrimitiveType, Result, TopologyDescription};
 
 /// Safe wrapper for PJRT Layouts extension
 ///
@@ -100,10 +100,12 @@ impl LayoutsExtension {
         args.struct_size = std::mem::size_of::<PJRT_Layouts_PJRT_Buffer_MemoryLayout_Args>();
         args.buffer = buffer.ptr;
 
-        let ext_fn = self
-            .raw
-            .PJRT_Layouts_PJRT_Buffer_MemoryLayout
-            .expect("PJRT_Layouts_PJRT_Buffer_MemoryLayout not implemented");
+        let ext_fn =
+            self.raw
+                .PJRT_Layouts_PJRT_Buffer_MemoryLayout
+                .ok_or(Error::NullFunctionPointer(
+                    "PJRT_Layouts_PJRT_Buffer_MemoryLayout",
+                ))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -144,10 +146,9 @@ impl LayoutsExtension {
         args.dims = dims.as_ptr();
         args.num_dims = dims.len();
 
-        let ext_fn = self
-            .raw
-            .PJRT_Layouts_PJRT_Client_GetDefaultLayout
-            .expect("PJRT_Layouts_PJRT_Client_GetDefaultLayout not implemented");
+        let ext_fn = self.raw.PJRT_Layouts_PJRT_Client_GetDefaultLayout.ok_or(
+            Error::NullFunctionPointer("PJRT_Layouts_PJRT_Client_GetDefaultLayout"),
+        )?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -188,10 +189,9 @@ impl LayoutsExtension {
         args.dims = dims.as_ptr();
         args.num_dims = dims.len();
 
-        let ext_fn = self
-            .raw
-            .PJRT_Layouts_PJRT_Topology_GetDefaultLayout
-            .expect("PJRT_Layouts_PJRT_Topology_GetDefaultLayout not implemented");
+        let ext_fn = self.raw.PJRT_Layouts_PJRT_Topology_GetDefaultLayout.ok_or(
+            Error::NullFunctionPointer("PJRT_Layouts_PJRT_Topology_GetDefaultLayout"),
+        )?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -228,7 +228,9 @@ impl LayoutsExtension {
         let ext_fn = self
             .raw
             .PJRT_Layouts_PJRT_Executable_GetOutputLayouts
-            .expect("PJRT_Layouts_PJRT_Executable_GetOutputLayouts not implemented");
+            .ok_or(Error::NullFunctionPointer(
+                "PJRT_Layouts_PJRT_Executable_GetOutputLayouts",
+            ))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -291,6 +293,7 @@ impl Drop for LayoutsMemoryLayout {
 ///
 /// Contains the serialized bytes of a memory layout and manages the backing
 /// memory through a deleter function.
+#[derive(Debug)]
 pub struct SerializedLayout {
     bytes: Vec<u8>,
     _marker: PhantomData<*const ()>,
@@ -325,9 +328,9 @@ impl LayoutsMemoryLayout {
     ///
     /// A `SerializedLayout` containing the serialized layout data
     pub fn serialize(&self) -> Result<SerializedLayout> {
-        let serializer = self
-            .serializer
-            .expect("PJRT_Layouts_MemoryLayout_Serialize not implemented");
+        let serializer = self.serializer.ok_or(Error::NullFunctionPointer(
+            "PJRT_Layouts_MemoryLayout_Serialize",
+        ))?;
 
         let mut args: PJRT_Layouts_MemoryLayout_Serialize_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_Layouts_MemoryLayout_Serialize_Args>();
@@ -358,5 +361,113 @@ impl LayoutsMemoryLayout {
             bytes,
             _marker: PhantomData,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(LayoutsExtension::extension_type(), ExtensionType::Layouts);
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { LayoutsExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Layouts_Extension>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            LayoutsExtension::from_raw(
+                &mut ext as *mut PJRT_Layouts_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Layouts_Extension>() };
+        ext.base.type_ = ExtensionType::Layouts.to_raw();
+        let result = unsafe {
+            LayoutsExtension::from_raw(
+                &mut ext as *mut PJRT_Layouts_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Layouts_Extension>() };
+        ext.base.type_ = ExtensionType::Layouts.to_raw();
+        let layouts = unsafe {
+            LayoutsExtension::from_raw(
+                &mut ext as *mut PJRT_Layouts_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", layouts);
+        assert!(debug.contains("LayoutsExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_layouts_memory_layout_size_placeholder() {
+        // Verify the placeholder size() method returns 0
+        let layout = LayoutsMemoryLayout {
+            raw: std::ptr::null_mut(),
+            deleter: None,
+            serializer: None,
+            api: unsafe { Api::empty_for_testing() },
+        };
+        assert_eq!(layout.size(), 0);
+    }
+
+    #[test]
+    fn test_layouts_memory_layout_serialize_null_function_pointer() {
+        let layout = LayoutsMemoryLayout {
+            raw: std::ptr::null_mut(),
+            deleter: None,
+            serializer: None,
+            api: unsafe { Api::empty_for_testing() },
+        };
+        let result = layout.serialize();
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("PJRT_Layouts_MemoryLayout_Serialize"));
+    }
+
+    #[test]
+    fn test_layouts_memory_layout_debug() {
+        let layout = LayoutsMemoryLayout {
+            raw: std::ptr::null_mut(),
+            deleter: None,
+            serializer: None,
+            api: unsafe { Api::empty_for_testing() },
+        };
+        let debug = format!("{:?}", layout);
+        assert!(debug.contains("LayoutsMemoryLayout"));
+    }
+
+    #[test]
+    fn test_serialized_layout_bytes() {
+        let layout = SerializedLayout {
+            bytes: vec![1, 2, 3, 4],
+            _marker: PhantomData,
+        };
+        assert_eq!(layout.bytes(), &[1, 2, 3, 4]);
     }
 }

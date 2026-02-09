@@ -83,6 +83,13 @@ pub type LocalDeviceId = i32;
 /// In general, not guaranteed to be dense, and -1 if undefined.
 pub type LocalHardwareId = i32;
 
+/// A hardware device (CPU, GPU, TPU) managed by a PJRT client.
+///
+/// # Thread Safety
+///
+/// `Device` is `!Send + !Sync` because it holds a [`Client`] reference
+/// (which uses `Rc` internally). All device operations must occur on the
+/// thread that created the parent [`Client`].
 pub struct Device {
     client: Client,
     pub(crate) ptr: *mut PJRT_Device,

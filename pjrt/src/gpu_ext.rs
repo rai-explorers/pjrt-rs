@@ -29,7 +29,7 @@ use std::rc::Rc;
 use pjrt_sys::{PJRT_Gpu_Custom_Call, PJRT_Gpu_Register_Custom_Call_Args};
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, Result};
+use crate::{Api, Error, Result};
 
 /// Safe wrapper for PJRT GPU extension
 ///
@@ -113,7 +113,8 @@ impl GpuExtension {
         handler_initialize: Option<CustomCallHandler>,
         handler_execute: Option<CustomCallHandler>,
     ) -> Result<()> {
-        let name = CString::new(function_name).expect("function_name contains null bytes");
+        let name = CString::new(function_name)
+            .map_err(|_| Error::InvalidArgument("function_name contains null byte".into()))?;
 
         let mut args = unsafe { std::mem::zeroed::<PJRT_Gpu_Register_Custom_Call_Args>() };
         args.struct_size = std::mem::size_of::<PJRT_Gpu_Register_Custom_Call_Args>();
@@ -128,9 +129,105 @@ impl GpuExtension {
         let ext_fn = self
             .raw
             .custom_call
-            .expect("PJRT_Gpu_Register_Custom_Call not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_Gpu_Register_Custom_Call"))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(GpuExtension::extension_type(), ExtensionType::GpuCustomCall);
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { GpuExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Gpu_Custom_Call>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            GpuExtension::from_raw(
+                &mut ext as *mut PJRT_Gpu_Custom_Call as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Gpu_Custom_Call>() };
+        ext.base.type_ = ExtensionType::GpuCustomCall.to_raw();
+        let result = unsafe {
+            GpuExtension::from_raw(
+                &mut ext as *mut PJRT_Gpu_Custom_Call as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Gpu_Custom_Call>() };
+        ext.base.type_ = ExtensionType::GpuCustomCall.to_raw();
+        let gpu = unsafe {
+            GpuExtension::from_raw(
+                &mut ext as *mut PJRT_Gpu_Custom_Call as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", gpu);
+        assert!(debug.contains("GpuExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_register_custom_call_null_function_pointer() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_Gpu_Custom_Call>() };
+        ext.base.type_ = ExtensionType::GpuCustomCall.to_raw();
+        // custom_call is None (zeroed)
+        let gpu = unsafe {
+            GpuExtension::from_raw(
+                &mut ext as *mut PJRT_Gpu_Custom_Call as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let result = unsafe {
+            gpu.register_custom_call(
+                "test_fn",
+                CustomCallApiVersion::Typed,
+                None,
+                None,
+                None,
+                None,
+            )
+        };
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(format!("{}", err).contains("PJRT_Gpu_Register_Custom_Call"));
+    }
+
+    #[test]
+    fn test_custom_call_api_version_values() {
+        assert_eq!(CustomCallApiVersion::Untyped as i32, 0);
+        assert_eq!(CustomCallApiVersion::Typed as i32, 1);
     }
 }

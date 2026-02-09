@@ -49,6 +49,11 @@ use crate::{
 /// // Execute again with different inputs
 /// let more_outputs = loaded_exec.execute(&other_inputs, &options).await?;
 /// ```
+/// # Thread Safety
+///
+/// `LoadedExecutable` is `!Send + !Sync` because it holds a [`Client`]
+/// reference (which uses `Rc` internally). Compile once per thread, or
+/// compile on the client's thread and execute there.
 pub struct LoadedExecutable {
     client: Client,
     pub(crate) ptr: *mut PJRT_LoadedExecutable,

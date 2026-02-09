@@ -249,11 +249,17 @@ to their Rust wrapper status.
 |----------------|--------|---------------|-------|
 | `PJRT_Gpu_Register_Custom_Call` | ✅ | `gpu_ext.rs` → `GpuExtension::register_custom_call()` | Marked `unsafe` |
 
-### Profiler Extension (1/1 — 100%)
+### Profiler Extension (7/7 — 100%)
 
 | C API Function | Status | Rust Location | Notes |
 |----------------|--------|---------------|-------|
-| `PLUGIN_Profiler_Api` (data field) | ✅ | `profiler_ext.rs` → `ProfilerExtension::profiler_api()` | Returns raw pointer |
+| `PLUGIN_Profiler_Api` (data field) | ✅ | `profiler_ext.rs` → `ProfilerExtension::profiler_api()` | Returns safe `ProfilerApi` wrapper |
+| `PLUGIN_Profiler_Create` | ✅ | `profiler_ext.rs` → `ProfilerApi::create()` | Creates RAII `Profiler` session |
+| `PLUGIN_Profiler_Destroy` | ✅ | `profiler_ext.rs` → `Profiler::drop()` | Automatic cleanup via `Drop` |
+| `PLUGIN_Profiler_Start` | ✅ | `profiler_ext.rs` → `Profiler::start()` | |
+| `PLUGIN_Profiler_Stop` | ✅ | `profiler_ext.rs` → `Profiler::stop()` | |
+| `PLUGIN_Profiler_CollectData` | ✅ | `profiler_ext.rs` → `Profiler::collect_data()` | Two-pass protocol, returns `Vec<u8>` |
+| `PLUGIN_Profiler_Error_*` | ✅ | `profiler_ext.rs` → `ProfilerApi::check_error()` | Handles message, code, destroy |
 
 ### Custom Partitioner Extension (2/2 — 100%)
 

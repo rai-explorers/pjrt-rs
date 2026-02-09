@@ -159,6 +159,24 @@ impl Api {
         api
     }
 
+    /// Create a minimal `Api` for unit testing.
+    ///
+    /// # Safety
+    ///
+    /// The returned `Api` has all function pointers set to `None` and must
+    /// **not** be used to call any PJRT functions. It is only suitable for
+    /// constructing types that hold an `Api` reference in tests.
+    #[cfg(test)]
+    #[allow(clippy::arc_with_non_send_sync)]
+    pub(crate) unsafe fn empty_for_testing() -> Self {
+        let raw = Arc::new(PJRT_Api::default());
+        let version = Version {
+            major_version: 0,
+            minor_version: 0,
+        };
+        Self { raw, version }
+    }
+
     /// Returns the PJRT API version supported by this plugin.
     pub fn version(&self) -> Version {
         self.version

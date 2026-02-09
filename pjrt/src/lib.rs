@@ -37,6 +37,42 @@
 //! - macOS (CPU only)
 //! - Windows (CPU, GPU)
 //!
+//! ## Thread Safety
+//!
+//! This crate distinguishes between thread-safe and single-threaded types:
+//!
+//! ### Types that are `Send + Sync` (thread-safe)
+//!
+//! - [`Api`]: The only FFI wrapper with explicit `unsafe impl Send + Sync`.
+//!   PJRT plugin function tables are immutable after loading, so sharing
+//!   an `Api` across threads is safe.
+//! - All pure-data types: [`CompileOptions`], [`ExecutableBuildOptions`],
+//!   [`Error`], [`ErrorCode`], [`PrimitiveType`], [`NamedValue`],
+//!   [`NamedValueMap`], [`DeviceAssignment`], [`MemoryLayout`],
+//!   [`MemoryStats`], [`CompiledMemoryStats`], [`Chunk`], [`CallLocation`],
+//!   [`LogicalId`], [`BufferShape`], and all F8 element types.
+//!
+//! ### Types that are `!Send + !Sync` (single-threaded)
+//!
+//! - [`Client`], [`Device`], [`Buffer`], [`Memory`], [`LoadedExecutable`],
+//!   [`Executable`], [`Event`], [`TopologyDescription`], and all extension
+//!   types. These are `!Send` because `Client` internally uses `Rc` for
+//!   reference counting. All device-side types hold a `Client` reference,
+//!   making them transitively `!Send + !Sync`.
+//! - [`HostBuffer`] and [`TypedHostBuffer`]: Use `Rc` internally for the
+//!   backing data, so they are `!Send + !Sync`.
+//!
+//! ### Practical implications
+//!
+//! - All PJRT operations involving a particular `Client` must run on the
+//!   same thread (or be coordinated externally with `unsafe` Send wrappers).
+//! - You **can** create separate `Client` instances on different threads,
+//!   each tied to its own thread.
+//! - Async operations (`.await`) work correctly on single-threaded runtimes
+//!   like `tokio::runtime::Builder::new_current_thread()`.
+//! - Data types like `CompileOptions` and `DeviceAssignment` can be freely
+//!   shared across threads for pre-computation before passing to a client.
+//!
 //! For more detailed examples and advanced usage patterns, see the `examples/` directory.
 
 mod utils;
@@ -144,7 +180,7 @@ mod triton_ext;
 pub use triton_ext::{TritonCompileResult, TritonExtension};
 
 mod profiler_ext;
-pub use profiler_ext::ProfilerExtension;
+pub use profiler_ext::{Profiler, ProfilerApi, ProfilerExtension};
 
 mod callback_ext;
 pub use callback_ext::{CallbackExtension, TpuSliceFailureType};

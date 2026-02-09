@@ -11,6 +11,12 @@ use pjrt_sys::{
 use crate::named_value::NamedValueMap;
 use crate::{utils, Api, GlobalDeviceId, Result};
 
+/// Metadata describing a PJRT device (ID, kind, process index, attributes).
+///
+/// # Thread Safety
+///
+/// `DeviceDescription` is `!Send + !Sync` due to the raw
+/// `*mut PJRT_DeviceDescription` pointer.
 pub struct DeviceDescription {
     api: Api,
     pub(crate) ptr: *mut PJRT_DeviceDescription,

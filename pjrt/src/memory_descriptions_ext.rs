@@ -28,7 +28,7 @@ use pjrt_sys::{
 };
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, DeviceDescription, Result};
+use crate::{Api, DeviceDescription, Error, Result};
 
 /// Safe wrapper for PJRT Memory Descriptions extension
 ///
@@ -114,7 +114,7 @@ impl MemoryDescription {
             .ext
             .raw
             .PJRT_MemoryDescription_Kind
-            .expect("PJRT_MemoryDescription_Kind not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_MemoryDescription_Kind"))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.ext.api.err_or(err, ())?;
@@ -166,10 +166,9 @@ impl MemoryDescriptionsExtension {
             default_memory_index: 0,
         };
 
-        let ext_fn = self
-            .raw
-            .PJRT_DeviceDescription_MemoryDescriptions
-            .expect("PJRT_DeviceDescription_MemoryDescriptions not implemented");
+        let ext_fn = self.raw.PJRT_DeviceDescription_MemoryDescriptions.ok_or(
+            Error::NullFunctionPointer("PJRT_DeviceDescription_MemoryDescriptions"),
+        )?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -203,5 +202,95 @@ impl MemoryDescriptionsExtension {
                 args.default_memory_index as isize
             },
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(
+            MemoryDescriptionsExtension::extension_type(),
+            ExtensionType::MemoryDescriptions
+        );
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { MemoryDescriptionsExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_MemoryDescriptions_Extension>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            MemoryDescriptionsExtension::from_raw(
+                &mut ext as *mut PJRT_MemoryDescriptions_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_MemoryDescriptions_Extension>() };
+        ext.base.type_ = ExtensionType::MemoryDescriptions.to_raw();
+        let result = unsafe {
+            MemoryDescriptionsExtension::from_raw(
+                &mut ext as *mut PJRT_MemoryDescriptions_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_MemoryDescriptions_Extension>() };
+        ext.base.type_ = ExtensionType::MemoryDescriptions.to_raw();
+        let md = unsafe {
+            MemoryDescriptionsExtension::from_raw(
+                &mut ext as *mut PJRT_MemoryDescriptions_Extension
+                    as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", md);
+        assert!(debug.contains("MemoryDescriptionsExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_memory_kind_debug() {
+        let kind = MemoryKind {
+            kind: "test_kind".to_string(),
+            kind_id: 42,
+        };
+        let debug = format!("{:?}", kind);
+        assert!(debug.contains("test_kind"));
+        assert!(debug.contains("42"));
+    }
+
+    #[test]
+    fn test_memory_kind_clone() {
+        let kind = MemoryKind {
+            kind: "test_kind".to_string(),
+            kind_id: 42,
+        };
+        let cloned = kind.clone();
+        assert_eq!(cloned.kind, "test_kind");
+        assert_eq!(cloned.kind_id, 42);
     }
 }

@@ -102,6 +102,14 @@ pub enum Error {
     #[error("lock poison error: {0}")]
     PoisonError(String),
 
+    #[error("profiler error (code {code}): {message}")]
+    ProfilerError {
+        /// The profiler error message
+        message: String,
+        /// The profiler error code (-1 if unavailable)
+        code: i32,
+    },
+
     #[error("unimplemented")]
     Unimplemented,
 }

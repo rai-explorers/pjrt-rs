@@ -31,7 +31,7 @@ use pjrt_sys::{
 };
 
 use crate::extension::{Extension, ExtensionType};
-use crate::{Api, CompileOptions, Result, TopologyDescription};
+use crate::{Api, CompileOptions, Error, Result, TopologyDescription};
 
 /// Safe wrapper for PJRT Phase Compile extension
 ///
@@ -126,7 +126,7 @@ impl PhaseCompileExtension {
         let ext_fn = self
             .raw
             .phase_compile_get_compiler
-            .expect("PJRT_PhaseCompile_Get_Compiler not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_PhaseCompile_Get_Compiler"))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.api.err_or(err, ())?;
@@ -159,11 +159,13 @@ impl PhaseCompiler {
             num_phase_names: 0,
         };
 
-        let ext_fn = self
-            .ext
-            .raw
-            .phase_compile_get_phase_names
-            .expect("PJRT_PhaseCompile_Get_PhaseNames not implemented");
+        let ext_fn =
+            self.ext
+                .raw
+                .phase_compile_get_phase_names
+                .ok_or(Error::NullFunctionPointer(
+                    "PJRT_PhaseCompile_Get_PhaseNames",
+                ))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.ext.api.err_or(err, ())?;
@@ -237,8 +239,11 @@ impl PhaseCompiler {
         // Convert phase names to C-compatible format
         let phase_names_cstrings: Vec<std::ffi::CString> = phases_to_run
             .iter()
-            .map(|s| std::ffi::CString::new(s.as_str()).expect("phase name contains null"))
-            .collect();
+            .map(|s| {
+                std::ffi::CString::new(s.as_str())
+                    .map_err(|_| Error::InvalidArgument("phase name contains null byte".into()))
+            })
+            .collect::<crate::Result<Vec<_>>>()?;
         let phase_names_ptrs: Vec<*const i8> =
             phase_names_cstrings.iter().map(|s| s.as_ptr()).collect();
         let phase_names_sizes: Vec<usize> = phases_to_run.iter().map(|s| s.len()).collect();
@@ -284,7 +289,7 @@ impl PhaseCompiler {
             .ext
             .raw
             .phase_compile_run_phases
-            .expect("PJRT_PhaseCompile_Run_Phase not implemented");
+            .ok_or(Error::NullFunctionPointer("PJRT_PhaseCompile_Run_Phase"))?;
 
         let err = unsafe { ext_fn(&mut args) };
         self.ext.api.err_or(err, ())?;
@@ -332,5 +337,87 @@ impl PhaseCompiler {
         };
 
         Ok(PhaseCompileOutput { output_programs })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(
+            PhaseCompileExtension::extension_type(),
+            ExtensionType::PhaseCompile
+        );
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { PhaseCompileExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_PhaseCompile_Extension>() };
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            PhaseCompileExtension::from_raw(
+                &mut ext as *mut PJRT_PhaseCompile_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_PhaseCompile_Extension>() };
+        ext.base.type_ = ExtensionType::PhaseCompile.to_raw();
+        let result = unsafe {
+            PhaseCompileExtension::from_raw(
+                &mut ext as *mut PJRT_PhaseCompile_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_PhaseCompile_Extension>() };
+        ext.base.type_ = ExtensionType::PhaseCompile.to_raw();
+        let pc = unsafe {
+            PhaseCompileExtension::from_raw(
+                &mut ext as *mut PJRT_PhaseCompile_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", pc);
+        assert!(debug.contains("PhaseCompileExtension"));
+        assert!(debug.contains("api_version"));
+    }
+
+    #[test]
+    fn test_get_compiler_null_function_pointer() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext = unsafe { std::mem::zeroed::<PJRT_PhaseCompile_Extension>() };
+        ext.base.type_ = ExtensionType::PhaseCompile.to_raw();
+        let pc = unsafe {
+            PhaseCompileExtension::from_raw(
+                &mut ext as *mut PJRT_PhaseCompile_Extension as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let result = pc.get_compiler();
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("PJRT_PhaseCompile_Get_Compiler"));
     }
 }

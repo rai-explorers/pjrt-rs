@@ -86,3 +86,82 @@ impl ExecutableMetadataExtension {
         self.raw
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extension_type() {
+        assert_eq!(
+            ExecutableMetadataExtension::extension_type(),
+            ExtensionType::ExecutableMetadata
+        );
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { ExecutableMetadataExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut base = pjrt_sys::PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<pjrt_sys::PJRT_Extension_Base>(),
+            type_: ExtensionType::Example.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        let result = unsafe {
+            ExecutableMetadataExtension::from_raw(
+                &mut base as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut base = pjrt_sys::PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<pjrt_sys::PJRT_Extension_Base>(),
+            type_: ExtensionType::ExecutableMetadata.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        let result = unsafe {
+            ExecutableMetadataExtension::from_raw(
+                &mut base as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        };
+        assert!(result.is_some());
+        let ext = result.unwrap();
+        assert_eq!(
+            ext.raw_ptr(),
+            &mut base as *mut pjrt_sys::PJRT_Extension_Base
+        );
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut base = pjrt_sys::PJRT_Extension_Base {
+            struct_size: std::mem::size_of::<pjrt_sys::PJRT_Extension_Base>(),
+            type_: ExtensionType::ExecutableMetadata.to_raw(),
+            next: std::ptr::null_mut(),
+        };
+        let ext = unsafe {
+            ExecutableMetadataExtension::from_raw(
+                &mut base as *mut pjrt_sys::PJRT_Extension_Base,
+                &api,
+            )
+        }
+        .unwrap();
+        let debug = format!("{:?}", ext);
+        assert!(debug.contains("ExecutableMetadataExtension"));
+        assert!(debug.contains("ExecutableMetadata"));
+    }
+}

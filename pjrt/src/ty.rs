@@ -258,6 +258,121 @@ impl ElemType for num_complex::Complex<f64> {
     type Type = C128;
 }
 
+// ─── F8 floating-point types ───────────────────────────────────────────────
+// These are 8-bit floating-point formats used extensively in ML inference.
+// Each is represented as an opaque `u8` newtype since Rust has no native F8.
+
+/// Element type for F8E5M2 (5 exponent, 2 mantissa bits, IEEE 754 compatible).
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct F8E5M2Elem(pub u8);
+
+/// F8E5M2 type marker — 8-bit float with 5 exponent bits and 2 mantissa bits.
+///
+/// This format follows IEEE 754 conventions and supports NaN and infinities.
+/// Commonly used in FP8 training and inference.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct F8E5M2;
+
+impl Type for F8E5M2 {
+    const NAME: &'static str = "f8e5m2";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::F8E5M2;
+    const TYPE: Self = F8E5M2;
+    type ElemType = F8E5M2Elem;
+}
+
+impl ElemType for F8E5M2Elem {
+    type Type = F8E5M2;
+}
+
+/// Element type for F8E4M3FN (4 exponent, 3 mantissa bits, with NaN, no infinity).
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct F8E4M3FNElem(pub u8);
+
+/// F8E4M3FN type marker — 8-bit float with 4 exponent bits and 3 mantissa bits.
+///
+/// Supports NaN but not infinity. Commonly used in NVIDIA FP8 inference (E4M3).
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct F8E4M3FN;
+
+impl Type for F8E4M3FN {
+    const NAME: &'static str = "f8e4m3fn";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::F8E4M3FN;
+    const TYPE: Self = F8E4M3FN;
+    type ElemType = F8E4M3FNElem;
+}
+
+impl ElemType for F8E4M3FNElem {
+    type Type = F8E4M3FN;
+}
+
+/// Element type for F8E4M3B11FNUZ (4 exponent, 3 mantissa, bias 11, no -0/NaN).
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct F8E4M3B11FNUZElem(pub u8);
+
+/// F8E4M3B11FNUZ type marker — 8-bit float with bias 11, no negative zero or NaN.
+///
+/// Used in AMD MI300 series accelerators.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct F8E4M3B11FNUZ;
+
+impl Type for F8E4M3B11FNUZ {
+    const NAME: &'static str = "f8e4m3b11fnuz";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::F8E4M3B11FNUZ;
+    const TYPE: Self = F8E4M3B11FNUZ;
+    type ElemType = F8E4M3B11FNUZElem;
+}
+
+impl ElemType for F8E4M3B11FNUZElem {
+    type Type = F8E4M3B11FNUZ;
+}
+
+/// Element type for F8E5M2FNUZ (5 exponent, 2 mantissa, no -0/NaN).
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct F8E5M2FNUZElem(pub u8);
+
+/// F8E5M2FNUZ type marker — 8-bit float with 5 exponent bits, no negative zero or NaN.
+///
+/// Used in AMD MI300 series accelerators.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct F8E5M2FNUZ;
+
+impl Type for F8E5M2FNUZ {
+    const NAME: &'static str = "f8e5m2fnuz";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::F8E5M2FNUZ;
+    const TYPE: Self = F8E5M2FNUZ;
+    type ElemType = F8E5M2FNUZElem;
+}
+
+impl ElemType for F8E5M2FNUZElem {
+    type Type = F8E5M2FNUZ;
+}
+
+/// Element type for F8E4M3FNUZ (4 exponent, 3 mantissa, no -0/NaN).
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct F8E4M3FNUZElem(pub u8);
+
+/// F8E4M3FNUZ type marker — 8-bit float with 4 exponent bits, no negative zero or NaN.
+///
+/// Used in AMD MI300 series accelerators.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct F8E4M3FNUZ;
+
+impl Type for F8E4M3FNUZ {
+    const NAME: &'static str = "f8e4m3fnuz";
+    const PRIMITIVE_TYPE: PrimitiveType = PrimitiveType::F8E4M3FNUZ;
+    const TYPE: Self = F8E4M3FNUZ;
+    type ElemType = F8E4M3FNUZElem;
+}
+
+impl ElemType for F8E4M3FNUZElem {
+    type Type = F8E4M3FNUZ;
+}
+
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PrimitiveType {
@@ -341,11 +456,11 @@ impl PrimitiveType {
             PrimitiveType::BF16 => Ok(BF16.boxed_dtype()),
             PrimitiveType::C64 => Ok(C64.boxed_dtype()),
             PrimitiveType::C128 => Ok(C128.boxed_dtype()),
-            PrimitiveType::F8E5M2 => Err(Error::Unimplemented),
-            PrimitiveType::F8E4M3FN => Err(Error::Unimplemented),
-            PrimitiveType::F8E4M3B11FNUZ => Err(Error::Unimplemented),
-            PrimitiveType::F8E5M2FNUZ => Err(Error::Unimplemented),
-            PrimitiveType::F8E4M3FNUZ => Err(Error::Unimplemented),
+            PrimitiveType::F8E5M2 => Ok(F8E5M2.boxed_dtype()),
+            PrimitiveType::F8E4M3FN => Ok(F8E4M3FN.boxed_dtype()),
+            PrimitiveType::F8E4M3B11FNUZ => Ok(F8E4M3B11FNUZ.boxed_dtype()),
+            PrimitiveType::F8E5M2FNUZ => Ok(F8E5M2FNUZ.boxed_dtype()),
+            PrimitiveType::F8E4M3FNUZ => Ok(F8E4M3FNUZ.boxed_dtype()),
             PrimitiveType::S4 => Err(Error::Unimplemented),
             PrimitiveType::U4 => Err(Error::Unimplemented),
             PrimitiveType::Token => Err(Error::Unimplemented),
@@ -638,9 +753,24 @@ mod tests {
         let dtype: Box<dyn DType> = PrimitiveType::Pred.try_into_dtype().unwrap();
         assert_eq!(dtype.name(), "bool");
 
-        // Test unimplemented types
-        assert!(PrimitiveType::F8E5M2.try_into_dtype().is_err());
-        assert!(PrimitiveType::F8E4M3FN.try_into_dtype().is_err());
+        // Test F8 types (now implemented)
+        let dtype: Box<dyn DType> = PrimitiveType::F8E5M2.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "f8e5m2");
+        assert_eq!(dtype.size(), 1);
+
+        let dtype: Box<dyn DType> = PrimitiveType::F8E4M3FN.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "f8e4m3fn");
+
+        let dtype: Box<dyn DType> = PrimitiveType::F8E4M3B11FNUZ.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "f8e4m3b11fnuz");
+
+        let dtype: Box<dyn DType> = PrimitiveType::F8E5M2FNUZ.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "f8e5m2fnuz");
+
+        let dtype: Box<dyn DType> = PrimitiveType::F8E4M3FNUZ.try_into_dtype().unwrap();
+        assert_eq!(dtype.name(), "f8e4m3fnuz");
+
+        // Test still-unimplemented types
         assert!(PrimitiveType::S4.try_into_dtype().is_err());
         assert!(PrimitiveType::U4.try_into_dtype().is_err());
         assert!(PrimitiveType::Invalid.try_into_dtype().is_err());
