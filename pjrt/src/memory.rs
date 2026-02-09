@@ -121,7 +121,7 @@ impl Memory {
         ))
     }
 
-    pub fn to_string(&self) -> Result<Cow<'_, str>> {
+    pub fn display_string(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_Memory_ToString_Args::new();
         args.memory = self.ptr;
         args = self.client.api().PJRT_Memory_ToString(args)?;
@@ -142,7 +142,7 @@ impl Memory {
 
 impl Display for Memory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.to_string() {
+        match self.display_string() {
             Ok(s) => write!(f, "Memory({})", s),
             Err(e) => write!(f, "Memory(<error: {}>)", e),
         }

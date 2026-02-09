@@ -154,12 +154,11 @@ impl Client {
         }
     }
 
-    #[allow(clippy::borrowed_box)]
     #[builder(finish_fn = build)]
     pub fn builder(
         #[builder(start_fn)] api: &Api,
         #[builder(default = bon::vec![], into)] options: Vec<NamedValue>,
-        kv_store: Option<&Box<dyn KeyValueStore>>,
+        kv_store: Option<&dyn KeyValueStore>,
     ) -> Result<Self> {
         api.create_client(options, kv_store)
     }
@@ -308,18 +307,24 @@ impl Client {
         memory: &Memory,
     ) -> Result<AsyncHostToDeviceTransferManager> {
         let mut specs: Vec<PJRT_ShapeSpec> = shapes.iter().map(|s| s.to_spec()).collect();
-        let mut layouts: Vec<pjrt_sys::PJRT_Buffer_MemoryLayout> = shapes
+        let mut layouts: Vec<Option<pjrt_sys::PJRT_Buffer_MemoryLayout>> = shapes
             .iter()
-            .filter_map(|s| s.layout().map(|l| l.into()))
+            .map(|s| s.layout().map(|l| l.into()))
             .collect();
-        let mut layout_ptrs: Vec<*mut pjrt_sys::PJRT_Buffer_MemoryLayout> =
-            layouts.iter_mut().map(|l| l as *mut _).collect();
+        let has_any_layout = layouts.iter().any(|l| l.is_some());
+        let mut layout_ptrs: Vec<*mut pjrt_sys::PJRT_Buffer_MemoryLayout> = layouts
+            .iter_mut()
+            .map(|l| match l {
+                Some(layout) => layout as *mut _,
+                None => std::ptr::null_mut(),
+            })
+            .collect();
 
         let mut args = PJRT_Client_CreateBuffersForAsyncHostToDevice_Args::new();
         args.client = self.ptr();
         args.shape_specs = specs.as_mut_ptr();
         args.num_shape_specs = shapes.len();
-        if !layout_ptrs.is_empty() {
+        if has_any_layout {
             args.device_layouts = layout_ptrs.as_mut_ptr();
             args.num_device_layouts = layout_ptrs.len();
         }

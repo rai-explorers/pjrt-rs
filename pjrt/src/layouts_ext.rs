@@ -307,18 +307,6 @@ impl SerializedLayout {
 }
 
 impl LayoutsMemoryLayout {
-    /// Returns the size of this memory layout in bytes
-    ///
-    /// This is a placeholder implementation that returns a default size.
-    /// In a real implementation, this would query the actual layout size
-    /// from the PJRT extension.
-    pub fn size(&self) -> usize {
-        // Placeholder: return a default size
-        // In a real implementation, this would call the extension's serialize
-        // function and return the actual size
-        0
-    }
-
     /// Serialize the memory layout to bytes
     ///
     /// Returns a serialized representation of the layout that can be
@@ -423,18 +411,6 @@ mod tests {
         let debug = format!("{:?}", layouts);
         assert!(debug.contains("LayoutsExtension"));
         assert!(debug.contains("api_version"));
-    }
-
-    #[test]
-    fn test_layouts_memory_layout_size_placeholder() {
-        // Verify the placeholder size() method returns 0
-        let layout = LayoutsMemoryLayout {
-            raw: std::ptr::null_mut(),
-            deleter: None,
-            serializer: None,
-            api: unsafe { Api::empty_for_testing() },
-        };
-        assert_eq!(layout.size(), 0);
     }
 
     #[test]

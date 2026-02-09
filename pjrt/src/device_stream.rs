@@ -11,6 +11,14 @@ pub struct CopyToDeviceStream {
     pub(crate) ptr: *mut PJRT_CopyToDeviceStream,
 }
 
+impl std::fmt::Debug for CopyToDeviceStream {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CopyToDeviceStream")
+            .field("ptr", &self.ptr)
+            .finish()
+    }
+}
+
 impl Drop for CopyToDeviceStream {
     fn drop(&mut self) {
         let mut args = PJRT_CopyToDeviceStream_Destroy_Args::new();

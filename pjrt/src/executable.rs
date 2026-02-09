@@ -303,6 +303,14 @@ impl SerializedCompileOptions {
     }
 }
 
+impl std::fmt::Debug for SerializedCompileOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SerializedCompileOptions")
+            .field("len", &self.data_len)
+            .finish()
+    }
+}
+
 /// A serialized PJRT executable.
 ///
 /// This struct holds the serialized form of an `Executable`, which can be
@@ -336,6 +344,14 @@ impl Drop for SerializedExecutable {
 impl SerializedExecutable {
     pub fn bytes(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.data_ptr, self.data_len) }
+    }
+}
+
+impl std::fmt::Debug for SerializedExecutable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SerializedExecutable")
+            .field("len", &self.data_len)
+            .finish()
     }
 }
 

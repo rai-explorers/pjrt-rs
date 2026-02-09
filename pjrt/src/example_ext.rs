@@ -175,6 +175,14 @@ pub struct ExampleExtensionCpp {
     ptr: *mut pjrt_sys::PJRT_ExampleExtensionCpp,
 }
 
+impl std::fmt::Debug for ExampleExtensionCpp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ExampleExtensionCpp")
+            .field("ptr", &self.ptr)
+            .finish()
+    }
+}
+
 impl ExampleExtension {
     /// Returns the raw extension pointer.
     pub fn raw_ptr(&self) -> *mut pjrt_sys::PJRT_Extension_Base {

@@ -205,9 +205,9 @@ impl<'a> From<&'a MemoryLayoutTiled> for PJRT_Buffer_MemoryLayout {
         if let Some(tile_dims) = &layout.tile_dims {
             pjrt_layout.__bindgen_anon_1.tiled.tile_dims = tile_dims.as_ptr();
             pjrt_layout.__bindgen_anon_1.tiled.num_tiles = tile_dims.len();
-        }
-        if let Some(tile_dim_sizes) = &layout.tile_dim_sizes {
-            pjrt_layout.__bindgen_anon_1.tiled.tile_dim_sizes = tile_dim_sizes.as_ptr();
+            if let Some(tile_dim_sizes) = &layout.tile_dim_sizes {
+                pjrt_layout.__bindgen_anon_1.tiled.tile_dim_sizes = tile_dim_sizes.as_ptr();
+            }
         }
         pjrt_layout
     }

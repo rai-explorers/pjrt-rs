@@ -81,10 +81,14 @@ mod error;
 pub use error::{Error, ErrorCode, Result};
 
 mod ty;
-pub use ty::*;
+pub use ty::{
+    AsDType, Bool, DType, ElemType, F8E4M3B11FNUZElem, F8E4M3FNElem, F8E4M3FNUZElem, F8E5M2Elem,
+    F8E5M2FNUZElem, PrimitiveType, Type, BF16, C128, C64, F16, F32, F64, F8E4M3B11FNUZ, F8E4M3FN,
+    F8E4M3FNUZ, F8E5M2, F8E5M2FNUZ, I16, I32, I64, I8, U16, U32, U64, U8,
+};
 
 mod plugin;
-pub use plugin::plugin;
+pub use plugin::{get_plugin, plugin};
 
 mod api;
 pub use api::Api;
@@ -98,7 +102,7 @@ mod buffer;
 pub use buffer::{Buffer, CopyRawToHostFuture, DonateWithControlDependency, ExternalBufferRef};
 
 mod host_buffer;
-pub use host_buffer::{HostBuffer, TypedHostBuffer};
+pub use host_buffer::{HostBuffer, HostBufferSemantics, TypedHostBuffer};
 
 mod memory_layout;
 pub use memory_layout::MemoryLayout;
@@ -123,7 +127,7 @@ mod memory;
 pub use memory::Memory;
 
 mod topology_description;
-pub use topology_description::TopologyDescription;
+pub use topology_description::{SerializedTopology, TopologyDescription};
 
 mod program;
 pub use program::{Program, ProgramFormat};
@@ -132,7 +136,9 @@ mod loaded_executable;
 pub use loaded_executable::LoadedExecutable;
 
 mod executable;
-pub use executable::{CompiledMemoryStats, Executable, SerializedCompileOptions};
+pub use executable::{
+    CompiledMemoryStats, Executable, SerializedCompileOptions, SerializedExecutable,
+};
 
 mod event;
 pub use event::Event;

@@ -116,6 +116,15 @@ pub struct Program {
     pub(crate) prog: PJRT_Program,
 }
 
+impl std::fmt::Debug for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Program")
+            .field("format", &self.format)
+            .field("code_len", &self.code.len())
+            .finish()
+    }
+}
+
 impl Program {
     pub fn new(format: ProgramFormat, code: impl Into<Vec<u8>>) -> Self {
         let mut program = Program {

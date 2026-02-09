@@ -60,6 +60,14 @@ pub struct MegascaleClientContext {
     api: Api,
 }
 
+impl std::fmt::Debug for MegascaleClientContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MegascaleClientContext")
+            .field("ptr", &self.ptr)
+            .finish()
+    }
+}
+
 impl MegascaleClientContext {
     /// Initialize this client context.
     ///
@@ -148,6 +156,14 @@ pub struct MegascaleMultiSliceConfig {
     ptr: *mut pjrt_sys::PJRT_Megascale_MultiSliceConfig,
     ext: Rc<PJRT_Megascale_Extension>,
     api: Api,
+}
+
+impl std::fmt::Debug for MegascaleMultiSliceConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MegascaleMultiSliceConfig")
+            .field("ptr", &self.ptr)
+            .finish()
+    }
 }
 
 impl MegascaleMultiSliceConfig {
@@ -396,6 +412,7 @@ impl MegascaleExtension {
     ///
     /// This consumes the context. Prefer letting the context drop naturally.
     pub fn delete_client_context(&self, ctx: MegascaleClientContext) -> Result<()> {
+        let ctx = std::mem::ManuallyDrop::new(ctx);
         let mut args: PJRT_Megascale_DeleteClientContext_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_Megascale_DeleteClientContext_Args>();
         args.client_context = ctx.ptr;
@@ -408,11 +425,7 @@ impl MegascaleExtension {
             ))?;
 
         let err = unsafe { ext_fn(&mut args) };
-        self.api.err_or(err, ())?;
-
-        // Prevent double-free in drop
-        std::mem::forget(ctx);
-        Ok(())
+        self.api.err_or(err, ())
     }
 
     /// Create an ahead-of-time (AoT) multi-slice configuration.

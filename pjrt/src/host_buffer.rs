@@ -207,6 +207,7 @@ impl<T: Type> TypedHostBuffer<T> {
         dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
+        host_buffer_semantics: Option<HostBufferSemantics>,
     ) -> Result<PJRT_Client_BufferFromHostBuffer_Args>
     where
         D: HostBufferCopyToDest,
@@ -218,8 +219,9 @@ impl<T: Type> TypedHostBuffer<T> {
         args.type_ = T::PRIMITIVE_TYPE as PJRT_Buffer_Type;
         args.dims = self.dims.as_ptr();
         args.num_dims = self.dims.len();
-        args.host_buffer_semantics =
-            HostBufferSemantics::ImmutableUntilTransferCompletes as PJRT_HostBufferSemantics;
+        args.host_buffer_semantics = host_buffer_semantics
+            .unwrap_or(HostBufferSemantics::ImmutableUntilTransferCompletes)
+            as PJRT_HostBufferSemantics;
         if let Some(byte_strides) = &byte_strides {
             args.byte_strides = byte_strides.as_ptr() as *const _;
             args.num_byte_strides = byte_strides.len();
@@ -238,11 +240,12 @@ impl<T: Type> TypedHostBuffer<T> {
         #[builder(start_fn)] dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
+        host_buffer_semantics: Option<HostBufferSemantics>,
     ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
     {
-        let args = self.call_copy_to(dest, byte_strides, device_layout)?;
+        let args = self.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)?;
         let done_with_host_event = Event::wrap(dest.client().api(), args.done_with_host_buffer);
         done_with_host_event.wait()?;
         let buf = Buffer::wrap(dest.client(), args.buffer);
@@ -257,11 +260,12 @@ impl<T: Type> TypedHostBuffer<T> {
         #[builder(start_fn)] dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
+        host_buffer_semantics: Option<HostBufferSemantics>,
     ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
     {
-        let args = self.call_copy_to(dest, byte_strides, device_layout)?;
+        let args = self.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)?;
         let done_with_host_event = Event::wrap(dest.client().api(), args.done_with_host_buffer);
         done_with_host_event.await?;
         let buf = Buffer::wrap(dest.client(), args.buffer);
@@ -448,25 +452,54 @@ impl HostBuffer {
         dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
+        host_buffer_semantics: Option<HostBufferSemantics>,
     ) -> Result<PJRT_Client_BufferFromHostBuffer_Args>
     where
         D: HostBufferCopyToDest,
     {
         match self {
-            Self::BF16(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::F16(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::F32(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::F64(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::I8(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::I16(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::I32(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::I64(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::U8(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::U16(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::U32(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::U64(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::C64(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
-            Self::C128(buf) => buf.call_copy_to(dest, byte_strides, device_layout),
+            Self::BF16(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::F16(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::F32(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::F64(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::I8(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::I16(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::I32(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::I64(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::U8(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::U16(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::U32(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::U64(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::C64(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
+            Self::C128(buf) => {
+                buf.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)
+            }
         }
     }
 
@@ -476,12 +509,13 @@ impl HostBuffer {
         #[builder(start_fn)] dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
+        host_buffer_semantics: Option<HostBufferSemantics>,
     ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
     {
         let client = dest.client().clone();
-        let args = self.call_copy_to(dest, byte_strides, device_layout)?;
+        let args = self.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)?;
         let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
         done_with_host_event.wait()?;
         let buf = Buffer::wrap(&client, args.buffer);
@@ -496,12 +530,13 @@ impl HostBuffer {
         #[builder(start_fn)] dest: &D,
         byte_strides: Option<Vec<i64>>,
         device_layout: Option<MemoryLayout>,
+        host_buffer_semantics: Option<HostBufferSemantics>,
     ) -> Result<Buffer>
     where
         D: HostBufferCopyToDest,
     {
         let client = dest.client().clone();
-        let args = self.call_copy_to(dest, byte_strides, device_layout)?;
+        let args = self.call_copy_to(dest, byte_strides, device_layout, host_buffer_semantics)?;
         let done_with_host_event = Event::wrap(client.api(), args.done_with_host_buffer);
         done_with_host_event.await?;
         let buf = Buffer::wrap(&client, args.buffer);
@@ -682,7 +717,6 @@ impl HostBuffer {
 /// by default, which provides a good balance of safety and performance.
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[allow(dead_code)]
 pub enum HostBufferSemantics {
     /// The runtime may not hold references to `data` after the API call completes.
     ///

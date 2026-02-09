@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::ffi::c_char;
-use std::mem::ManuallyDrop;
 use std::slice;
 
 use pjrt_sys::PJRT_NamedValue;
@@ -15,13 +14,13 @@ pub(crate) fn str_from_raw<'a>(ptr: *const c_char, size: usize) -> Cow<'a, str> 
     String::from_utf8_lossy(bytes)
 }
 
-pub(crate) fn into_raw_parts<T>(vec: Vec<T>) -> (*mut T, usize, usize) {
-    let mut vec = ManuallyDrop::new(vec);
-    let length = vec.len();
-    let capacity = vec.capacity();
-    (vec.as_mut_ptr(), length, capacity)
-}
-
+/// Decompose a 2D C-style pointer array into a `Vec<Vec<U>>`.
+///
+/// # Safety
+///
+/// - `list` must point to a valid array of `num_rows` pointers.
+/// - Each inner pointer must point to a valid array of `num_cols` `*mut T` pointers.
+/// - All pointers must be valid for reads and must not be aliased mutably.
 pub(crate) unsafe fn slice_to_vec2d<T, U>(
     list: *const *mut *mut T,
     num_rows: usize,
@@ -87,34 +86,6 @@ mod tests {
         // Test with null pointer returns empty string
         let s = str_from_raw(std::ptr::null(), 10);
         assert_eq!(s, "");
-    }
-
-    #[test]
-    fn test_into_raw_parts() {
-        let vec = vec![1i32, 2, 3, 4, 5];
-        let original_len = vec.len();
-        let original_cap = vec.capacity();
-
-        let (ptr, len, cap) = into_raw_parts(vec);
-
-        assert_eq!(len, original_len);
-        assert_eq!(cap, original_cap);
-        assert!(!ptr.is_null());
-
-        // Reconstruct the vector to avoid memory leak
-        unsafe {
-            let _reconstructed = Vec::from_raw_parts(ptr, len, cap);
-        }
-    }
-
-    #[test]
-    fn test_into_raw_parts_empty() {
-        let vec: Vec<i32> = vec![];
-        let (_ptr, len, cap) = into_raw_parts(vec);
-
-        assert_eq!(len, 0);
-        assert_eq!(cap, 0);
-        // ptr may or may not be null for empty vec depending on allocator
     }
 
     #[test]

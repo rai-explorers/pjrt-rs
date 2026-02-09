@@ -13,8 +13,6 @@
 //! All PJRT operations return `Result<T>` which is either `Ok(T)` on success
 //! or `Err(Error)` on failure.
 
-#![allow(unused_assignments)]
-
 use pjrt_sys::{
     PJRT_Error_Code, PJRT_Error_Code_PJRT_Error_Code_ABORTED,
     PJRT_Error_Code_PJRT_Error_Code_ALREADY_EXISTS, PJRT_Error_Code_PJRT_Error_Code_CANCELLED,

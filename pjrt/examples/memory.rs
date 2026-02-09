@@ -61,7 +61,7 @@ fn demonstrate_list_memories(client: &Client) -> Result<()> {
             println!("     - ID: {}", memory.id()?);
             println!("     - Kind: {}", memory.kind()?);
             println!("     - Kind ID: {}", memory.kind_id()?);
-            println!("     - String: {}", memory.to_string()?);
+            println!("     - String: {}", memory.display_string()?);
             println!("     - Debug: {}", memory.debug_string()?);
             println!();
         }
@@ -89,7 +89,7 @@ fn demonstrate_memory_info(client: &Client) -> Result<()> {
         println!("   Kind ID: {} (numeric identifier)", kind_id);
 
         // ToString provides a human-readable description
-        let description = memory.to_string()?;
+        let description = memory.display_string()?;
         println!("   Description: {}", description);
 
         // Debug string provides additional implementation details

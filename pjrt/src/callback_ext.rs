@@ -27,8 +27,7 @@ use std::rc::Rc;
 
 use pjrt_sys::{
     PJRT_Callback_Extension, PJRT_Callback_InvokeCallback_Args,
-    PJRT_Callback_RegisterCallback_Args, PJRT_Callback_Tpu_SliceBuilderArgs,
-    PJRT_Callback_Tpu_SliceFailureType, PJRT_Callback_Type,
+    PJRT_Callback_RegisterCallback_Args, PJRT_Callback_Tpu_SliceFailureType, PJRT_Callback_Type,
 };
 
 use crate::extension::{Extension, ExtensionType};
@@ -141,26 +140,6 @@ impl TpuSliceFailureType {
     }
 }
 
-/// Arguments passed to a TPU SliceBuilder callback
-#[allow(dead_code)]
-pub struct TpuSliceBuilderCallbackArgs {
-    /// The type of failure that occurred
-    pub failure_type: TpuSliceFailureType,
-}
-
-impl TpuSliceBuilderCallbackArgs {
-    #[allow(dead_code)]
-    fn from_raw(raw: &PJRT_Callback_Tpu_SliceBuilderArgs) -> Self {
-        Self {
-            failure_type: TpuSliceFailureType::from_raw(raw.failure_type),
-        }
-    }
-}
-
-/// Callback function type
-#[allow(dead_code)]
-pub type CallbackFn = Box<dyn Fn(*mut c_void, *mut c_void)>;
-
 impl CallbackExtension {
     /// Register a callback for a specific callback type
     ///
@@ -230,13 +209,6 @@ impl CallbackExtension {
         let err = ext_fn(&mut args);
         self.api.err_or(err, ())
     }
-}
-
-/// Extension trait for accessing Callback extension from Client
-#[allow(dead_code)]
-pub trait CallbackExt {
-    /// Get the Callback extension if available
-    fn callback_extension(&self) -> Option<CallbackExtension>;
 }
 
 #[cfg(test)]

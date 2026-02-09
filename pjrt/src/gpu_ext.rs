@@ -42,9 +42,7 @@ pub struct GpuExtension {
 
 impl std::fmt::Debug for GpuExtension {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("GpuExtension")
-            .field("api_version", &2i32) // Version 2
-            .finish()
+        f.debug_struct("GpuExtension").finish()
     }
 }
 
@@ -194,7 +192,6 @@ mod tests {
         .unwrap();
         let debug = format!("{:?}", gpu);
         assert!(debug.contains("GpuExtension"));
-        assert!(debug.contains("api_version"));
     }
 
     #[test]

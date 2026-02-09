@@ -70,7 +70,6 @@ fn demonstrate_memory_layouts(client: &Client, layouts_ext: &pjrt::LayoutsExtens
 
         // In a real implementation, you would get the layout:
         let layout = layouts_ext.client_default_layout(client, ty, &dims)?;
-        println!("    Layout size: {} bytes", layout.size());
 
         // Serialize the layout for storage or transmission
         let serialized = layout.serialize()?;

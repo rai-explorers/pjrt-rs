@@ -179,13 +179,13 @@ impl ExecutableBuildOptions {
         self
     }
 
-    /// The number of replicas of this computation that are to be executed.
+    /// The number of partitions in this computation.
     pub fn num_partitions(mut self, num_partitions: i64) -> Self {
         self.proto.num_partitions = num_partitions;
         self
     }
 
-    /// The number of partitions in this computation.
+    /// The number of replicas of this computation that are to be executed.
     pub fn num_replicas(mut self, num_replicas: i64) -> Self {
         self.proto.num_replicas = num_replicas;
         self

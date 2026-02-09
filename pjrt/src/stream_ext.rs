@@ -122,6 +122,14 @@ pub struct DeviceStream {
     _marker: PhantomData<*const ()>, // Not Send + Sync
 }
 
+impl std::fmt::Debug for DeviceStream {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DeviceStream")
+            .field("stream", &self.stream)
+            .finish()
+    }
+}
+
 impl DeviceStream {
     /// Wait until the specified buffer is ready on this stream
     ///

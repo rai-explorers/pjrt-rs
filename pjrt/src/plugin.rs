@@ -33,7 +33,7 @@ impl PluginManager {
         let lib = unsafe { Library::new(library.as_str())? };
         let get_api_func: libloading::Symbol<GetPjrtApi> = unsafe { lib.get(b"GetPjrtApi")? };
         let ptr = unsafe { get_api_func() };
-        let api = Api::wrap(ptr);
+        let api = Api::wrap(ptr)?;
         libraries.insert(library, (lib, api.clone()));
         if let Some(alias) = alias {
             let mut aliases = self
@@ -66,7 +66,10 @@ pub fn plugin(
     manager.load_plugin(library, alias)
 }
 
-#[allow(dead_code)]
+/// Retrieve a previously loaded plugin by its alias.
+///
+/// Returns the `Api` for the plugin registered under the given alias,
+/// or an error if no plugin with that alias has been loaded.
 pub fn get_plugin(alias: &str) -> Result<Api> {
     let manager = PLUGIN_MANAGER.get_or_init(PluginManager::new);
     manager

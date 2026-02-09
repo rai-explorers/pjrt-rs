@@ -161,3 +161,11 @@ impl SerializedTopology {
         unsafe { std::slice::from_raw_parts(self.data_ptr, self.data_len) }
     }
 }
+
+impl std::fmt::Debug for SerializedTopology {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SerializedTopology")
+            .field("len", &self.data_len)
+            .finish()
+    }
+}

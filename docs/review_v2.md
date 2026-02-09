@@ -88,25 +88,25 @@ Uses cumulative offset tracking instead of index-based access.
 
 ## Medium-Priority Issues
 
-| # | File | Issue |
-|---|------|-------|
-| 17 | `api.rs` L159 | `Api::wrap()` panics via `.expect()` instead of returning `Result` |
-| 18 | `api.rs` L251 | `create_client` takes `Option<&Box<dyn KeyValueStore>>` — should be `&dyn` |
-| 19 | `client.rs` L316 | `create_buffers_for_async_host_to_device` partial layouts misalign with shapes |
-| 20 | `compile.rs` L182 | Doc comments for `num_partitions`/`num_replicas` are swapped |
-| 21 | `execute.rs` L739 | `Vec<Vec<Buffer>>::buffer_ptrs()` panics on empty input |
-| 22 | `memory.rs` L127 | `to_string()` shadows `ToString::to_string()` (returns `Result<Cow>` instead of `String`) |
-| 23 | `memory_layout.rs` L207 | `tile_dims`/`tile_dim_sizes` can be independently `Some`/`None` causing null dereference |
-| 24 | `host_buffer.rs` L504 | `HostBufferSemantics` ~400 lines, always `#[allow(dead_code)]`, hardcoded `ImmutableUntilTransferCompletes` |
-| 25 | `async_transfer.rs` L602 | `BufferShape::to_spec()` silently discards `layout` field |
-| 26 | `layouts_ext.rs` L316 | `LayoutsMemoryLayout::size()` always returns 0 (placeholder) |
-| 27 | `callback_ext.rs` | Duplicate `CallbackExt` trait definition (dead code) + unused `CallbackFn`/`TpuSliceBuilderCallbackArgs` |
-| 28 | `plugin.rs` L69 | `get_plugin` is `pub` but unreachable (not re-exported, `#[allow(dead_code)]`) |
-| 29 | `executable.rs` | `SerializedExecutable` not re-exported from lib.rs; missing `Debug` impl |
-| 30 | `topology_description.rs` | `SerializedTopology` not re-exported; missing `Debug` impl |
-| 31 | `stream_ext.rs` | `DeviceStream` missing `Debug` impl; no `Drop` for stream cleanup |
-| 32 | `megascale_ext.rs` L405 | `delete_client_context` potential double-free if first `ext_fn` partially succeeds |
-| 33 | `example_ext.rs` | `ExampleExtensionCpp` lacks `Drop` — leaks if not explicitly destroyed |
+| # | File | Issue | Status |
+|---|------|-------|--------|
+| 17 | `api.rs` L159 | `Api::wrap()` panics via `.expect()` instead of returning `Result` | ✅ FIXED — returns `Result<Self>` |
+| 18 | `api.rs` L251 | `create_client` takes `Option<&Box<dyn KeyValueStore>>` — should be `&dyn` | ✅ FIXED — changed to `Option<&dyn KeyValueStore>` |
+| 19 | `client.rs` L316 | `create_buffers_for_async_host_to_device` partial layouts misalign with shapes | ✅ FIXED — use `Option` per shape, null ptrs for missing layouts |
+| 20 | `compile.rs` L182 | Doc comments for `num_partitions`/`num_replicas` are swapped | ✅ FIXED — swapped doc comments |
+| 21 | `execute.rs` L739 | `Vec<Vec<Buffer>>::buffer_ptrs()` panics on empty input | ✅ FIXED — early return `vec![]` for empty |
+| 22 | `memory.rs` L127 | `to_string()` shadows `ToString::to_string()` (returns `Result<Cow>` instead of `String`) | ✅ FIXED — renamed to `display_string()` (also in `device_description.rs`) |
+| 23 | `memory_layout.rs` L207 | `tile_dims`/`tile_dim_sizes` can be independently `Some`/`None` causing null dereference | ✅ FIXED — `tile_dim_sizes` only set when `tile_dims` is present |
+| 24 | `host_buffer.rs` L504 | `HostBufferSemantics` ~400 lines, always `#[allow(dead_code)]`, hardcoded `ImmutableUntilTransferCompletes` | ✅ FIXED — made configurable via optional builder param, removed allow, re-exported |
+| 25 | `async_transfer.rs` L602 | `BufferShape::to_spec()` silently discards `layout` field | ℹ️ BY DESIGN — layout handled separately in `client.rs` (fix #19) |
+| 26 | `layouts_ext.rs` L316 | `LayoutsMemoryLayout::size()` always returns 0 (placeholder) | ✅ FIXED — removed placeholder method and test |
+| 27 | `callback_ext.rs` | Duplicate `CallbackExt` trait definition (dead code) + unused `CallbackFn`/`TpuSliceBuilderCallbackArgs` | ✅ FIXED — removed all dead code and unused imports |
+| 28 | `plugin.rs` L69 | `get_plugin` is `pub` but unreachable (not re-exported, `#[allow(dead_code)]`) | ✅ FIXED — re-exported from lib.rs, added doc comment |
+| 29 | `executable.rs` | `SerializedExecutable` not re-exported from lib.rs; missing `Debug` impl | ✅ FIXED — added Debug impl, re-exported |
+| 30 | `topology_description.rs` | `SerializedTopology` not re-exported; missing `Debug` impl | ✅ FIXED — added Debug impl, re-exported |
+| 31 | `stream_ext.rs` | `DeviceStream` missing `Debug` impl; no `Drop` for stream cleanup | ✅ FIXED — added Debug impl (no Drop needed: isize handle not owned) |
+| 32 | `megascale_ext.rs` L405 | `delete_client_context` potential double-free if first `ext_fn` partially succeeds | ✅ FIXED — use `ManuallyDrop` to prevent Drop regardless of error path |
+| 33 | `example_ext.rs` | `ExampleExtensionCpp` lacks `Drop` — leaks if not explicitly destroyed | ℹ️ BY DESIGN — destroy requires extension API ref; caller must call `destroy()` explicitly |
 
 ---
 
@@ -118,42 +118,43 @@ Uses cumulative offset tracking instead of index-based access.
 - `api.rs` L29-30: Doc example references `version.major()`/`version.minor()` — doesn't match actual fields `major_version`/`minor_version`
 
 ### Naming / style
-- `lib.rs` uses `pub use ty::*` (glob) while all other modules use explicit re-exports
-- `ProgramFormat::MLIR`/`HLO` should use PascalCase (`Mlir`, `Hlo`) per Rust convention
-- `device_description.rs` L76: `to_string()` shadows `ToString::to_string()` (same as `memory.rs`)
+- ✅ `lib.rs` uses `pub use ty::*` (glob) → converted to explicit re-exports
+- `ProgramFormat::MLIR`/`HLO` should use PascalCase (`Mlir`, `Hlo`) per Rust convention — **skipped** (breaking API change)
+- ✅ `device_description.rs` L76: `to_string()` shadows — renamed to `display_string()` (fix #22)
 
 ### Missing trait implementations
-- `Program` missing `Debug` impl
-- `MegascaleClientContext`, `MegascaleMultiSliceConfig` missing `Debug`
-- `ExampleExtensionCpp` missing `Debug`
-- `SerializedExecutable`, `SerializedCompileOptions` missing `Debug`
-- `CopyToDeviceStream` missing `Debug`
-- `DeviceStream` missing `Debug`
+- ✅ `Program` — added `Debug` impl
+- ✅ `MegascaleClientContext`, `MegascaleMultiSliceConfig` — added `Debug` impls
+- ✅ `ExampleExtensionCpp` — added `Debug` impl
+- ✅ `SerializedExecutable` — added `Debug` impl (fix #29)
+- ✅ `SerializedCompileOptions` — added `Debug` impl
+- ✅ `CopyToDeviceStream` — added `Debug` impl
+- ✅ `DeviceStream` — added `Debug` impl (fix #31)
 
 ### Dead code / unused items
-- Module-level `#![allow(unused_assignments)]` in `error.rs` overly broad
-- `utils::into_raw_parts` reimplements `Vec::into_raw_parts()` (stabilized in Rust 1.85)
-- `callback_ext.rs`: dead `CallbackFn` type, dead `TpuSliceBuilderCallbackArgs`, dead `CallbackExt` trait duplicate
-- `device.rs` L227: `AsyncTrackingEvent::ptr()` is `#[allow(dead_code)]`
-- `host_buffer.rs`: `HostBufferSemantics` enum (~400 lines) is dead code
+- ✅ Module-level `#![allow(unused_assignments)]` in `error.rs` — removed (field-level allow retained)
+- ✅ `utils::into_raw_parts` — replaced with std `Vec::into_raw_parts()`
+- ✅ `callback_ext.rs` dead code — removed (fix #27)
+- `device.rs` L227: `AsyncTrackingEvent::ptr()` `#[allow(dead_code)]` — **kept** for future use
+- ✅ `host_buffer.rs`: `HostBufferSemantics` — made configurable, re-exported (fix #24)
 
 ### Unsafe code documentation
-- `utils::slice_to_vec2d` is `unsafe` but has no `# Safety` doc
-- Several `unsafe` blocks lack `// SAFETY:` comments
+- ✅ `utils::slice_to_vec2d` — added `# Safety` doc
+- Several `unsafe` blocks lack `// SAFETY:` comments — **deferred** (widespread, low risk)
 
 ### Test quality
-- Significant test duplication across `core_types_tests.rs` and module-specific test files
-- Many integration tests are placeholder/mock-only, reporting as passing when they test nothing
-- Mock structs test themselves rather than actual crate types (async_transfer_tests, event_tests)
-- `memory_tests.rs` has ~15 placeholder tests that assert nothing
+- Significant test duplication across `core_types_tests.rs` and module-specific test files — **deferred**
+- Many integration tests are placeholder/mock-only — **deferred**
+- Mock structs test themselves rather than actual crate types — **deferred**
+- `memory_tests.rs` has ~15 placeholder tests — **deferred**
 
 ### Other nits
-- `MemoryStats` derives `Ord`/`PartialOrd`/`Hash` with no meaningful semantics
-- `tpu_topology_ext.rs` `get_routing_strategy` returns `Cow<'static, str>` but always `Owned`
-- `gpu_ext.rs` `Debug` impl hardcodes `api_version: 2`
-- `event.rs` L105: `register_on_ready_callback` leaks `cb_data` when registration fails
-- `ffi_ext.rs`: `FfiHandler = *mut c_void` provides no type safety
-- `cross_host_transfers_ext.rs` / `executable_metadata_ext.rs`: Store raw pointer instead of `Rc<T>` unlike all other extensions
+- `MemoryStats` derives `Ord`/`PartialOrd`/`Hash` — **kept** (harmless, may be useful for collections)
+- `tpu_topology_ext.rs` `get_routing_strategy` returns `Cow<'static, str>` but always `Owned` — **kept** (allows future optimization to borrow)
+- ✅ `gpu_ext.rs` `Debug` impl — removed hardcoded `api_version: 2`
+- `event.rs` L105: `register_on_ready_callback` — **already fixed** (Arc reclaimed on failure)
+- `ffi_ext.rs`: `FfiHandler = *mut c_void` — **kept** (matches C API semantics)
+- `cross_host_transfers_ext.rs` / `executable_metadata_ext.rs`: raw pointer — **kept** (no methods to call through ext)
 
 ---
 

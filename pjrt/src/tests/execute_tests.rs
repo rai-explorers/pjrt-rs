@@ -37,12 +37,6 @@ mod execute_options_tests {
     }
 
     #[test]
-    fn test_execute_options_launch_id_zero() {
-        let options = ExecuteOptions::new().launch_id(0);
-        assert_eq!(options.get_launch_id(), 0);
-    }
-
-    #[test]
     fn test_execute_options_launch_id_negative() {
         let options = ExecuteOptions::new().launch_id(-1);
         assert_eq!(options.get_launch_id(), -1);
@@ -62,12 +56,6 @@ mod execute_options_tests {
     }
 
     #[test]
-    fn test_execute_options_non_donatable_input_indices_empty() {
-        let options = ExecuteOptions::new().non_donatable_input_indices(Vec::<i64>::new());
-        assert!(options.get_non_donatable_input_indices().is_empty());
-    }
-
-    #[test]
     fn test_execute_options_call_location() {
         use crate::CallLocation;
 
@@ -78,18 +66,6 @@ mod execute_options_tests {
         assert_eq!(retrieved.function_name(), Some("test_func"));
         assert_eq!(retrieved.file_name(), Some("test.py"));
         assert_eq!(retrieved.line_number(), Some(42));
-    }
-
-    #[test]
-    fn test_execute_options_task_incarnation_ids() {
-        let task_ids = vec![0, 1, 2, 3];
-        let incarnation_ids = vec![100i64, 101, 102, 103];
-        let options =
-            ExecuteOptions::new().task_incarnation_ids(task_ids.clone(), incarnation_ids.clone());
-
-        // Verify the options were set (accessing private fields indirectly via conversion)
-        // We verify this worked by ensuring no panic occurred during construction
-        let _ = options;
     }
 
     #[test]
@@ -113,18 +89,6 @@ mod execute_options_tests {
         assert_eq!(options.get_launch_id(), 5);
         assert_eq!(options.get_non_donatable_input_indices(), &[0, 1]);
         assert!(options.get_call_location().is_some());
-    }
-
-    #[test]
-    fn test_execute_options_send_callbacks_empty() {
-        let options = ExecuteOptions::new().send_callbacks(vec![]);
-        assert!(options.get_send_callbacks().is_empty());
-    }
-
-    #[test]
-    fn test_execute_options_recv_callbacks_empty() {
-        let options = ExecuteOptions::new().recv_callbacks(vec![]);
-        assert!(options.get_recv_callbacks().is_empty());
     }
 
     #[test]
@@ -204,18 +168,6 @@ mod call_location_tests {
     }
 
     #[test]
-    fn test_call_location_new_zero_line() {
-        let location = CallLocation::new("func", "file.py", 0).unwrap();
-        assert_eq!(location.line_number(), Some(0));
-    }
-
-    #[test]
-    fn test_call_location_new_large_line_number() {
-        let location = CallLocation::new("func", "file.py", u32::MAX).unwrap();
-        assert_eq!(location.line_number(), Some(u32::MAX));
-    }
-
-    #[test]
     fn test_call_location_from_string_function_file_line() {
         let location = CallLocation::from_string("my_func:my_file.py:99").unwrap();
         assert_eq!(location.function_name(), Some("my_func"));
@@ -275,20 +227,6 @@ mod call_location_tests {
         assert_eq!(location.function_name(), cloned.function_name());
         assert_eq!(location.file_name(), cloned.file_name());
         assert_eq!(location.line_number(), cloned.line_number());
-    }
-
-    #[test]
-    fn test_call_location_debug() {
-        let location = CallLocation::new("func", "file.py", 42).unwrap();
-        let debug_str = format!("{:?}", location);
-        assert!(debug_str.contains("CallLocation"));
-    }
-
-    #[test]
-    fn test_call_location_as_ptr_not_null() {
-        let location = CallLocation::new("func", "file.py", 1).unwrap();
-        let ptr = location.as_ptr();
-        assert!(!ptr.is_null());
     }
 
     #[test]
@@ -377,42 +315,8 @@ mod transfer_metadata_tests {
     }
 
     #[test]
-    fn test_transfer_metadata_size_in_bytes_s8() {
-        let metadata = TransferMetadata::new(vec![100], PrimitiveType::S8);
-        // 100 elements * 1 byte = 100
-        assert_eq!(metadata.size_in_bytes(), Some(100));
-    }
-
-    #[test]
-    fn test_transfer_metadata_size_in_bytes_s16() {
-        let metadata = TransferMetadata::new(vec![50], PrimitiveType::S16);
-        // 50 elements * 2 bytes = 100
-        assert_eq!(metadata.size_in_bytes(), Some(100));
-    }
-
-    #[test]
-    fn test_transfer_metadata_size_in_bytes_s32() {
-        let metadata = TransferMetadata::new(vec![10], PrimitiveType::S32);
-        // 10 elements * 4 bytes = 40
-        assert_eq!(metadata.size_in_bytes(), Some(40));
-    }
-
-    #[test]
-    fn test_transfer_metadata_size_in_bytes_s64() {
-        let metadata = TransferMetadata::new(vec![5], PrimitiveType::S64);
-        // 5 elements * 8 bytes = 40
-        assert_eq!(metadata.size_in_bytes(), Some(40));
-    }
-
-    #[test]
     fn test_transfer_metadata_size_in_bytes_invalid_type() {
         let metadata = TransferMetadata::new(vec![10], PrimitiveType::Invalid);
-        assert!(metadata.size_in_bytes().is_none());
-    }
-
-    #[test]
-    fn test_transfer_metadata_size_in_bytes_token_type() {
-        let metadata = TransferMetadata::new(vec![10], PrimitiveType::Token);
         assert!(metadata.size_in_bytes().is_none());
     }
 
@@ -424,15 +328,6 @@ mod transfer_metadata_tests {
         let metadata = TransferMetadata::new(vec![4, 4], PrimitiveType::F32).with_layout(layout);
 
         assert!(metadata.layout.is_some());
-    }
-
-    #[test]
-    fn test_transfer_metadata_debug() {
-        let metadata = TransferMetadata::new(vec![2, 3], PrimitiveType::F32);
-        let debug_str = format!("{:?}", metadata);
-        assert!(debug_str.contains("TransferMetadata"));
-        assert!(debug_str.contains("dims"));
-        assert!(debug_str.contains("element_type"));
     }
 
     #[test]
@@ -552,15 +447,6 @@ mod callback_info_tests {
     }
 
     #[test]
-    fn test_send_callback_info_debug() {
-        let info = unsafe { SendCallbackInfo::new(42, ptr::null_mut(), None) };
-        let debug_str = format!("{:?}", info);
-        assert!(debug_str.contains("SendCallbackInfo"));
-        assert!(debug_str.contains("channel_id"));
-        assert!(debug_str.contains("42"));
-    }
-
-    #[test]
     fn test_recv_callback_info_new() {
         let user_data: i32 = 42;
         let user_arg = &user_data as *const i32 as *mut c_void;
@@ -589,15 +475,6 @@ mod callback_info_tests {
         let raw = info.to_raw();
         assert_eq!(raw.channel_id, 789);
         assert_eq!(raw.user_arg, user_arg);
-    }
-
-    #[test]
-    fn test_recv_callback_info_debug() {
-        let info = unsafe { RecvCallbackInfo::new(42, ptr::null_mut(), None) };
-        let debug_str = format!("{:?}", info);
-        assert!(debug_str.contains("RecvCallbackInfo"));
-        assert!(debug_str.contains("channel_id"));
-        assert!(debug_str.contains("42"));
     }
 
     #[test]

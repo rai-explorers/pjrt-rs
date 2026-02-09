@@ -149,15 +149,14 @@ unsafe impl Sync for Api {}
 impl Api {
     #[allow(clippy::arc_with_non_send_sync)]
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
-    pub(crate) fn wrap(ptr: *const PJRT_Api) -> Self {
+    pub(crate) fn wrap(ptr: *const PJRT_Api) -> Result<Self> {
         assert!(!ptr.is_null());
         let raw = Arc::new(unsafe { *ptr });
         let version = Version::new(raw.pjrt_api_version);
         let api = Self { raw, version };
         let args = PJRT_Plugin_Initialize_Args::new();
-        api.PJRT_Plugin_Initialize(args)
-            .expect("PJRT_Plugin_Initialize");
-        api
+        api.PJRT_Plugin_Initialize(args)?;
+        Ok(api)
     }
 
     /// Create a minimal `Api` for unit testing.
@@ -250,11 +249,10 @@ impl Api {
         Ok(TopologyDescription::wrap(self, args.topology, None))
     }
 
-    #[allow(clippy::borrowed_box)]
     pub fn create_client(
         &self,
         options: Vec<NamedValue>,
-        kv_store: Option<&Box<dyn KeyValueStore>>,
+        kv_store: Option<&dyn KeyValueStore>,
     ) -> Result<Client> {
         let create_options: Vec<PJRT_NamedValue> = options.iter().map(Into::into).collect();
         let mut args = PJRT_Client_Create_Args::new();
@@ -262,11 +260,11 @@ impl Api {
         args.num_options = create_options.len();
         if let Some(kv_store) = kv_store {
             args.kv_get_callback = Some(kv_get_callback);
-            args.kv_get_user_arg = kv_store as *const _ as *mut _;
+            args.kv_get_user_arg = &kv_store as *const &dyn KeyValueStore as *mut _;
             args.kv_put_callback = Some(kv_put_callback);
-            args.kv_put_user_arg = kv_store as *const _ as *mut _;
+            args.kv_put_user_arg = &kv_store as *const &dyn KeyValueStore as *mut _;
             args.kv_try_get_callback = Some(kv_try_get_callback);
-            args.kv_try_get_user_arg = kv_store as *const _ as *mut _;
+            args.kv_try_get_user_arg = &kv_store as *const &dyn KeyValueStore as *mut _;
         }
         args = self.PJRT_Client_Create(args)?;
         Ok(Client::wrap(self, args.client))

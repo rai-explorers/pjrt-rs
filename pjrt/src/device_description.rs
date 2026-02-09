@@ -73,7 +73,7 @@ impl DeviceDescription {
         ))
     }
 
-    pub fn to_string(&self) -> Result<Cow<'_, str>> {
+    pub fn display_string(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_DeviceDescription_ToString_Args::new();
         args.device_description = self.ptr;
         args = self.api.PJRT_DeviceDescription_ToString(args)?;
@@ -83,7 +83,7 @@ impl DeviceDescription {
 
 impl Display for DeviceDescription {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.to_string() {
+        match self.display_string() {
             Ok(s) => write!(f, "DeviceDescription({})", s),
             Err(e) => write!(f, "DeviceDescription(<error: {}>)", e),
         }

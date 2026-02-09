@@ -743,6 +743,9 @@ impl ExecutionInputs for Vec<Buffer> {
 
 impl ExecutionInputs for Vec<Vec<Buffer>> {
     fn buffer_ptrs(&self) -> Vec<Vec<*mut PJRT_Buffer>> {
+        if self.is_empty() {
+            return vec![];
+        }
         let inner_size = self.iter().fold(HashSet::new(), |mut set, buffers| {
             set.insert(buffers.len());
             set
