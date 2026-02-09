@@ -73,6 +73,7 @@ use pjrt_sys::{
     PJRT_Plugin_Initialize_Args, PJRT_Program, PJRT_TopologyDescription_Create_Args,
 };
 
+use crate::extension::Extension;
 use crate::kv_store::{kv_get_callback, kv_put_callback, kv_try_get_callback};
 use crate::named_value::NamedValueMap;
 use crate::{
@@ -185,6 +186,31 @@ impl Api {
     /// Returns the head of the extension linked list, if any.
     pub(crate) fn extension_start(&self) -> *mut pjrt_sys::PJRT_Extension_Base {
         self.raw.extension_start
+    }
+
+    /// Returns an extension of the given type, if available.
+    ///
+    /// This is a generic method for discovering PJRT extensions. Each plugin may
+    /// expose a different set of extensions. Returns `None` if the requested
+    /// extension is not available.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use pjrt::{plugin, ProfilerExtension};
+    ///
+    /// let api = plugin("/path/to/plugin.so").load()?;
+    /// if let Some(profiler) = api.get_extension::<ProfilerExtension>() {
+    ///     println!("Profiler extension is available");
+    /// }
+    /// ```
+    pub fn get_extension<E: Extension>(&self) -> Option<E> {
+        unsafe { E::from_raw(self.extension_start(), self) }
+    }
+
+    /// Checks whether the given extension type is available.
+    pub fn has_extension<E: Extension>(&self) -> bool {
+        self.get_extension::<E>().is_some()
     }
 
     /// Returns plugin-specific attributes as key-value pairs.

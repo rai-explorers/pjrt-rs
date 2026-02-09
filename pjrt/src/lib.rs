@@ -165,7 +165,7 @@ mod layouts_ext;
 pub use layouts_ext::{LayoutsExtension, LayoutsMemoryLayout, SerializedLayout};
 
 mod ffi_ext;
-pub use ffi_ext::{FfiExtension, FfiHandler, FfiHandlerTraits, FfiTypeInfo};
+pub use ffi_ext::{FfiExt, FfiExtension, FfiHandler, FfiHandlerTraits, FfiTypeInfo};
 
 mod raw_buffer_ext;
 pub use raw_buffer_ext::{RawBuffer, RawBufferExtension};
