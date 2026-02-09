@@ -133,9 +133,8 @@ impl TritonExtension {
         let asm_code = if args.out_asm.is_null() {
             String::new()
         } else {
-            let bytes = unsafe {
-                std::slice::from_raw_parts(args.out_asm as *const u8, args.out_asm_size)
-            };
+            let bytes =
+                unsafe { std::slice::from_raw_parts(args.out_asm as *const u8, args.out_asm_size) };
             String::from_utf8_lossy(bytes).into_owned()
         };
 

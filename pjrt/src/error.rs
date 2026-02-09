@@ -67,7 +67,7 @@ pub enum Error {
     NoAddressableDevice,
 
     #[error("invalid primitive type: {0}")]
-    InvalidPrimitiveType(i32),
+    InvalidPrimitiveType(u32),
 
     #[error("invalid error code: {0}")]
     InvalidErrorCode(i32),

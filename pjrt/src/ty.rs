@@ -18,9 +18,11 @@ use pjrt_sys::{
     PJRT_Buffer_Type, PJRT_Buffer_Type_PJRT_Buffer_Type_BF16,
     PJRT_Buffer_Type_PJRT_Buffer_Type_C128, PJRT_Buffer_Type_PJRT_Buffer_Type_C64,
     PJRT_Buffer_Type_PJRT_Buffer_Type_F16, PJRT_Buffer_Type_PJRT_Buffer_Type_F32,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_F64, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ,
-    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F4E2M1FN, PJRT_Buffer_Type_PJRT_Buffer_Type_F64,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E3M4, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2,
+    PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ, PJRT_Buffer_Type_PJRT_Buffer_Type_F8E8M0FNU,
     PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID, PJRT_Buffer_Type_PJRT_Buffer_Type_PRED,
     PJRT_Buffer_Type_PJRT_Buffer_Type_S16, PJRT_Buffer_Type_PJRT_Buffer_Type_S2,
     PJRT_Buffer_Type_PJRT_Buffer_Type_S32, PJRT_Buffer_Type_PJRT_Buffer_Type_S4,
@@ -373,60 +375,66 @@ impl ElemType for F8E4M3FNUZElem {
     type Type = F8E4M3FNUZ;
 }
 
-#[repr(i32)]
+#[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PrimitiveType {
     /// Invalid primitive type to serve as default.
-    Invalid = PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID as i32,
+    Invalid = PJRT_Buffer_Type_PJRT_Buffer_Type_INVALID,
 
     /// Predicates are two-state booleans.
-    Pred = PJRT_Buffer_Type_PJRT_Buffer_Type_PRED as i32,
+    Pred = PJRT_Buffer_Type_PJRT_Buffer_Type_PRED,
 
     /// Signed integral values of fixed width.
-    S8 = PJRT_Buffer_Type_PJRT_Buffer_Type_S8 as i32,
-    S16 = PJRT_Buffer_Type_PJRT_Buffer_Type_S16 as i32,
-    S32 = PJRT_Buffer_Type_PJRT_Buffer_Type_S32 as i32,
-    S64 = PJRT_Buffer_Type_PJRT_Buffer_Type_S64 as i32,
+    S8 = PJRT_Buffer_Type_PJRT_Buffer_Type_S8,
+    S16 = PJRT_Buffer_Type_PJRT_Buffer_Type_S16,
+    S32 = PJRT_Buffer_Type_PJRT_Buffer_Type_S32,
+    S64 = PJRT_Buffer_Type_PJRT_Buffer_Type_S64,
 
     /// Unsigned integral values of fixed width.
-    U8 = PJRT_Buffer_Type_PJRT_Buffer_Type_U8 as i32,
-    U16 = PJRT_Buffer_Type_PJRT_Buffer_Type_U16 as i32,
-    U32 = PJRT_Buffer_Type_PJRT_Buffer_Type_U32 as i32,
-    U64 = PJRT_Buffer_Type_PJRT_Buffer_Type_U64 as i32,
+    U8 = PJRT_Buffer_Type_PJRT_Buffer_Type_U8,
+    U16 = PJRT_Buffer_Type_PJRT_Buffer_Type_U16,
+    U32 = PJRT_Buffer_Type_PJRT_Buffer_Type_U32,
+    U64 = PJRT_Buffer_Type_PJRT_Buffer_Type_U64,
 
     /// Floating-point values of fixed width.
-    F16 = PJRT_Buffer_Type_PJRT_Buffer_Type_F16 as i32,
-    F32 = PJRT_Buffer_Type_PJRT_Buffer_Type_F32 as i32,
-    F64 = PJRT_Buffer_Type_PJRT_Buffer_Type_F64 as i32,
+    F16 = PJRT_Buffer_Type_PJRT_Buffer_Type_F16,
+    F32 = PJRT_Buffer_Type_PJRT_Buffer_Type_F32,
+    F64 = PJRT_Buffer_Type_PJRT_Buffer_Type_F64,
 
     /// Truncated 16 bit floating-point format. This is similar to IEEE's 16 bit
     /// floating-point format, but uses 1 bit for the sign, 8 bits for the exponent
     /// and 7 bits for the mantissa.
-    BF16 = PJRT_Buffer_Type_PJRT_Buffer_Type_BF16 as i32,
+    BF16 = PJRT_Buffer_Type_PJRT_Buffer_Type_BF16,
 
     /// Complex values of fixed width.
     ///
     /// Paired F32 (real, imag), as in `std::complex<float>`.
-    C64 = PJRT_Buffer_Type_PJRT_Buffer_Type_C64 as i32,
+    C64 = PJRT_Buffer_Type_PJRT_Buffer_Type_C64,
     /// Paired F64 (real, imag), as in `std::complex<double>`.
-    C128 = PJRT_Buffer_Type_PJRT_Buffer_Type_C128 as i32,
+    C128 = PJRT_Buffer_Type_PJRT_Buffer_Type_C128,
 
     /// Truncated 8 bit floating-point formats.
-    F8E5M2 = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2 as i32,
-    F8E4M3FN = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN as i32,
-    F8E4M3B11FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ as i32,
-    F8E5M2FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ as i32,
-    F8E4M3FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ as i32,
+    F8E5M2 = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2,
+    F8E4M3FN = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FN,
+    F8E4M3B11FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3B11FNUZ,
+    F8E5M2FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E5M2FNUZ,
+    F8E4M3FNUZ = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3FNUZ,
 
     /// 4-bit integer types
-    S4 = PJRT_Buffer_Type_PJRT_Buffer_Type_S4 as i32,
-    U4 = PJRT_Buffer_Type_PJRT_Buffer_Type_U4 as i32,
+    S4 = PJRT_Buffer_Type_PJRT_Buffer_Type_S4,
+    U4 = PJRT_Buffer_Type_PJRT_Buffer_Type_U4,
 
-    Token = PJRT_Buffer_Type_PJRT_Buffer_Type_TOKEN as i32,
+    Token = PJRT_Buffer_Type_PJRT_Buffer_Type_TOKEN,
 
     /// 2-bit integer types
-    S2 = PJRT_Buffer_Type_PJRT_Buffer_Type_S2 as i32,
-    U2 = PJRT_Buffer_Type_PJRT_Buffer_Type_U2 as i32,
+    S2 = PJRT_Buffer_Type_PJRT_Buffer_Type_S2,
+    U2 = PJRT_Buffer_Type_PJRT_Buffer_Type_U2,
+
+    /// Additional 8-bit and 4-bit floating-point formats.
+    F8E4M3 = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3,
+    F8E3M4 = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E3M4,
+    F8E8M0FNU = PJRT_Buffer_Type_PJRT_Buffer_Type_F8E8M0FNU,
+    F4E2M1FN = PJRT_Buffer_Type_PJRT_Buffer_Type_F4E2M1FN,
 }
 
 impl TryFrom<PrimitiveType> for Box<dyn DType> {
@@ -466,6 +474,10 @@ impl PrimitiveType {
             PrimitiveType::Token => Err(Error::Unimplemented),
             PrimitiveType::S2 => Err(Error::Unimplemented),
             PrimitiveType::U2 => Err(Error::Unimplemented),
+            PrimitiveType::F8E4M3 => Err(Error::Unimplemented),
+            PrimitiveType::F8E3M4 => Err(Error::Unimplemented),
+            PrimitiveType::F8E8M0FNU => Err(Error::Unimplemented),
+            PrimitiveType::F4E2M1FN => Err(Error::Unimplemented),
         }
     }
 }
@@ -503,7 +515,11 @@ impl TryFrom<PJRT_Buffer_Type> for PrimitiveType {
             PJRT_Buffer_Type_PJRT_Buffer_Type_TOKEN => Ok(Self::Token),
             PJRT_Buffer_Type_PJRT_Buffer_Type_S2 => Ok(Self::S2),
             PJRT_Buffer_Type_PJRT_Buffer_Type_U2 => Ok(Self::U2),
-            _ => Err(Error::InvalidPrimitiveType(value as i32)),
+            PJRT_Buffer_Type_PJRT_Buffer_Type_F8E4M3 => Ok(Self::F8E4M3),
+            PJRT_Buffer_Type_PJRT_Buffer_Type_F8E3M4 => Ok(Self::F8E3M4),
+            PJRT_Buffer_Type_PJRT_Buffer_Type_F8E8M0FNU => Ok(Self::F8E8M0FNU),
+            PJRT_Buffer_Type_PJRT_Buffer_Type_F4E2M1FN => Ok(Self::F4E2M1FN),
+            _ => Err(Error::InvalidPrimitiveType(value)),
         }
     }
 }

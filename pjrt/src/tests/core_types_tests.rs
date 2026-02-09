@@ -13,10 +13,10 @@ mod unit_tests {
     fn test_primitive_type_values() {
         // Test that primitive types have correct relationships
         // Invalid should be 0
-        assert_eq!(PrimitiveType::Invalid as i32, 0);
+        assert_eq!(PrimitiveType::Invalid as u32, 0);
         // Different types should have different values
-        assert_ne!(PrimitiveType::F32 as i32, PrimitiveType::F64 as i32);
-        assert_ne!(PrimitiveType::S32 as i32, PrimitiveType::S64 as i32);
+        assert_ne!(PrimitiveType::F32 as u32, PrimitiveType::F64 as u32);
+        assert_ne!(PrimitiveType::S32 as u32, PrimitiveType::S64 as u32);
     }
 
     #[test]
@@ -664,7 +664,7 @@ mod comprehensive_error_tests {
 
     #[test]
     fn test_invalid_primitive_type_edge_values() {
-        let edge_values = vec![0, -1, i32::MAX, i32::MIN];
+        let edge_values: Vec<u32> = vec![0, 100, u32::MAX, u32::MAX - 1];
 
         for val in edge_values {
             let err = Error::InvalidPrimitiveType(val);
