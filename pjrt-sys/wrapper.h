@@ -10,3 +10,8 @@
 #include "xla/pjrt/c/pjrt_c_api_callback_extension.h"
 #include "xla/pjrt/c/pjrt_c_api_memory_descriptions_extension.h"
 #include "xla/pjrt/c/pjrt_c_api_phase_compile_extension.h"
+#include "xla/pjrt/c/pjrt_c_api_megascale_extension.h"
+#include "xla/pjrt/c/pjrt_c_api_tpu_executable_extension.h"
+#include "xla/pjrt/c/pjrt_c_api_tpu_topology_extension.h"
+#include "xla/pjrt/extensions/example/example_extension.h"
+#include "xla/pjrt/extensions/host_allocator/host_allocator_extension.h"

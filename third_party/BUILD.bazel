@@ -16,6 +16,20 @@ transitive_hdrs(
     "@xla//xla/pjrt/c:pjrt_c_api_callback_extension_hdrs",
     "@xla//xla/pjrt/c:pjrt_c_api_memory_descriptions_extension_hdrs",
     "@xla//xla/pjrt/c:pjrt_c_api_phase_compile_extension_hdrs",
+    "@xla//xla/pjrt/c:pjrt_c_api_megascale_extension_hdrs",
+    "@xla//xla/pjrt/c:pjrt_c_api_tpu_executable_extension_hdrs",
+    "@xla//xla/pjrt/c:pjrt_c_api_tpu_topology_extension_hdrs",
+  ]
+)
+
+# Extension headers from xla/pjrt/extensions/ — referenced as source files
+# to avoid pulling in transitive C++ dependencies (like MLIR) that would
+# come from using transitive_hdrs on the full cc_library targets.
+filegroup(
+  name = "pjrt_extension_extra_hdrs",
+  srcs = [
+    "@xla//xla/pjrt/extensions/example:example_extension.h",
+    "@xla//xla/pjrt/extensions/host_allocator:host_allocator_extension.h",
   ]
 )
 
@@ -23,6 +37,7 @@ genrule(
   name = "pjrt_headers",
   srcs = [
     ":pjrt_c_api_hdrs",
+    ":pjrt_extension_extra_hdrs",
   ],
   outs = ["pjrt_include.tar"],
   cmd = """

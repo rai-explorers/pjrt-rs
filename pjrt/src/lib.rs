@@ -203,16 +203,19 @@ mod host_allocator_ext;
 pub use host_allocator_ext::HostAllocatorExtension;
 
 mod tpu_topology_ext;
-pub use tpu_topology_ext::TpuTopologyExtension;
+pub use tpu_topology_ext::{DefaultPlatformConfig, SliceConfig, TpuTopologyExtension};
 
 mod tpu_executable_ext;
-pub use tpu_executable_ext::TpuExecutableExtension;
+pub use tpu_executable_ext::{
+    OwnedCoreProgramAbiVersion, OwnedHloModuleWithConfig, OwnedTargetArguments,
+    TpuExecutableExtension,
+};
 
 mod megascale_ext;
-pub use megascale_ext::MegascaleExtension;
+pub use megascale_ext::{MegascaleClientContext, MegascaleExtension, MegascaleMultiSliceConfig};
 
 mod example_ext;
-pub use example_ext::ExampleExtension;
+pub use example_ext::{ExampleExtension, ExampleExtensionCpp};
 
 mod async_transfer;
 pub use async_transfer::{

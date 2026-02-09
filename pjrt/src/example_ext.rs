@@ -88,10 +88,15 @@
 //! It is not typically implemented by any real plugin, but serves as
 //! documentation for the extension system.
 
-use pjrt_sys::PJRT_Extension_Type;
+use std::rc::Rc;
+
+use pjrt_sys::{
+    PJRT_ExampleExtension_CreateExampleExtensionCpp_Args, PJRT_ExampleExtension_ExampleMethod_Args,
+    PJRT_Example_Extension, PJRT_Extension_Type,
+};
 
 use crate::extension::{Extension, ExtensionType};
-use crate::Api;
+use crate::{Api, Error, Result};
 
 /// Example extension type constant from PJRT.
 ///
@@ -111,22 +116,11 @@ const PJRT_EXTENSION_TYPE_EXAMPLE: PJRT_Extension_Type =
 /// - Safe wrapping of raw extension pointers
 /// - Extension discovery and type checking
 ///
-/// ## Extension Architecture
+/// ## API
 ///
-/// ```text
-/// PJRT_Api_Args
-/// └── extension_start: *mut PJRT_Extension_Base
-///     ├── type_: PJRT_Extension_Type_Stream
-///     ├── next ─────────────────────────────────────┐
-///     │                                             │
-///     │   PJRT_Extension_Base                       │
-///     └── type_: PJRT_Extension_Type_Layouts  <─────┘
-///         ├── next ─────────────────────────────────┐
-///         │                                         │
-///         │   PJRT_Extension_Base                   │
-///         └── type_: PJRT_Extension_Type_Example ◄──┘
-///             └── next: nullptr (end of chain)
-/// ```
+/// - [`create`](Self::create) — Create a new example extension C++ object
+/// - [`example_method`](Self::example_method) — Call the example method with a value
+/// - [`destroy`](Self::destroy) — Destroy a previously created extension C++ object
 ///
 /// ## When to Use
 ///
@@ -135,8 +129,8 @@ const PJRT_EXTENSION_TYPE_EXAMPLE: PJRT_Extension_Type =
 /// - Testing extension discovery code
 /// - Serving as a template for new extensions
 pub struct ExampleExtension {
-    raw: *mut pjrt_sys::PJRT_Extension_Base,
-    _api: Api,
+    raw: Rc<PJRT_Example_Extension>,
+    api: Api,
 }
 
 impl std::fmt::Debug for ExampleExtension {
@@ -161,32 +155,98 @@ unsafe impl Extension for ExampleExtension {
             return None;
         }
 
-        // Check if this is an Example extension
         if (*ptr).type_ != Self::extension_type().to_raw() {
             return None;
         }
 
+        let ext = ptr as *mut PJRT_Example_Extension;
         Some(Self {
-            raw: ptr,
-            _api: api.clone(),
+            raw: Rc::new(*ext),
+            api: api.clone(),
         })
     }
 }
 
+/// Handle to an example extension C++ object.
+///
+/// Created by [`ExampleExtension::create`] and destroyed by
+/// [`ExampleExtension::destroy`].
+pub struct ExampleExtensionCpp {
+    ptr: *mut pjrt_sys::PJRT_ExampleExtensionCpp,
+}
+
 impl ExampleExtension {
     /// Returns the raw extension pointer.
-    ///
-    /// This can be used for interop with other C APIs or for advanced use cases.
-    /// The returned pointer is valid only for the lifetime of this extension.
     pub fn raw_ptr(&self) -> *mut pjrt_sys::PJRT_Extension_Base {
-        self.raw
+        &self.raw.base as *const pjrt_sys::PJRT_Extension_Base as *mut pjrt_sys::PJRT_Extension_Base
     }
 
-    /// Returns the extension type ID as a raw u32 value.
-    ///
-    /// This is primarily useful for debugging and logging.
+    /// Returns the extension type ID as a raw value.
     pub fn type_id(&self) -> PJRT_Extension_Type {
         PJRT_EXTENSION_TYPE_EXAMPLE
+    }
+
+    /// Create a new example extension C++ object.
+    ///
+    /// This demonstrates the lifecycle management pattern for extension objects:
+    /// the plugin allocates the object, the caller uses it, then calls `destroy`.
+    pub fn create(&self) -> Result<ExampleExtensionCpp> {
+        let mut args: PJRT_ExampleExtension_CreateExampleExtensionCpp_Args =
+            unsafe { std::mem::zeroed() };
+
+        let ext_fn = self
+            .raw
+            .create
+            .ok_or(Error::NullFunctionPointer("PJRT_ExampleExtension_Create"))?;
+
+        let err = unsafe { ext_fn(&mut args) };
+        self.api.err_or(err, ())?;
+
+        Ok(ExampleExtensionCpp {
+            ptr: args.extension_cpp,
+        })
+    }
+
+    /// Call the example method with a value.
+    ///
+    /// This demonstrates how extension methods operate on extension-managed objects.
+    ///
+    /// # Arguments
+    ///
+    /// * `cpp` - The extension C++ object created by [`create`](Self::create)
+    /// * `value` - A value to pass to the example method
+    pub fn example_method(&self, cpp: &mut ExampleExtensionCpp, value: i64) -> Result<()> {
+        let mut args: PJRT_ExampleExtension_ExampleMethod_Args = unsafe { std::mem::zeroed() };
+        args.extension_cpp = cpp.ptr;
+        args.value = value;
+
+        let ext_fn = self.raw.example_method.ok_or(Error::NullFunctionPointer(
+            "PJRT_ExampleExtension_ExampleMethod",
+        ))?;
+
+        let err = unsafe { ext_fn(&mut args) };
+        self.api.err_or(err, ())?;
+
+        Ok(())
+    }
+
+    /// Destroy a previously created example extension C++ object.
+    ///
+    /// After calling this, the `cpp` handle is no longer valid.
+    pub fn destroy(&self, cpp: ExampleExtensionCpp) -> Result<()> {
+        let mut args: PJRT_ExampleExtension_CreateExampleExtensionCpp_Args =
+            unsafe { std::mem::zeroed() };
+        args.extension_cpp = cpp.ptr;
+
+        let ext_fn = self
+            .raw
+            .destroy
+            .ok_or(Error::NullFunctionPointer("PJRT_ExampleExtension_Destroy"))?;
+
+        let err = unsafe { ext_fn(&mut args) };
+        self.api.err_or(err, ())?;
+
+        Ok(())
     }
 }
 
@@ -196,7 +256,6 @@ mod tests {
 
     #[test]
     fn test_example_extension_type_constant() {
-        // Verify the Example extension type constant is defined
         assert_eq!(
             PJRT_EXTENSION_TYPE_EXAMPLE,
             pjrt_sys::PJRT_Extension_Type_PJRT_Extension_Type_Example
@@ -205,7 +264,6 @@ mod tests {
 
     #[test]
     fn test_example_extension_type_in_enum() {
-        // Verify the ExtensionType enum includes Example
         let ext_type = ExtensionType::Example;
         assert_eq!(
             ext_type.to_raw(),
@@ -215,7 +273,79 @@ mod tests {
 
     #[test]
     fn test_example_extension_trait_type() {
-        // Verify the Extension trait implementation returns the correct type
         assert_eq!(ExampleExtension::extension_type(), ExtensionType::Example);
+    }
+
+    #[test]
+    fn test_from_raw_null_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let result = unsafe { ExampleExtension::from_raw(std::ptr::null_mut(), &api) };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_wrong_type_returns_none() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext: PJRT_Example_Extension = unsafe { std::mem::zeroed() };
+        ext.base.struct_size = std::mem::size_of::<PJRT_Example_Extension>();
+        ext.base.type_ = ExtensionType::Stream.to_raw();
+        let result = unsafe {
+            ExampleExtension::from_raw(&mut ext.base as *mut pjrt_sys::PJRT_Extension_Base, &api)
+        };
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_raw_correct_type() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext: PJRT_Example_Extension = unsafe { std::mem::zeroed() };
+        ext.base.struct_size = std::mem::size_of::<PJRT_Example_Extension>();
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let result = unsafe {
+            ExampleExtension::from_raw(&mut ext.base as *mut pjrt_sys::PJRT_Extension_Base, &api)
+        };
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_type_id() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext: PJRT_Example_Extension = unsafe { std::mem::zeroed() };
+        ext.base.struct_size = std::mem::size_of::<PJRT_Example_Extension>();
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let wrapper = unsafe {
+            ExampleExtension::from_raw(&mut ext.base as *mut pjrt_sys::PJRT_Extension_Base, &api)
+        }
+        .unwrap();
+        assert_eq!(wrapper.type_id(), PJRT_EXTENSION_TYPE_EXAMPLE);
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext: PJRT_Example_Extension = unsafe { std::mem::zeroed() };
+        ext.base.struct_size = std::mem::size_of::<PJRT_Example_Extension>();
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let wrapper = unsafe {
+            ExampleExtension::from_raw(&mut ext.base as *mut pjrt_sys::PJRT_Extension_Base, &api)
+        }
+        .unwrap();
+        let debug = format!("{:?}", wrapper);
+        assert!(debug.contains("ExampleExtension"));
+        assert!(debug.contains("Example"));
+    }
+
+    #[test]
+    fn test_create_null_fn_pointer() {
+        let api = unsafe { Api::empty_for_testing() };
+        let mut ext: PJRT_Example_Extension = unsafe { std::mem::zeroed() };
+        ext.base.struct_size = std::mem::size_of::<PJRT_Example_Extension>();
+        ext.base.type_ = ExtensionType::Example.to_raw();
+        let wrapper = unsafe {
+            ExampleExtension::from_raw(&mut ext.base as *mut pjrt_sys::PJRT_Extension_Base, &api)
+        }
+        .unwrap();
+        let result = wrapper.create();
+        assert!(result.is_err());
     }
 }
