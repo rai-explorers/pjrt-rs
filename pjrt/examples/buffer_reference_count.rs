@@ -58,9 +58,10 @@ fn main() -> Result<()> {
 
         // Simulate external framework using the buffer
         println!("Simulating external framework operations...");
-        // Here you would pass buffer_ptr to the external framework
-        // For example:
-        // external_framework.use_buffer(buffer_ptr, buffer_size);
+        // Read data through the raw pointer (like an external framework would)
+        let num_elements = 4;
+        let slice = std::slice::from_raw_parts(device_mem_ptr as *const f32, num_elements);
+        println!("  Data read via raw pointer: {:?}", slice);
 
         // 4. When the external framework is done, decrease the reference count
         // This allows PJRT to free the buffer when all references are released
@@ -79,30 +80,13 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// Example of integrating with a hypothetical external framework
+/// Reads the contents of a device buffer through its raw pointer.
+///
+/// # Safety
+///
+/// Caller must ensure the buffer has an active external reference
+/// (via `increase_external_ref_count`) for the duration of this call.
 #[allow(dead_code)]
-mod external_integration {
-    use std::ffi::c_void;
-
-    /// A hypothetical external framework function
-    /// In reality, this would be FFI binding to another library
-    pub unsafe fn external_framework_use_buffer(
-        buffer_ptr: *const c_void,
-        size: usize,
-        element_size: usize,
-    ) -> Result<(), String> {
-        if buffer_ptr.is_null() {
-            return Err("Buffer pointer is null".to_string());
-        }
-
-        // Simulate the external framework using the buffer
-        println!("External framework using buffer at {:p}", buffer_ptr);
-        println!("  Buffer size: {} bytes", size);
-        println!("  Element size: {} bytes", element_size);
-
-        // The external framework might modify the buffer data here
-        // For example, perform an in-place operation
-
-        Ok(())
-    }
+unsafe fn read_buffer_via_raw_pointer(ptr: *const std::ffi::c_void, len: usize) -> Vec<f32> {
+    std::slice::from_raw_parts(ptr as *const f32, len).to_vec()
 }

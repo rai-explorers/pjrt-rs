@@ -118,8 +118,8 @@ pub enum TpuSliceFailureType {
 }
 
 impl TpuSliceFailureType {
-    #[allow(dead_code)]
-    fn from_raw(raw: PJRT_Callback_Tpu_SliceFailureType) -> Self {
+    /// Converts a raw PJRT callback failure type to the safe enum.
+    pub fn from_raw(raw: PJRT_Callback_Tpu_SliceFailureType) -> Self {
         match raw {
             pjrt_sys::PJRT_Callback_Tpu_SliceFailureType_SLICE_FAILURE_INIT_ERROR => {
                 Self::InitError

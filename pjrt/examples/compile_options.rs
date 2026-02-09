@@ -39,10 +39,19 @@ fn main() -> Result<()> {
     demonstrate_custom_options(&client)?;
 
     // Example 3: Compile to Executable (not LoadedExecutable)
-    demonstrate_compile_to_executable(&client, &api)?;
+    // Note: PJRT_Compile is not supported by all plugins (e.g. CPU).
+    if let Err(e) = demonstrate_compile_to_executable(&client, &api) {
+        println!("3. Compile to Executable (vs LoadedExecutable)");
+        println!("   --------------------------------------------");
+        println!("   Skipped: {}\n", e);
+    }
 
     // Example 4: Inspecting compile options from executable
-    demonstrate_inspect_compile_options(&client)?;
+    if let Err(e) = demonstrate_inspect_compile_options(&client) {
+        println!("4. Inspecting Compile Options from Executable");
+        println!("   -------------------------------------------");
+        println!("   Skipped: {}\n", e);
+    }
 
     Ok(())
 }

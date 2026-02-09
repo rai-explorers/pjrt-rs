@@ -15,7 +15,7 @@
 //! ```
 
 use pjrt::ProgramFormat::MLIR;
-use pjrt::{self, Client, HostBuffer, LoadedExecutable, Result};
+use pjrt::{self, Client, CompileOptions, ExecutableBuildOptions, HostBuffer, Result};
 
 const CODE: &[u8] = include_bytes!("prog_f32.mlir");
 
@@ -156,30 +156,42 @@ fn demonstrate_per_device_execution(client: &Client) -> Result<()> {
     println!("3. Per-Device Execution");
     println!("   ---------------------");
 
-    let program = pjrt::Program::new(MLIR, CODE);
-    let loaded_exe = LoadedExecutable::builder(client, &program).build()?;
-
     let devices = client.addressable_devices()?;
-    println!("   Running on {} addressable device(s):\n", devices.len());
+    let num_devices = devices.len();
+    println!("   Running on {} addressable device(s):\n", num_devices);
 
+    // Compile with one replica per device so the runtime maps each replica
+    // to a different addressable device.
+    let program = pjrt::Program::new(MLIR, CODE);
+    let build_options = ExecutableBuildOptions::new()
+        .num_replicas(num_devices as i64)
+        .num_partitions(1);
+    let compile_options = CompileOptions::new().executable_build_options(build_options);
+    let loaded_exe = client.compile(&program, compile_options)?;
+
+    // Create one input buffer per device, each with a different value.
+    // The outer Vec corresponds to devices/replicas, inner Vec to arguments.
+    let mut per_device_inputs: Vec<Vec<pjrt::Buffer>> = Vec::with_capacity(num_devices);
+    let mut input_vals = Vec::with_capacity(num_devices);
     for (i, device) in devices.iter().enumerate() {
-        // Create a different input for each device
         let input_val = (i + 1) as f32 * 10.0;
+        input_vals.push(input_val);
         let host_buf = HostBuffer::from_scalar(input_val);
-
-        // Transfer to specific device
         let device_buf = host_buf.to_sync(device).copy()?;
+        per_device_inputs.push(vec![device_buf]);
+    }
 
-        // Execute and collect result
-        let result = loaded_exe.execution(device_buf).run_sync()?;
-        let output: HostBuffer = result[0][0].to_host_sync(None)?;
+    // Execute across all devices simultaneously
+    let results = loaded_exe.execution(per_device_inputs).run_sync()?;
 
+    for (i, (device, outputs)) in devices.iter().zip(results.iter()).enumerate() {
+        let output: HostBuffer = outputs[0].to_host_sync(None)?;
         println!(
             "     Device {} (kind: {}, id: {}): input={}, output={:?}",
             i,
             device.description()?.kind()?,
             device.description()?.id()?,
-            input_val,
+            input_vals[i],
             output,
         );
     }

@@ -183,7 +183,7 @@ mod profiler_ext;
 pub use profiler_ext::{Profiler, ProfilerApi, ProfilerExtension};
 
 mod callback_ext;
-pub use callback_ext::{CallbackExtension, TpuSliceFailureType};
+pub use callback_ext::{CallbackExtension, CallbackType, TpuSliceFailureType};
 
 mod memory_descriptions_ext;
 pub use memory_descriptions_ext::{

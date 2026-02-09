@@ -167,16 +167,25 @@ impl LoadedExecutable {
         args.executable = self.ptr;
         args.num_devices = input_buffers.len();
         args.num_args = input_buffers[0].len();
-        // allocate argument lists pass to pjrt runtime
-        let mut argument_lists = Vec::with_capacity(input_buffers.len());
-        for d in input_buffers.iter() {
-            argument_lists.push(Some(d.as_slice()));
-        }
-        args.argument_lists = argument_lists.as_ptr() as *const *const *mut PJRT_Buffer;
+        // allocate argument lists — a flat array of pointers, one per device,
+        // each pointing to that device's argument buffer array.
+        let argument_lists: Vec<*const *mut PJRT_Buffer> = input_buffers
+            .iter()
+            .map(|d| d.as_ptr())
+            .collect();
+        args.argument_lists = argument_lists.as_ptr();
         // allocate output buffers and complete_events and let pjrt runtime to fill it
-        let output_inner = vec![MaybeUninit::<*mut PJRT_Buffer>::uninit(); num_outputs];
-        let output_lists = vec![Some(output_inner.as_slice()); args.num_devices];
-        args.output_lists = output_lists.as_ptr() as *const *mut *mut PJRT_Buffer;
+        // Each device needs its own output array — the runtime writes output buffer
+        // pointers into these arrays, so they must not be shared across devices.
+        let mut output_inners: Vec<Vec<MaybeUninit<*mut PJRT_Buffer>>> =
+            (0..args.num_devices)
+                .map(|_| vec![MaybeUninit::<*mut PJRT_Buffer>::uninit(); num_outputs])
+                .collect();
+        let output_lists: Vec<*mut *mut PJRT_Buffer> = output_inners
+            .iter_mut()
+            .map(|inner| inner.as_mut_ptr() as *mut *mut PJRT_Buffer)
+            .collect();
+        args.output_lists = output_lists.as_ptr();
         // allocate complete_events and let pjrt runtime to fill it
         let complete_events = vec![MaybeUninit::<*mut PJRT_Event>::uninit(); args.num_devices];
         args.device_complete_events = complete_events.as_ptr() as *mut *mut PJRT_Event;

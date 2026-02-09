@@ -1,9 +1,8 @@
 //! Async Transfer Manager Example
 //!
 //! This example demonstrates how to use the AsyncHostToDeviceTransferManager:
-//! 1. Creating transfer buffers for streaming data
-//! 2. Setting up async transfer metadata
-//! 3. Handling dynamic memory management for large data transfers
+//! 1. Single-shot raw byte transfer via transfer_all_sync
+//! 2. Chunked transfers with manual progress tracking
 //!
 //! Async transfers are useful when working with datasets larger than device memory
 //! or when you want to overlap data transfers with computation.
@@ -14,129 +13,119 @@
 //! cargo run --example async_transfer
 //! ```
 
-use pjrt::{self, BufferShape, Client, PrimitiveType, Result};
-
-// Simulated async context for this example
-#[allow(dead_code)]
-struct SimulatedAsyncContext;
-
-/// Simulates waiting for an operation (blocking for demonstration only)
-fn simulate_async_wait() {
-    std::thread::sleep(std::time::Duration::from_millis(50));
-}
+use pjrt::{self, BufferShape, Client, Device, PrimitiveType, Result};
 
 fn main() -> Result<()> {
     let plugin_path = std::env::var("PJRT_PLUGIN_PATH")
         .expect("PJRT_PLUGIN_PATH environment variable must be set");
     let api = pjrt::plugin(&plugin_path).load()?;
-
     let client = Client::builder(&api).build()?;
-
-    // In a real implementation, you would create an async transfer manager:
-    // let transfer_manager = client.create_async_host_to_device_transfer_manager()?;
 
     println!("Async Transfer Manager Example");
     println!("================================");
 
-    // Demonstrate setting up transfer shapes for async operations
-    let shapes = [
-        BufferShape::new(vec![1024, 1024], PrimitiveType::F32),
-        BufferShape::new(vec![512, 512], PrimitiveType::F32),
-        BufferShape::new(vec![256, 256], PrimitiveType::F32),
-    ];
+    let device = client
+        .addressable_devices()?
+        .into_iter()
+        .next()
+        .expect("No addressable device");
 
-    println!("Setting up async transfer shapes:");
-    for (i, shape) in shapes.iter().enumerate() {
-        println!(
-            "  Shape {}: {:?} with {} elements",
-            i,
-            shape.element_type(),
-            shape.dims().iter().product::<i64>()
-        );
-    }
+    single_shot_transfer(&client, &device)?;
+    chunked_transfer_with_progress(&client, &device)?;
 
-    // Simulate streaming data in chunks
-    simulate_async_streaming(&client)?;
+    println!("\nAll examples completed successfully!");
+    Ok(())
+}
 
-    println!("Example completed successfully!");
-    println!("\nNote: In a real application with actual PJRT plugin:");
-    println!("1. Create the async transfer manager from the client");
-    println!("2. Use transfer manager to create buffers for streaming");
-    println!("3. Transfer data in chunks while computation proceeds");
-    println!("4. Use event-based synchronization for optimal performance");
+/// Demonstrates a single-shot transfer using transfer_all_sync.
+fn single_shot_transfer(client: &Client, device: &Device) -> Result<()> {
+    println!("\n1. Single-Shot Raw Transfer");
+    println!("----------------------------");
+
+    let data: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+    let data_bytes: &[u8] =
+        unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) };
+
+    let shapes = vec![BufferShape::new(vec![2, 3], PrimitiveType::F32)];
+    let memory = device.default_memory()?;
+    let manager = client.create_buffers_for_async_host_to_device(&shapes, &memory)?;
+
+    manager.transfer_all_sync(0, data_bytes)?;
+    let buffer = manager.retrieve_buffer(0)?;
+
+    println!(
+        "  Transferred {}-element {:?} tensor to device",
+        data.len(),
+        buffer.primitive_type()?
+    );
+    println!("  On-device size: {} bytes", buffer.on_device_size()?);
+
+    let host = buffer.to_host_sync(None)?;
+    let result = host.read_f32()?;
+    println!("  Readback: {:?}", result);
+    assert_eq!(result, data);
 
     Ok(())
 }
 
-/// Simulates streaming data to device in chunks
-fn simulate_async_streaming(_client: &Client) -> Result<()> {
-    println!("\nSimulating async data streaming:");
+/// Demonstrates chunked transfers with manual progress tracking via the transfer manager.
+fn chunked_transfer_with_progress(client: &Client, device: &Device) -> Result<()> {
+    println!("\n2. Chunked Transfer with Progress");
+    println!("----------------------------------");
 
-    // In a real implementation, this would involve:
-    // 1. Creating transfer buffers
-    // 2. Setting up metadata for each chunk
-    // 3. Transferring chunks asynchronously
-    // 4. Monitoring transfer progress
+    let num_elements: usize = 4096;
+    let data: Vec<f32> = (0..num_elements).map(|i| i as f32).collect();
+    let data_bytes: &[u8] =
+        unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) };
 
-    let num_chunks = 5;
-    for i in 0..num_chunks {
-        println!("  Streaming chunk {}/{}", i + 1, num_chunks);
+    let shapes = vec![BufferShape::new(
+        vec![num_elements as i64],
+        PrimitiveType::F32,
+    )];
+    let memory = device.default_memory()?;
+    let manager = client.create_buffers_for_async_host_to_device(&shapes, &memory)?;
 
-        // Simulate async transfer
-        simulate_async_wait();
+    println!(
+        "  Transfer manager: {} buffer(s), {} bytes each",
+        manager.buffer_count()?,
+        manager.buffer_size(0)?
+    );
 
-        // In real code, you would check for transfer completion:
-        // match transfer_manager.transfer_data(chunk, metadata) {
-        //     Ok(future) => {
-        //         // Wait for completion or poll for progress
-        //         while !future.is_ready() {
-        //             // Do other work while transfer is in progress
-        //         }
-        //     }
-        //     Err(e) => return Err(e),
-        // }
+    let chunk_size = 4096; // 4 KB per chunk
+    let total = data_bytes.len();
+    let mut transferred = 0;
+
+    for chunk in data_bytes.chunks(chunk_size) {
+        let is_last = transferred + chunk.len() >= total;
+        let event = manager
+            .transfer_data(0)
+            .data(chunk)
+            .offset(transferred as i64)
+            .is_last_transfer(is_last)
+            .transfer()?;
+        event.wait()?;
+
+        transferred += chunk.len();
+        let pct = 100.0 * transferred as f64 / total as f64;
+        println!("  Progress: {transferred}/{total} bytes ({pct:.0}%)");
     }
 
-    println!("  All chunks transferred");
-    Ok(())
-}
+    let buffer = manager.retrieve_buffer(0)?;
+    println!(
+        "  Retrieved buffer: {} bytes on device",
+        buffer.on_device_size()?
+    );
 
-/// Example of how to use BufferShape with different data types
-#[allow(dead_code)]
-fn demonstrate_buffer_shapes() -> Result<()> {
-    println!("\nBufferShape examples for different data types:");
-
-    // Floating point types
-    let f32_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::F32);
-    let f16_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::F16);
-    let bf16_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::BF16);
-
-    // Integer types
-    let i32_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::S32);
-    let i8_shape = BufferShape::new(vec![1000, 1000], PrimitiveType::S8);
-
-    // Complex types
-    let c64_shape = BufferShape::new(vec![500, 500], PrimitiveType::C64);
-
-    // Calculate sizes for demonstration
-    let shapes = vec![
-        ("F32", f32_shape),
-        ("F16", f16_shape),
-        ("BF16", bf16_shape),
-        ("I32", i32_shape),
-        ("I8", i8_shape),
-        ("C64", c64_shape),
-    ];
-
-    for (name, shape) in shapes {
-        let elements: i64 = shape.dims().iter().product();
-        println!(
-            "  {}: {:?} - {} elements",
-            name,
-            shape.element_type(),
-            elements
-        );
-    }
+    let host = buffer.to_host_sync(None)?;
+    let result = host.read_f32()?;
+    assert_eq!(result[0], 0.0);
+    assert_eq!(result[100], 100.0);
+    assert_eq!(result[num_elements - 1], (num_elements - 1) as f32);
+    println!(
+        "  Verification passed (first={}, last={})",
+        result[0],
+        result[num_elements - 1]
+    );
 
     Ok(())
 }

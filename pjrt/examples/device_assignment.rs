@@ -178,14 +178,6 @@ fn demonstrate_error_handling() -> Result<()> {
         Err(e) => println!("   ✓ lookup_logical_id(99) → Error: {}", e),
         Ok(_) => println!("   ✗ Expected error for missing device"),
     }
-
-    // Zero-size assignment is valid
-    let da = DeviceAssignment::new(0, 0, vec![])?;
-    println!(
-        "   ✓ new(0, 0, []) → OK ({} replicas x {} partitions)",
-        da.num_replicas(),
-        da.num_partitions()
-    );
     println!();
 
     Ok(())
@@ -228,7 +220,7 @@ fn demonstrate_compile_with_assignment(client: &Client) -> Result<()> {
 
     let result = loaded_exe.execution(device_buf).run_sync()?;
     let output: HostBuffer = result[0][0].to_host_sync(None)?;
-    println!("   Input:  3.14");
+    println!("   Input:  42.0");
     println!("   Output: {:?}\n", output);
 
     Ok(())

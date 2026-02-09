@@ -33,10 +33,10 @@ fn main() -> Result<()> {
             println!("Callback extension is available!");
 
             // Demonstrate TPU slice failure handling
-            demonstrate_tpu_slice_callback(&callback_ext)?;
+            demonstrate_tpu_slice_callback(&callback_ext, &client)?;
 
             // Register custom handlers
-            register_custom_callbacks(&callback_ext)?;
+            register_custom_callbacks(&callback_ext, &client)?;
         }
         None => {
             println!("Callback extension is not available in this plugin.");
@@ -54,54 +54,34 @@ fn main() -> Result<()> {
 }
 
 /// Demonstrates handling TPU slice failure callbacks
-fn demonstrate_tpu_slice_callback(_callback_ext: &pjrt::CallbackExtension) -> Result<()> {
+fn demonstrate_tpu_slice_callback(
+    callback_ext: &pjrt::CallbackExtension,
+    client: &Client,
+) -> Result<()> {
     println!("\nTPU Slice Failure Callback Example:");
 
-    // In a real implementation, you would register a callback like this:
-    /*
-    callback_ext.register_callback(
-        pjrt::CallbackType::TpuSliceBuilder,
-        Box::new(|args, user_data| {
-            // Handle TPU slice builder callback
-            // This is called when a slice fails to build
+    // Define an extern "C" callback that handles TPU slice builder events.
+    // The `args` pointer is a PJRT_Callback_Tpu_SliceBuilderArgs; `user_arg`
+    // is an application-supplied context pointer (unused here).
+    unsafe extern "C" fn tpu_slice_callback(
+        _args: *mut std::ffi::c_void,
+        _user_arg: *mut std::ffi::c_void,
+    ) {
+        println!("  [callback] TPU slice builder event received");
+    }
 
-            let failure_type = args.failure_type;
-            match failure_type {
-                pjrt::TpuSliceFailureType::InitError => {
-                    println!("Received TPU slice initialization error");
-                    // Handle initialization error
-                }
-                pjrt::TpuSliceFailureType::WorkerUnavailable => {
-                    println!("Worker became unavailable");
-                    // Handle worker failure
-                }
-                pjrt::TpuSliceFailureType::FlappingTaskError => {
-                    println!("Task is flapping (restarting too frequently)");
-                    // Handle flapping task
-                }
-                pjrt::TpuSliceFailureType::ChipDriverError => {
-                    println!("Chip driver error detected");
-                    // Handle driver error
-                }
-                pjrt::TpuSliceFailureType::SoftwareInjectedError => {
-                    println!("Software injected error (testing)");
-                    // Handle test error
-                }
-                pjrt::TpuSliceFailureType::Unknown => {
-                    println!("Unknown TPU slice failure");
-                    // Handle unknown error
-                }
-            }
+    // Register the callback for TPU slice builder events.
+    unsafe {
+        callback_ext.register_callback(
+            client,
+            pjrt::CallbackType::TpuSliceBuilder,
+            tpu_slice_callback,
+            std::ptr::null_mut(),
+        )?;
+    }
+    println!("  Registered TPU slice builder callback");
 
-            // Return PJRT_SUCCESS
-            std::ptr::null_mut()
-        }),
-        // User data pointer (often null or a pointer to application state)
-        std::ptr::null_mut()
-    )?;
-    */
-
-    // For this example, we'll show the enum values
+    // Show available failure types for reference
     println!("  Available TPU slice failure types:");
 
     let failure_types = vec![
@@ -132,35 +112,30 @@ fn demonstrate_tpu_slice_callback(_callback_ext: &pjrt::CallbackExtension) -> Re
     Ok(())
 }
 
-/// Demonstrates registering various custom callbacks
-fn register_custom_callbacks(_callback_ext: &pjrt::CallbackExtension) -> Result<()> {
-    println!("\nRegistering Custom Callbacks:");
+/// Demonstrates registering a pre-fatal error callback
+fn register_custom_callbacks(
+    callback_ext: &pjrt::CallbackExtension,
+    client: &Client,
+) -> Result<()> {
+    println!("\nRegistering Pre-Fatal Callback:");
 
-    // In a real implementation, you might register multiple callbacks:
+    // Define a pre-fatal callback that logs before the runtime terminates.
+    unsafe extern "C" fn prefatal_callback(
+        _args: *mut std::ffi::c_void,
+        _user_arg: *mut std::ffi::c_void,
+    ) {
+        eprintln!("[prefatal] PJRT is about to terminate — cleaning up");
+    }
 
-    // 1. Pre-fatal error callback
-    println!("  1. Pre-fatal error callback:");
-    println!("     Called before PJRT terminates due to a fatal error");
-    println!("     Allows cleanup of application state");
-
-    // 2. Memory pressure callback
-    println!("  2. Memory pressure callback:");
-    println!("     Called when device memory is running low");
-    println!("     Allows application to free buffers or adjust memory usage");
-
-    // 3. Progress reporting callback
-    println!("  3. Progress reporting callback:");
-    println!("     Called for long-running operations");
-    println!("     Allows updating UI or logging progress");
-
-    // 4. Custom user callback
-    println!("  4. Custom application callback:");
-    println!("     User-defined callback for application-specific events");
-
-    println!("\n  Note: Actual callback registration requires:");
-    println!("  - Boxed closure conforming to the callback signature");
-    println!("  - User data pointer (optional)");
-    println!("  - Proper error handling within the callback");
+    unsafe {
+        callback_ext.register_callback(
+            client,
+            pjrt::CallbackType::Prefatal,
+            prefatal_callback,
+            std::ptr::null_mut(),
+        )?;
+    }
+    println!("  Registered pre-fatal callback successfully");
 
     Ok(())
 }
@@ -177,36 +152,26 @@ mod callback_error_handler {
     ) -> Result<()> {
         match failure_type {
             TpuSliceFailureType::InitError => {
-                // For initialization errors, we might want to retry with different parameters
                 println!("TPU slice initialization error in {}: retrying", context);
-                // Implementation would include retry logic
                 Ok(())
             }
             TpuSliceFailureType::WorkerUnavailable => {
-                // Worker unavailability might require reconfiguring the job
                 println!("Worker unavailable in {}: reconfiguring", context);
-                // Implementation would include reconfiguration logic
                 Ok(())
             }
             TpuSliceFailureType::FlappingTaskError => {
-                // Flapping tasks might need to be temporarily disabled
                 println!("Flapping task in {}: pausing retries", context);
-                // Implementation would include pause/resume logic
                 Ok(())
             }
             TpuSliceFailureType::ChipDriverError => {
-                // Driver errors often require restarting the job
                 println!("Chip driver error in {}: scheduling restart", context);
-                // Implementation would include restart logic
                 Ok(())
             }
             TpuSliceFailureType::SoftwareInjectedError => {
-                // Test errors can be safely ignored or logged
                 println!("Software injected error in {}: ignoring (test)", context);
                 Ok(())
             }
             TpuSliceFailureType::Unknown => {
-                // Unknown errors should be logged and potentially escalated
                 println!("Unknown error in {}: escalating", context);
                 Err(pjrt::Error::InvalidArgument(
                     "Unknown TPU slice failure".to_string(),
