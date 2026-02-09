@@ -77,8 +77,8 @@ use crate::extension::Extension;
 use crate::kv_store::{kv_get_callback, kv_put_callback, kv_try_get_callback};
 use crate::named_value::NamedValueMap;
 use crate::{
-    utils, Client, CompileOptions, CompileToExecutable, Error, Executable, ExecuteContext,
-    KeyValueStore, NamedValue, Program, Result, TopologyDescription,
+    utils, Client, CompileOptions, CompileToExecutable, Error, ErrorCode, Executable,
+    ExecuteContext, KeyValueStore, NamedValue, Program, Result, TopologyDescription,
 };
 
 /// The main entry point for interacting with a PJRT plugin.
@@ -205,7 +205,10 @@ impl Api {
     /// }
     /// ```
     pub fn get_extension<E: Extension>(&self) -> Option<E> {
-        unsafe { E::from_raw(self.extension_start(), self) }
+        let found = unsafe {
+            crate::extension::find_extension(self.extension_start(), E::extension_type())
+        };
+        found.and_then(|ptr| unsafe { E::from_raw(ptr, self) })
     }
 
     /// Checks whether the given extension type is available.
@@ -293,24 +296,44 @@ impl Api {
         if err.is_null() {
             Ok(value)
         } else {
+            // Helper to always destroy the PJRT error, even if extracting
+            // the message or code fails.
+            let result = self.extract_error_info(err, function);
+            // Always destroy the error to avoid resource leaks.
+            let mut destroy_args = PJRT_Error_Destroy_Args::new();
+            destroy_args.error = err;
+            let _ = self.PJRT_Error_Destroy(&mut destroy_args);
+            Err(result)
+        }
+    }
+
+    /// Extracts error information from a PJRT error pointer.
+    ///
+    /// This is separated from `err_or_with_fn` so that the caller can always
+    /// destroy the error regardless of whether extraction succeeds.
+    fn extract_error_info(&self, err: *mut PJRT_Error, function: &'static str) -> Error {
+        let msg = {
             let mut args = PJRT_Error_Message_Args::new();
             args.error = err;
-            self.PJRT_Error_Message(&mut args)?;
-            let msg = utils::str_from_raw(args.message, args.message_size).into_owned();
+            match self.PJRT_Error_Message(&mut args) {
+                Ok(_) => utils::str_from_raw(args.message, args.message_size).into_owned(),
+                Err(_) => "<failed to retrieve error message>".to_string(),
+            }
+        };
+        let code = {
             let mut args = PJRT_Error_GetCode_Args::new();
             args.error = err;
-            args = self.PJRT_Error_GetCode(args)?;
-            let code = args.code.try_into()?;
-            let mut args = PJRT_Error_Destroy_Args::new();
-            args.error = err;
-            self.PJRT_Error_Destroy(&mut args)?;
-            let backtrace = Backtrace::capture().to_string();
-            Err(Error::PjrtError {
-                function,
-                msg,
-                code,
-                backtrace,
-            })
+            match self.PJRT_Error_GetCode(args) {
+                Ok(a) => a.code.try_into().unwrap_or(ErrorCode::Internal),
+                Err(_) => ErrorCode::Internal,
+            }
+        };
+        let backtrace = Backtrace::capture().to_string();
+        Error::PjrtError {
+            function,
+            msg,
+            code,
+            backtrace,
         }
     }
 

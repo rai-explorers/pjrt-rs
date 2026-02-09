@@ -142,15 +142,10 @@ impl TritonExtension {
         let path = if args.out_path.is_null() || args.out_path_size == 0 {
             None
         } else {
-            Some(
-                unsafe {
-                    std::str::from_utf8_unchecked(std::slice::from_raw_parts(
-                        args.out_path as *const u8,
-                        args.out_path_size,
-                    ))
-                }
-                .to_owned(),
-            )
+            let bytes = unsafe {
+                std::slice::from_raw_parts(args.out_path as *const u8, args.out_path_size)
+            };
+            Some(String::from_utf8_lossy(bytes).into_owned())
         };
 
         Ok(TritonCompileResult {

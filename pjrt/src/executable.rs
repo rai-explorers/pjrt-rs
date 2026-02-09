@@ -170,10 +170,13 @@ impl Executable {
         let output_dim_size =
             unsafe { std::slice::from_raw_parts(args.dim_sizes, args.num_outputs) };
         let mut out = Vec::with_capacity(args.num_outputs);
+        let mut offset = 0usize;
         for i in 0..args.num_outputs {
-            let s = unsafe { std::slice::from_raw_parts(args.dims.add(i), output_dim_size[i]) };
+            let s =
+                unsafe { std::slice::from_raw_parts(args.dims.add(offset), output_dim_size[i]) };
             let dims = s.to_owned();
             out.push(dims);
+            offset += output_dim_size[i];
         }
         Ok(out)
     }

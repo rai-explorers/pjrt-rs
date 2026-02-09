@@ -282,9 +282,9 @@ impl Buffer {
     ) -> Result<(PJRT_Buffer_ToHostBuffer_Args, Vec<u8>)> {
         let mut args = PJRT_Buffer_ToHostBuffer_Args::new();
         args.src = self.ptr;
-        if let Some(layout) = host_layout {
-            let mut l = PJRT_Buffer_MemoryLayout::from(layout);
-            args.host_layout = &mut l as *mut _;
+        let mut layout_c = host_layout.map(PJRT_Buffer_MemoryLayout::from);
+        if let Some(ref mut lc) = layout_c {
+            args.host_layout = lc as *mut _;
         }
         // first call to get the size of the buffer
         args = self.client.api().PJRT_Buffer_ToHostBuffer(args)?;

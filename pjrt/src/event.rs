@@ -27,12 +27,16 @@ use pjrt_sys::{
 use crate::{Api, ErrorCode, Result};
 
 extern "C" fn on_ready_callback(err: *mut PJRT_Error, cb_data: *mut c_void) {
-    let (api, waker) = unsafe { *Box::from_raw(cb_data as *mut (Api, Waker)) };
-    let mut args = PJRT_Error_Destroy_Args::new();
-    args.error = err;
-    api.PJRT_Error_Destroy(&mut args)
-        .expect("PJRT_Error_Destroy");
-    waker.wake();
+    // Wrap in catch_unwind to prevent panicking across the FFI boundary (UB).
+    let _ = std::panic::catch_unwind(|| {
+        let (api, waker) = unsafe { *Box::from_raw(cb_data as *mut (Api, Waker)) };
+        if !err.is_null() {
+            let mut args = PJRT_Error_Destroy_Args::new();
+            args.error = err;
+            let _ = api.PJRT_Error_Destroy(&mut args);
+        }
+        waker.wake();
+    });
 }
 
 /// An asynchronous event that signals completion of a PJRT operation.

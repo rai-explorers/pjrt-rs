@@ -376,8 +376,12 @@ impl AsyncHostToDeviceTransferManager {
     pub fn add_metadata(&self, metadata: &[NamedValue]) -> Result<()> {
         let mut args = PJRT_AsyncHostToDeviceTransferManager_AddMetadata_Args::new();
         args.transfer_manager = self.ptr;
-        args.transfer_metadata = metadata.as_ptr() as *const pjrt_sys::PJRT_NamedValue;
-        args.num_metadata = metadata.len();
+        let metadata_c: Vec<pjrt_sys::PJRT_NamedValue> = metadata
+            .iter()
+            .map(pjrt_sys::PJRT_NamedValue::from)
+            .collect();
+        args.transfer_metadata = metadata_c.as_ptr();
+        args.num_metadata = metadata_c.len();
         self.client
             .api()
             .PJRT_AsyncHostToDeviceTransferManager_AddMetadata(args)

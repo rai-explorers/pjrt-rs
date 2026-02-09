@@ -350,9 +350,9 @@ impl Client {
         args.shape_dims = dims.as_ptr();
         args.shape_num_dims = dims.len();
         args.shape_element_type = element_type as pjrt_sys::PJRT_Buffer_Type;
-        if let Some(layout) = layout {
-            let mut layout_c = pjrt_sys::PJRT_Buffer_MemoryLayout::from(layout);
-            args.shape_layout = &mut layout_c as *mut _;
+        let mut layout_c = layout.map(pjrt_sys::PJRT_Buffer_MemoryLayout::from);
+        if let Some(ref mut lc) = layout_c {
+            args.shape_layout = lc as *mut _;
         }
         args.memory = memory.ptr;
         let args = self.api().PJRT_Client_CreateUninitializedBuffer(args)?;
@@ -380,9 +380,9 @@ impl Client {
         args.shape_dims = dims.as_ptr();
         args.shape_num_dims = dims.len();
         args.shape_element_type = element_type as pjrt_sys::PJRT_Buffer_Type;
-        if let Some(layout) = layout {
-            let mut layout_c = pjrt_sys::PJRT_Buffer_MemoryLayout::from(layout);
-            args.shape_layout = &mut layout_c as *mut _;
+        let mut layout_c = layout.map(pjrt_sys::PJRT_Buffer_MemoryLayout::from);
+        if let Some(ref mut lc) = layout_c {
+            args.shape_layout = lc as *mut _;
         }
         args.memory = memory.ptr;
         let args = self.api().PJRT_Client_CreateErrorBuffer(args)?;
@@ -407,9 +407,9 @@ impl Client {
         args.shape_dims = dims.as_ptr();
         args.shape_num_dims = dims.len();
         args.shape_element_type = element_type as pjrt_sys::PJRT_Buffer_Type;
-        if let Some(layout) = layout {
-            let mut layout_c = pjrt_sys::PJRT_Buffer_MemoryLayout::from(layout);
-            args.shape_layout = &mut layout_c as *mut _;
+        let mut layout_c = layout.map(pjrt_sys::PJRT_Buffer_MemoryLayout::from);
+        if let Some(ref mut lc) = layout_c {
+            args.shape_layout = lc as *mut _;
         }
         let args = self.api().PJRT_Client_CreateAliasBuffer(args)?;
         let buffer = Buffer::wrap(self, args.alias_buffer);

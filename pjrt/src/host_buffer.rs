@@ -91,7 +91,6 @@
 //! ```
 
 use std::ffi::c_void;
-use std::mem;
 use std::rc::Rc;
 
 use bon::bon;
@@ -153,10 +152,22 @@ impl<T: Type> TypedHostBuffer<T> {
         layout: Option<MemoryLayout>,
     ) -> Self {
         let length = bytes.len() / T::SIZE;
-        let capacity = bytes.capacity() / T::SIZE;
-        let ptr = bytes.as_ptr() as *mut T::ElemType;
-        let data = unsafe { Vec::from_raw_parts(ptr, length, capacity) };
-        mem::forget(bytes);
+        // Allocate a properly aligned Vec<T::ElemType> and copy the bytes into it.
+        // We cannot reinterpret the Vec<u8> allocation directly because its alignment
+        // (1) may differ from T::ElemType's alignment, violating the global allocator
+        // contract on Drop.
+        let mut data: Vec<T::ElemType> = Vec::with_capacity(length);
+        // SAFETY: We copy exactly `length * T::SIZE` bytes from the source into the
+        // newly allocated, properly aligned buffer. The source has at least that many
+        // bytes (length = bytes.len() / T::SIZE).
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                bytes.as_ptr(),
+                data.as_mut_ptr() as *mut u8,
+                length * T::SIZE,
+            );
+            data.set_len(length);
+        }
         let dims = dims.unwrap_or_else(|| vec![length as i64]);
         assert!(dims.iter().product::<i64>() == length as i64);
         let layout = layout
@@ -213,9 +224,9 @@ impl<T: Type> TypedHostBuffer<T> {
             args.byte_strides = byte_strides.as_ptr() as *const _;
             args.num_byte_strides = byte_strides.len();
         }
-        if let Some(device_layout) = &device_layout {
-            let mut device_layout = PJRT_Buffer_MemoryLayout::from(device_layout);
-            args.device_layout = &mut device_layout as *mut _;
+        let mut layout_c = device_layout.as_ref().map(PJRT_Buffer_MemoryLayout::from);
+        if let Some(ref mut lc) = layout_c {
+            args.device_layout = lc as *mut _;
         }
         dest.set_args(&mut args)?;
         client.api().PJRT_Client_BufferFromHostBuffer(args)

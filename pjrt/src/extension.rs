@@ -162,7 +162,6 @@ pub unsafe trait Extension {
 }
 
 /// Iterator over extension chain
-#[allow(dead_code)]
 pub struct ExtensionIterator {
     current: *mut PJRT_Extension_Base,
 }
@@ -201,7 +200,6 @@ impl Iterator for ExtensionIterator {
 ///
 /// The `start` pointer must be a valid pointer to a PJRT_Extension_Base
 /// structure, or null.
-#[allow(dead_code)]
 pub(crate) unsafe fn find_extension(
     start: *mut PJRT_Extension_Base,
     ext_type: ExtensionType,
