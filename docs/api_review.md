@@ -3,7 +3,7 @@
 This document provides a comprehensive code review of each Rust module in the `pjrt` crate,
 covering implementation quality, developer experience (UX), and safety.
 
-**Review Date**: 2025-07-24  
+**Review Date**: 2026-02-09  
 **Crate Version**: 0.2.0  
 **Rust Edition**: 2021  
 **XLA Commit**: `72873a36069b2c8920e3ba7a81977bed2552fc40`
@@ -172,7 +172,7 @@ Plugin (.so/.dylib)
 - `ExternalBufferRef<'a>` is an excellent RAII guard pattern for managing external reference counts
 - `CopyRawToHostFuture` implements `Future` with proper `Pin` handling
 - `DonateWithControlDependency` wraps the complex donation-with-event pattern cleanly
-- `to_device()` bon builder allows specifying target device and memory
+- `to_device()` bon builder with `IntoFuture` allows `buf.to_device(&dev).await?`
 
 **UX**: ★★★★★
 - Rich query API: `primitive_type()`, `dims()`, `layout()`, `on_device_size()`, `device()`, `memory()`
@@ -201,6 +201,7 @@ Plugin (.so/.dylib)
 - Exceptional documentation — `HostBufferSemantics` has a ~400-line guide with ASCII flowcharts, comparison tables, and platform-specific notes
 - Multiple construction paths: `from_data()`, `from_bytes()`, `from_scalar()`
 - `to_sync()` (blocking) and `to()` (async) builders for device transfers
+- Async `to()` supports `IntoFuture` — `host_buf.to(&device).await?` without explicit `.copy()`
 - `HostBufferCopyToDest` trait allows sending to `Client`, `Device`, or `Memory`
 
 **Safety**: ★★★★☆
@@ -855,10 +856,19 @@ These are correctly defined as extension types but not yet implemented. The `raw
 The crate consistently uses the `bon` crate for builders:
 ```rust
 Client::builder(api).options(opts).build()?
-HostBuffer::to().device(device).build()?
 LoadedExecutable::builder(client).build()?
+
+// Sync transfers
+HostBuffer::to_sync(&device).copy()?
+
+// Async transfers with IntoFuture (bon 3.7+) - direct .await
+HostBuffer::to(&device).await?
+Buffer::to_device(&other_device).await?
+
+// Or with explicit finish function
+HostBuffer::to(&device).copy().await?
 ```
-This provides excellent discoverability and compile-time validation.
+This provides excellent discoverability and compile-time validation. The `derive(IntoFuture(Box, ?Send))` on async builders eliminates the need to call `.copy()` before `.await`, improving ergonomics for the common case.
 
 ### 2. Error Handling ★★★★☆
 

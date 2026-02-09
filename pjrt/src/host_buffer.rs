@@ -52,7 +52,10 @@
 //! // Synchronous transfer (blocking)
 //! let device_buffer = host_buffer.to_sync(&client).copy()?;
 //!
-//! // Asynchronous transfer (non-blocking)
+//! // Asynchronous transfer - IntoFuture allows direct .await
+//! let device_buffer = host_buffer.to(&client).await?;
+//!
+//! // Or with explicit .copy() finish function
 //! let device_buffer = host_buffer.to(&client).copy().await?;
 //!
 //! // Transfer to a specific device
@@ -237,7 +240,7 @@ impl<T: Type> TypedHostBuffer<T> {
         Ok(buf)
     }
 
-    #[builder(finish_fn = copy)]
+    #[builder(finish_fn = copy, derive(IntoFuture(Box, ?Send)))]
     pub async fn to<D>(
         &self,
         #[builder(start_fn)] dest: &D,
@@ -476,7 +479,7 @@ impl HostBuffer {
         Ok(buf)
     }
 
-    #[builder(finish_fn = copy)]
+    #[builder(finish_fn = copy, derive(IntoFuture(Box, ?Send)))]
     pub async fn to<D>(
         &self,
         #[builder(start_fn)] dest: &D,
@@ -606,7 +609,7 @@ impl HostBuffer {
 /// let host_buffer = HostBuffer::from_data((*data).clone(), None, None);
 ///
 /// // Async transfer - runtime may access data after call returns
-/// let device_buffer = host_buffer.to(&client).copy().await?;
+/// let device_buffer = host_buffer.to(&client).await?;
 /// // The await ensures done_with_host_buffer event has fired
 /// // Now safe to drop or modify data
 /// ```
@@ -754,7 +757,7 @@ pub enum HostBufferSemantics {
     /// let host_buffer = HostBuffer::from_data((*data).clone(), None, None);
     ///
     /// // Using the async API - awaits done_with_host_buffer automatically
-    /// let device_buffer = host_buffer.to(&client).copy().await?;
+    /// let device_buffer = host_buffer.to(&client).await?;
     ///
     /// // Now safe to drop the Arc - await ensured transfer is complete
     /// drop(data);

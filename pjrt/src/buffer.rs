@@ -33,12 +33,11 @@
 //! ## Asynchronous Transfers
 //!
 //! ```rust,ignore
-//! // Transfer to device (async)
-//! let device_buffer = host_data.to(&client).copy().await?;
+//! // Transfer to device (async) - IntoFuture allows direct .await
+//! let device_buffer = host_data.to(&client).await?;
 //!
-//! // Wait for buffer to be ready
-//! let ready_event = device_buffer.ready_event()?;
-//! ready_event.await?;
+//! // Or with explicit .copy() finish function
+//! let device_buffer = host_data.to(&client).copy().await?;
 //! ```
 //!
 //! ## Copying Data Back to Host
@@ -234,7 +233,7 @@ impl Buffer {
         self.client.api().PJRT_Buffer_CopyToDevice(args)
     }
 
-    #[builder(finish_fn = copy)]
+    #[builder(finish_fn = copy, derive(IntoFuture(Box, ?Send)))]
     pub async fn to_device(&self, #[builder(start_fn)] device: &Device) -> Result<Buffer> {
         let args = self.call_copy_to_device(device)?;
         let buf = Buffer::wrap(device.client(), args.dst_buffer);
@@ -259,7 +258,7 @@ impl Buffer {
         self.client.api().PJRT_Buffer_CopyToMemory(args)
     }
 
-    #[builder(finish_fn = copy)]
+    #[builder(finish_fn = copy, derive(IntoFuture(Box, ?Send)))]
     pub async fn to_memory(&self, #[builder(start_fn)] memory: &Memory) -> Result<Buffer> {
         let args = self.call_copy_to_memory(memory)?;
         let buf = Buffer::wrap(memory.client(), args.dst_buffer);
@@ -326,7 +325,7 @@ impl Buffer {
     /// Copies raw data from the buffer to host memory.
     ///
     /// This is a lower-level API that copies raw bytes without type conversion.
-    #[builder(finish_fn = copy)]
+    #[builder(finish_fn = copy, derive(IntoFuture(Box, ?Send)))]
     pub async fn copy_raw_to_host(
         &self,
         #[builder(start_fn)] dst: &mut [u8],

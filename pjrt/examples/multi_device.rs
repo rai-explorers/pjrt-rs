@@ -226,7 +226,7 @@ async fn demonstrate_device_transfers(client: &Client) -> Result<()> {
     );
 
     // Device 0 → Device 1 (async)
-    let buf_on_dst = buf_on_src.to_device(dst_device).copy().await?;
+    let buf_on_dst = buf_on_src.to_device(dst_device).await?;
     println!(
         "   Device {} → Device {}: shape {:?}",
         src_device.description()?.id()?,

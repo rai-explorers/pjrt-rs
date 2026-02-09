@@ -28,13 +28,13 @@ async fn main() -> Result<()> {
     let dev2 = client.lookup_addressable_device(1)?;
 
     println!("-- ASYNC --");
-    let dev_buf = host_buf.to(&dev1).copy().await?;
+    let dev_buf = host_buf.to(&dev1).await?;
     println!("to {:?}, {:?}", dev_buf.dims()?, dev_buf.layout()?);
 
     let b = dev_buf.to_host(None).await?;
     println!("to_host {:?}", b);
 
-    let b = dev_buf.to_device(&dev2).copy().await?;
+    let b = dev_buf.to_device(&dev2).await?;
     println!("to_device {:?}, {:?}", b.dims()?, b.layout()?);
 
     println!("-- SYNC --");
