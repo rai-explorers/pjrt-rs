@@ -143,10 +143,15 @@ Uses cumulative offset tracking instead of index-based access.
 - Several `unsafe` blocks lack `// SAFETY:` comments — **deferred** (widespread, low risk)
 
 ### Test quality
-- Significant test duplication across `core_types_tests.rs` and module-specific test files — **deferred**
-- Many integration tests are placeholder/mock-only — **deferred**
-- Mock structs test themselves rather than actual crate types — **deferred**
-- `memory_tests.rs` has ~15 placeholder tests — **deferred**
+- ✅ **CLEANED** — Removed ~288 junk tests (placeholder, mock-only, stdlib, duplicates):
+  - `memory_tests.rs`: 415→5 lines (100% placeholder removed)
+  - `event_tests.rs`: 437→160 lines (stdlib/placeholder removed)
+  - `async_transfer_tests.rs`: 1021→217 lines (mock-only/duplicate removed)
+  - `core_types_tests.rs`: 2618→1264 lines (duplicate/placeholder/mock removed)
+  - `executable_tests.rs`: 919→257 lines (duplicate/placeholder removed)
+  - `execute_tests.rs`: 734→611 lines (duplicate/trivial removed)
+  - `extension_tests.rs`: 144→78 lines (trivial trait checks removed)
+  - Total: 6288→2592 lines (−59%), 833→545 tests
 
 ### Other nits
 - `MemoryStats` derives `Ord`/`PartialOrd`/`Hash` — **kept** (harmless, may be useful for collections)
