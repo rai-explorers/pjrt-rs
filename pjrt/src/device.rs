@@ -97,13 +97,16 @@ pub struct Device {
 
 impl std::fmt::Debug for Device {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let description = self.description();
-        f.debug_struct("Device")
-            .field("id", &description.id())
-            .field("kind", &description.kind())
-            .field("is_addressable", &self.is_addressable())
-            .field("local_hardware_id", &self.local_hardware_id())
-            .finish()
+        if let Ok(description) = self.description() {
+            f.debug_struct("Device")
+                .field("id", &description.id().unwrap_or(-1))
+                .field("kind", &description.kind().unwrap_or_default())
+                .field("is_addressable", &self.is_addressable().unwrap_or(false))
+                .field("local_hardware_id", &self.local_hardware_id().unwrap_or(-1))
+                .finish()
+        } else {
+            f.debug_struct("Device").finish_non_exhaustive()
+        }
     }
 }
 
@@ -120,64 +123,47 @@ impl Device {
         &self.client
     }
 
-    pub fn description(&self) -> DeviceDescription {
+    pub fn description(&self) -> Result<DeviceDescription> {
         let mut args = PJRT_Device_GetDescription_Args::new();
         args.device = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Device_GetDescription(args)
-            .expect("PJRT_Device_GetDescription");
-        DeviceDescription::wrap(self.client.api(), args.device_description)
+        args = self.client.api().PJRT_Device_GetDescription(args)?;
+        Ok(DeviceDescription::wrap(
+            self.client.api(),
+            args.device_description,
+        ))
     }
 
-    pub fn is_addressable(&self) -> bool {
+    pub fn is_addressable(&self) -> Result<bool> {
         let mut args = PJRT_Device_IsAddressable_Args::new();
         args.device = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Device_IsAddressable(args)
-            .expect("PJRT_Device_IsAddressable");
-        args.is_addressable
+        args = self.client.api().PJRT_Device_IsAddressable(args)?;
+        Ok(args.is_addressable)
     }
 
-    pub fn local_hardware_id(&self) -> LocalHardwareId {
+    pub fn local_hardware_id(&self) -> Result<LocalHardwareId> {
         let mut args = PJRT_Device_LocalHardwareId_Args::new();
         args.device = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Device_LocalHardwareId(args)
-            .expect("PJRT_Device_LocalHardwareId");
-        args.local_hardware_id
+        args = self.client.api().PJRT_Device_LocalHardwareId(args)?;
+        Ok(args.local_hardware_id)
     }
 
-    pub fn addressable_memories(&self) -> Vec<Memory> {
+    pub fn addressable_memories(&self) -> Result<Vec<Memory>> {
         let mut args = PJRT_Device_AddressableMemories_Args::new();
         args.device = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Device_AddressableMemories(args)
-            .expect("PJRT_Device_AddressableMemories");
+        args = self.client.api().PJRT_Device_AddressableMemories(args)?;
         let memories = unsafe { slice::from_raw_parts(args.memories, args.num_memories) };
-        memories
+        Ok(memories
             .iter()
             .cloned()
             .map(|d| Memory::wrap(&self.client, d))
-            .collect()
+            .collect())
     }
 
-    pub fn default_memory(&self) -> Memory {
+    pub fn default_memory(&self) -> Result<Memory> {
         let mut args = PJRT_Device_DefaultMemory_Args::new();
         args.device = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Device_DefaultMemory(args)
-            .expect("PJRT_Device_DefaultMemory");
-        Memory::wrap(&self.client, args.memory)
+        args = self.client.api().PJRT_Device_DefaultMemory(args)?;
+        Ok(Memory::wrap(&self.client, args.memory))
     }
 
     pub fn memory_stats(&self) -> Result<MemoryStats> {

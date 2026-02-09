@@ -49,7 +49,7 @@ fn demonstrate_list_memories(client: &Client) -> Result<()> {
     println!("1. Listing All Addressable Memories");
     println!("   ---------------------------------");
 
-    let memories = client.addressable_memories();
+    let memories = client.addressable_memories()?;
 
     if memories.is_empty() {
         println!("   No addressable memories found.");
@@ -58,11 +58,11 @@ fn demonstrate_list_memories(client: &Client) -> Result<()> {
 
         for (i, memory) in memories.iter().enumerate() {
             println!("   Memory {}:", i);
-            println!("     - ID: {}", memory.id());
-            println!("     - Kind: {}", memory.kind());
-            println!("     - Kind ID: {}", memory.kind_id());
-            println!("     - String: {}", memory.to_string());
-            println!("     - Debug: {}", memory.debug_string());
+            println!("     - ID: {}", memory.id()?);
+            println!("     - Kind: {}", memory.kind()?);
+            println!("     - Kind ID: {}", memory.kind_id()?);
+            println!("     - String: {}", memory.to_string()?);
+            println!("     - Debug: {}", memory.debug_string()?);
             println!();
         }
     }
@@ -75,25 +75,25 @@ fn demonstrate_memory_info(client: &Client) -> Result<()> {
     println!("2. Memory Information Query");
     println!("   ------------------------");
 
-    let memories = client.addressable_memories();
+    let memories = client.addressable_memories()?;
 
     if let Some(memory) = memories.first() {
-        println!("   Detailed information for Memory {}:\n", memory.id());
+        println!("   Detailed information for Memory {}:\n", memory.id()?);
 
         // Memory kind describes the type of memory
-        let kind = memory.kind();
+        let kind = memory.kind()?;
         println!("   Memory Kind: {}", kind);
 
         // Kind ID is a numeric identifier
-        let kind_id = memory.kind_id();
+        let kind_id = memory.kind_id()?;
         println!("   Kind ID: {} (numeric identifier)", kind_id);
 
         // ToString provides a human-readable description
-        let description = memory.to_string();
+        let description = memory.to_string()?;
         println!("   Description: {}", description);
 
         // Debug string provides additional implementation details
-        let debug_info = memory.debug_string();
+        let debug_info = memory.debug_string()?;
         println!("   Debug Info: {}", debug_info);
 
         println!();
@@ -117,8 +117,8 @@ fn demonstrate_memory_devices(client: &Client) -> Result<()> {
     println!("3. Memory-Device Relationships");
     println!("   ---------------------------");
 
-    let memories = client.addressable_memories();
-    let devices = client.addressable_devices();
+    let memories = client.addressable_memories()?;
+    let devices = client.addressable_devices()?;
 
     if memories.is_empty() || devices.is_empty() {
         println!("   Insufficient resources to demonstrate relationships.\n");
@@ -128,9 +128,9 @@ fn demonstrate_memory_devices(client: &Client) -> Result<()> {
     println!("   Memory accessibility by devices:\n");
 
     for memory in &memories {
-        println!("   Memory {} ({}):", memory.id(), memory.kind());
+        println!("   Memory {} ({}):", memory.id()?, memory.kind()?);
 
-        let accessible_devices = memory.addressable_by_devices();
+        let accessible_devices = memory.addressable_by_devices()?;
 
         if accessible_devices.is_empty() {
             println!("     - Not directly addressable by any device");
@@ -140,8 +140,8 @@ fn demonstrate_memory_devices(client: &Client) -> Result<()> {
                 accessible_devices.len()
             );
             for device in &accessible_devices {
-                let desc = device.description();
-                println!("       * Device {} ({})", desc.id(), desc.kind());
+                let desc = device.description()?;
+                println!("       * Device {} ({})", desc.id()?, desc.kind()?);
             }
         }
         println!();
@@ -164,7 +164,7 @@ fn demonstrate_memory_stats(client: &Client) -> Result<()> {
     println!("4. Device Memory Statistics");
     println!("   ------------------------");
 
-    let devices = client.addressable_devices();
+    let devices = client.addressable_devices()?;
 
     if devices.is_empty() {
         println!("   No devices available.\n");

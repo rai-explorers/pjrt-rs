@@ -239,3 +239,7 @@ All PRs must pass these checks before merging.
 ## Rules
 - Don't leave placeholder implmentations, implment it when it is required
 - Don't crete simply versions for the requirement, implment well designed and tested version
+
+## Update PJRT-C API
+- update XLA_COMMIT, XLA_SHA256 in third_party/WORKSPACE to new xla commit
+- call vendor_pjrt.sh, fix error if any

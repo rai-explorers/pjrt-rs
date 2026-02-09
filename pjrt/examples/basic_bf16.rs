@@ -10,7 +10,7 @@ fn main() -> Result<()> {
     println!("api_version = {:?}", api.version());
 
     let client = Client::builder(&api).build()?;
-    println!("platform_name = {}", client.platform_name());
+    println!("platform_name = {}", client.platform_name()?);
 
     let program = pjrt::Program::new(MLIR, CODE);
 

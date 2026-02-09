@@ -71,7 +71,7 @@ mod execute_options_tests {
     fn test_execute_options_call_location() {
         use crate::CallLocation;
 
-        let location = CallLocation::new("test_func", "test.py", 42);
+        let location = CallLocation::new("test_func", "test.py", 42).unwrap();
         let options = ExecuteOptions::new().call_location(location);
 
         let retrieved = options.get_call_location().unwrap();
@@ -104,7 +104,7 @@ mod execute_options_tests {
     fn test_execute_options_chained_builder() {
         use crate::CallLocation;
 
-        let location = CallLocation::new("my_func", "file.py", 100);
+        let location = CallLocation::new("my_func", "file.py", 100).unwrap();
         let options = ExecuteOptions::new()
             .launch_id(5)
             .non_donatable_input_indices(vec![0, 1])
@@ -146,7 +146,7 @@ mod execute_options_tests {
 
         use crate::CallLocation;
 
-        let location = CallLocation::new("func", "file.py", 50);
+        let location = CallLocation::new("func", "file.py", 50).unwrap();
         let options = ExecuteOptions::new().call_location(location);
 
         let raw: PJRT_ExecuteOptions = (&options).into();
@@ -181,7 +181,7 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_new() {
-        let location = CallLocation::new("train_step", "model.py", 42);
+        let location = CallLocation::new("train_step", "model.py", 42).unwrap();
         assert_eq!(location.function_name(), Some("train_step"));
         assert_eq!(location.file_name(), Some("model.py"));
         assert_eq!(location.line_number(), Some(42));
@@ -189,7 +189,7 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_new_empty_function_name() {
-        let location = CallLocation::new("", "file.py", 1);
+        let location = CallLocation::new("", "file.py", 1).unwrap();
         assert_eq!(location.function_name(), Some(""));
         assert_eq!(location.file_name(), Some("file.py"));
         assert_eq!(location.line_number(), Some(1));
@@ -197,7 +197,7 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_new_empty_file_name() {
-        let location = CallLocation::new("func", "", 10);
+        let location = CallLocation::new("func", "", 10).unwrap();
         assert_eq!(location.function_name(), Some("func"));
         assert_eq!(location.file_name(), Some(""));
         assert_eq!(location.line_number(), Some(10));
@@ -205,19 +205,19 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_new_zero_line() {
-        let location = CallLocation::new("func", "file.py", 0);
+        let location = CallLocation::new("func", "file.py", 0).unwrap();
         assert_eq!(location.line_number(), Some(0));
     }
 
     #[test]
     fn test_call_location_new_large_line_number() {
-        let location = CallLocation::new("func", "file.py", u32::MAX);
+        let location = CallLocation::new("func", "file.py", u32::MAX).unwrap();
         assert_eq!(location.line_number(), Some(u32::MAX));
     }
 
     #[test]
     fn test_call_location_from_string_function_file_line() {
-        let location = CallLocation::from_string("my_func:my_file.py:99");
+        let location = CallLocation::from_string("my_func:my_file.py:99").unwrap();
         assert_eq!(location.function_name(), Some("my_func"));
         assert_eq!(location.file_name(), Some("my_file.py"));
         assert_eq!(location.line_number(), Some(99));
@@ -225,7 +225,7 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_from_string_file_line_only() {
-        let location = CallLocation::from_string("script.py:123");
+        let location = CallLocation::from_string("script.py:123").unwrap();
         // With two parts, function_name should be None (only file:line format)
         assert_eq!(location.function_name(), None);
         assert_eq!(location.file_name(), Some("script.py"));
@@ -234,7 +234,7 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_from_string_line_only() {
-        let location = CallLocation::from_string("42");
+        let location = CallLocation::from_string("42").unwrap();
         assert_eq!(location.function_name(), None);
         assert_eq!(location.file_name(), None);
         assert_eq!(location.line_number(), Some(42));
@@ -242,7 +242,7 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_from_string_no_line_number() {
-        let location = CallLocation::from_string("func:file:notanumber");
+        let location = CallLocation::from_string("func:file:notanumber").unwrap();
         assert_eq!(location.function_name(), Some("func"));
         assert_eq!(location.file_name(), Some("file"));
         assert_eq!(location.line_number(), None); // Can't parse "notanumber"
@@ -250,7 +250,7 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_from_string_empty() {
-        let location = CallLocation::from_string("");
+        let location = CallLocation::from_string("").unwrap();
         assert_eq!(location.function_name(), None);
         assert_eq!(location.file_name(), None);
         assert_eq!(location.line_number(), None);
@@ -259,7 +259,7 @@ mod call_location_tests {
     #[test]
     fn test_call_location_from_string_colons_in_path() {
         // Windows-style path with drive letter
-        let location = CallLocation::from_string("func:C:/path/to/file.py:100");
+        let location = CallLocation::from_string("func:C:/path/to/file.py:100").unwrap();
         // This will parse as func, C, /path/to/file.py:100
         // The parsing is simplistic and doesn't handle this case well
         assert_eq!(location.function_name(), Some("func"));
@@ -269,7 +269,7 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_clone() {
-        let location = CallLocation::new("func", "file.py", 50);
+        let location = CallLocation::new("func", "file.py", 50).unwrap();
         let cloned = location.clone();
 
         assert_eq!(location.function_name(), cloned.function_name());
@@ -279,21 +279,21 @@ mod call_location_tests {
 
     #[test]
     fn test_call_location_debug() {
-        let location = CallLocation::new("func", "file.py", 42);
+        let location = CallLocation::new("func", "file.py", 42).unwrap();
         let debug_str = format!("{:?}", location);
         assert!(debug_str.contains("CallLocation"));
     }
 
     #[test]
     fn test_call_location_as_ptr_not_null() {
-        let location = CallLocation::new("func", "file.py", 1);
+        let location = CallLocation::new("func", "file.py", 1).unwrap();
         let ptr = location.as_ptr();
         assert!(!ptr.is_null());
     }
 
     #[test]
     fn test_call_location_unicode_function_name() {
-        let location = CallLocation::new("函数名", "文件.py", 123);
+        let location = CallLocation::new("函数名", "文件.py", 123).unwrap();
         assert_eq!(location.function_name(), Some("函数名"));
         assert_eq!(location.file_name(), Some("文件.py"));
         assert_eq!(location.line_number(), Some(123));
@@ -302,7 +302,8 @@ mod call_location_tests {
     #[test]
     fn test_call_location_special_characters() {
         // Function and file names with special characters (but no colons or nulls)
-        let location = CallLocation::new("func_with-dash.and_underscore", "path/to/file.py", 1);
+        let location =
+            CallLocation::new("func_with-dash.and_underscore", "path/to/file.py", 1).unwrap();
         assert_eq!(
             location.function_name(),
             Some("func_with-dash.and_underscore")
@@ -663,7 +664,7 @@ mod execute_options_raw_tests {
     fn test_execute_options_raw_with_call_location() {
         use crate::CallLocation;
 
-        let location = CallLocation::new("func", "file.py", 100);
+        let location = CallLocation::new("func", "file.py", 100).unwrap();
         let options = ExecuteOptions::new().call_location(location);
         let mut raw = PJRT_ExecuteOptions::new();
 

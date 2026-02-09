@@ -31,20 +31,21 @@ mod memory_api_documentation_tests {
 
     use std::borrow::Cow;
 
-    use crate::{Client, Device, Memory};
+    use crate::{Client, Device, Memory, Result};
 
     /// Verify that Memory has the expected public methods.
     /// This is a compile-time check that documents the public API.
     #[allow(dead_code)]
-    fn memory_public_api_exists(memory: &Memory) {
+    fn memory_public_api_exists(memory: &Memory) -> Result<()> {
         // Test that all public methods exist with correct signatures
         let _client: &Client = memory.client();
-        let _id: i32 = memory.id();
-        let _kind: Cow<'_, str> = memory.kind();
-        let _kind_id: i32 = memory.kind_id();
-        let _debug_string: Cow<'_, str> = memory.debug_string();
-        let _to_string: Cow<'_, str> = memory.to_string();
-        let _devices: Vec<Device> = memory.addressable_by_devices();
+        let _id: i32 = memory.id()?;
+        let _kind: Cow<'_, str> = memory.kind()?;
+        let _kind_id: i32 = memory.kind_id()?;
+        let _debug_string: Cow<'_, str> = memory.debug_string()?;
+        let _to_string: Cow<'_, str> = memory.to_string()?;
+        let _devices: Vec<Device> = memory.addressable_by_devices()?;
+        Ok(())
     }
 
     /// Verify that Memory implements Display trait

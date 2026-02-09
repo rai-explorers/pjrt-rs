@@ -99,7 +99,7 @@ fn demonstrate_compile_to_executable(client: &Client, api: &pjrt::Api) -> Result
     println!("   --------------------------------------------");
 
     // First, we need a topology description
-    let topology = client.topology();
+    let topology = client.topology()?;
 
     let program = pjrt::Program::new(MLIR, CODE);
     let compile_options = CompileOptions::new();
@@ -109,15 +109,15 @@ fn demonstrate_compile_to_executable(client: &Client, api: &pjrt::Api) -> Result
     let executable: Executable = api.compile(&program, &topology, compile_options, Some(client))?;
 
     println!("   Compiled to Executable successfully");
-    println!("   Executable name: {}", executable.name());
+    println!("   Executable name: {}", executable.name()?);
     println!(
         "   Replicas: {}, Partitions: {}",
-        executable.num_replicas(),
-        executable.num_partitions()
+        executable.num_replicas()?,
+        executable.num_partitions()?
     );
 
     // Get compile options used during compilation
-    let serialized_options = executable.compile_options();
+    let serialized_options = executable.compile_options()?;
     let options_bytes = serialized_options.bytes();
     println!(
         "   Serialized compile options: {} bytes",
@@ -125,7 +125,7 @@ fn demonstrate_compile_to_executable(client: &Client, api: &pjrt::Api) -> Result
     );
 
     // Get memory statistics
-    let memory_stats: CompiledMemoryStats = executable.compiled_memory_stats();
+    let memory_stats: CompiledMemoryStats = executable.compiled_memory_stats()?;
     println!("   Memory stats:");
     println!(
         "     - Generated code size: {} bytes",
@@ -156,14 +156,14 @@ fn demonstrate_inspect_compile_options(client: &Client) -> Result<()> {
     let compile_options = CompileOptions::new();
 
     // First compile to a regular Executable
-    let topology = client.topology();
+    let topology = client.topology()?;
     let executable: Executable =
         client
             .api()
             .compile(&program, &topology, compile_options, Some(client))?;
 
     // Retrieve the compile options that were used
-    let serialized = executable.compile_options();
+    let serialized = executable.compile_options()?;
     let bytes = serialized.bytes();
 
     println!("   Retrieved serialized compile options");

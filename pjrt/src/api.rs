@@ -195,9 +195,7 @@ impl Api {
     /// - `stablehlo_minimum_version`: The minimum StableHLO version supported
     pub fn plugin_attributes(&self) -> Result<NamedValueMap> {
         let mut args = PJRT_Plugin_Attributes_Args::new();
-        args = self
-            .PJRT_Plugin_Attributes(args)
-            .expect("PJRT_Plugin_Attributes");
+        args = self.PJRT_Plugin_Attributes(args)?;
         utils::to_named_value_map(args.attributes, args.num_attributes)
     }
 

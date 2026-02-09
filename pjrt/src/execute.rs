@@ -70,7 +70,7 @@ impl ExecuteContext {
 /// let options = ExecuteOptions::new()
 ///     .launch_id(1)
 ///     .non_donatable_input_indices(vec![0, 2])
-///     .call_location(CallLocation::new("my_function", "example.py", 42));
+///     .call_location(CallLocation::new(\"my_function\", \"example.py\", 42)?);
 /// ```
 pub struct ExecuteOptions<'a> {
     launch_id: i32,
@@ -236,7 +236,7 @@ impl Default for ExecuteOptions<'_> {
 /// ```rust
 /// use pjrt::CallLocation;
 ///
-/// let location = CallLocation::new("train_step", "model.py", 42);
+/// let location = CallLocation::new("train_step", "model.py", 42).unwrap();
 /// assert_eq!(location.function_name(), Some("train_step"));
 /// assert_eq!(location.file_name(), Some("model.py"));
 /// assert_eq!(location.line_number(), Some(42));
@@ -251,21 +251,25 @@ impl CallLocation {
     /// Creates a new call location from function name, file name, and line number.
     ///
     /// The information is combined into a string format suitable for PJRT plugins.
-    pub fn new(function_name: &str, file_name: &str, line: u32) -> Self {
+    pub fn new(function_name: &str, file_name: &str, line: u32) -> Result<Self> {
         let location = format!("{}:{}:{}", function_name, file_name, line);
-        Self {
-            location_string: CString::new(location).expect("location contains null bytes"),
-        }
+        Ok(Self {
+            location_string: CString::new(location).map_err(|e| {
+                crate::Error::InvalidArgument(format!("location contains null bytes: {e}"))
+            })?,
+        })
     }
 
     /// Creates a call location from a pre-formatted location string.
     ///
     /// The format should be understood by the PJRT plugin being used.
     /// Common formats include "file:line" or "function:file:line".
-    pub fn from_string(location: &str) -> Self {
-        Self {
-            location_string: CString::new(location).expect("location contains null bytes"),
-        }
+    pub fn from_string(location: &str) -> Result<Self> {
+        Ok(Self {
+            location_string: CString::new(location).map_err(|e| {
+                crate::Error::InvalidArgument(format!("location contains null bytes: {e}"))
+            })?,
+        })
     }
 
     /// Returns the raw location string as a C string pointer.

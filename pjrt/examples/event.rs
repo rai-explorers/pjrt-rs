@@ -76,7 +76,7 @@ fn demonstrate_buffer_transfers(client: &Client) -> Result<()> {
     println!("3. Multi-Device Buffer Transfers");
     println!("   -----------------------------");
 
-    let devices = client.addressable_devices();
+    let devices = client.addressable_devices()?;
     if devices.len() < 2 {
         println!("   Skipping: Need at least 2 devices");
         println!();
@@ -88,8 +88,8 @@ fn demonstrate_buffer_transfers(client: &Client) -> Result<()> {
 
     println!(
         "   Using devices: {:?} and {:?}",
-        device0.description().id(),
-        device1.description().id()
+        device0.description()?.id()?,
+        device1.description()?.id()?
     );
 
     let input = HostBuffer::from_scalar(42.0f32);

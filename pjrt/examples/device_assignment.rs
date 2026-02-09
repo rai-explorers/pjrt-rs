@@ -92,7 +92,7 @@ fn demonstrate_client_default_assignment(client: &Client) -> Result<()> {
     println!("2. Client Default Device Assignment");
     println!("   ---------------------------------");
 
-    let devices = client.addressable_devices();
+    let devices = client.addressable_devices()?;
     let num_devices = devices.len();
     println!("   Addressable devices: {}", num_devices);
 
@@ -109,12 +109,12 @@ fn demonstrate_client_default_assignment(client: &Client) -> Result<()> {
 
     // Show the device-to-replica mapping
     for device in &devices {
-        let global_id = device.description().id();
+        let global_id = device.description()?.id()?;
         match da.lookup_logical_id(global_id) {
             Ok(logical) => println!(
                 "     Device {} (kind: {}) → replica {}",
                 global_id,
-                device.description().kind(),
+                device.description()?.kind()?,
                 logical.replica_id
             ),
             Err(_) => println!("     Device {} not in assignment", global_id),
@@ -196,7 +196,7 @@ fn demonstrate_compile_with_assignment(client: &Client) -> Result<()> {
     println!("5. Compilation with Device Assignment");
     println!("   ------------------------------------");
 
-    let devices = client.addressable_devices();
+    let devices = client.addressable_devices()?;
 
     // Get the default assignment for 1 replica, 1 partition
     let da = client.default_device_assignment(1, 1)?;
@@ -217,10 +217,10 @@ fn demonstrate_compile_with_assignment(client: &Client) -> Result<()> {
     let loaded_exe = client.compile(&program, compile_options)?;
 
     // Show executable info
-    let exe = loaded_exe.executable();
-    println!("   Executable: {}", exe.name());
-    println!("   Replicas:   {}", exe.num_replicas());
-    println!("   Partitions: {}", exe.num_partitions());
+    let exe = loaded_exe.executable()?;
+    println!("   Executable: {}", exe.name()?);
+    println!("   Replicas:   {}", exe.num_replicas()?);
+    println!("   Partitions: {}", exe.num_partitions()?);
 
     // Execute on the first device
     let input = HostBuffer::from_scalar(42.0f32);

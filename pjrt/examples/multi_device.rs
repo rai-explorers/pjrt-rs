@@ -43,15 +43,15 @@ fn demonstrate_device_enumeration(client: &Client) -> Result<()> {
     println!("1. Device Enumeration");
     println!("   -------------------");
 
-    let all_devices = client.devices();
-    let addressable = client.addressable_devices();
+    let all_devices = client.devices()?;
+    let addressable = client.addressable_devices()?;
 
     println!(
         "   Platform: {} (version: {})",
-        client.platform_name(),
-        client.platform_version()
+        client.platform_name()?,
+        client.platform_version()?
     );
-    println!("   Process index: {}", client.process_index());
+    println!("   Process index: {}", client.process_index()?);
     println!(
         "   Total devices: {}, addressable: {}\n",
         all_devices.len(),
@@ -59,15 +59,15 @@ fn demonstrate_device_enumeration(client: &Client) -> Result<()> {
     );
 
     for (i, device) in all_devices.iter().enumerate() {
-        let desc = device.description();
+        let desc = device.description()?;
 
         println!("   Device {}:", i);
-        println!("     Global ID:   {}", desc.id());
-        println!("     Kind:        {}", desc.kind());
-        println!("     Debug:       {}", desc.debug_string());
-        println!("     Addressable: {}", device.is_addressable());
+        println!("     Global ID:   {}", desc.id()?);
+        println!("     Kind:        {}", desc.kind()?);
+        println!("     Debug:       {}", desc.debug_string()?);
+        println!("     Addressable: {}", device.is_addressable()?);
 
-        let hw_id = device.local_hardware_id();
+        let hw_id = device.local_hardware_id()?;
         if hw_id >= 0 {
             println!("     HW ID:       {}", hw_id);
         }
@@ -84,19 +84,19 @@ fn demonstrate_device_enumeration(client: &Client) -> Result<()> {
         }
 
         // Show memories attached to this device
-        let memories = device.addressable_memories();
+        let memories = device.addressable_memories()?;
         if !memories.is_empty() {
             println!("     Memories ({}):", memories.len());
             for mem in &memories {
-                println!("       - {} (id: {})", mem.kind(), mem.id());
+                println!("       - {} (id: {})", mem.kind()?, mem.id()?);
             }
         }
 
-        let default_mem = device.default_memory();
+        let default_mem = device.default_memory()?;
         println!(
             "     Default memory: {} (id: {})",
-            default_mem.kind(),
-            default_mem.id()
+            default_mem.kind()?,
+            default_mem.id()?
         );
         println!();
     }
@@ -109,24 +109,24 @@ fn demonstrate_topology(client: &Client) -> Result<()> {
     println!("2. Topology Description");
     println!("   ---------------------");
 
-    let topology = client.topology();
+    let topology = client.topology()?;
 
     println!(
         "   Platform:  {} (version: {})",
-        topology.platform_name(),
-        topology.platform_version()
+        topology.platform_name()?,
+        topology.platform_version()?
     );
 
-    let device_descs = topology.device_descriptions();
+    let device_descs = topology.device_descriptions()?;
     println!("   Devices in topology: {}", device_descs.len());
 
     for (i, desc) in device_descs.iter().enumerate() {
         println!(
             "     [{}] Global ID: {}, kind: {}, process: {}",
             i,
-            desc.id(),
-            desc.kind(),
-            desc.process_index()
+            desc.id()?,
+            desc.kind()?,
+            desc.process_index()?
         );
     }
 
@@ -142,7 +142,7 @@ fn demonstrate_topology(client: &Client) -> Result<()> {
     }
 
     // Demonstrate serialization
-    let serialized = topology.serialize();
+    let serialized = topology.serialize()?;
     println!(
         "   Serialized topology: {} bytes\n",
         serialized.bytes().len()
@@ -159,7 +159,7 @@ fn demonstrate_per_device_execution(client: &Client) -> Result<()> {
     let program = pjrt::Program::new(MLIR, CODE);
     let loaded_exe = LoadedExecutable::builder(client, &program).build()?;
 
-    let devices = client.addressable_devices();
+    let devices = client.addressable_devices()?;
     println!("   Running on {} addressable device(s):\n", devices.len());
 
     for (i, device) in devices.iter().enumerate() {
@@ -177,8 +177,8 @@ fn demonstrate_per_device_execution(client: &Client) -> Result<()> {
         println!(
             "     Device {} (kind: {}, id: {}): input={}, output={:?}",
             i,
-            device.description().kind(),
-            device.description().id(),
+            device.description()?.kind()?,
+            device.description()?.id()?,
             input_val,
             output,
         );
@@ -193,7 +193,7 @@ async fn demonstrate_device_transfers(client: &Client) -> Result<()> {
     println!("4. Device-to-Device Transfers");
     println!("   ---------------------------");
 
-    let devices = client.addressable_devices();
+    let devices = client.addressable_devices()?;
 
     if devices.len() < 2 {
         println!("   Skipped (requires ≥2 addressable devices)\n");
@@ -205,13 +205,13 @@ async fn demonstrate_device_transfers(client: &Client) -> Result<()> {
 
     println!(
         "   Source: device {} (kind: {})",
-        src_device.description().id(),
-        src_device.description().kind(),
+        src_device.description()?.id()?,
+        src_device.description()?.kind()?,
     );
     println!(
         "   Dest:   device {} (kind: {})\n",
-        dst_device.description().id(),
-        dst_device.description().kind(),
+        dst_device.description()?.id()?,
+        dst_device.description()?.kind()?,
     );
 
     let data = vec![1.0f32, 2.0, 3.0, 4.0, 5.0, 6.0];
@@ -221,24 +221,24 @@ async fn demonstrate_device_transfers(client: &Client) -> Result<()> {
     let buf_on_src = host_buf.to_sync(src_device).copy()?;
     println!(
         "   Host → Device {}: shape {:?}",
-        src_device.description().id(),
-        buf_on_src.dims()
+        src_device.description()?.id()?,
+        buf_on_src.dims()?
     );
 
     // Device 0 → Device 1 (async)
     let buf_on_dst = buf_on_src.to_device(dst_device).copy().await?;
     println!(
         "   Device {} → Device {}: shape {:?}",
-        src_device.description().id(),
-        dst_device.description().id(),
-        buf_on_dst.dims(),
+        src_device.description()?.id()?,
+        dst_device.description()?.id()?,
+        buf_on_dst.dims()?,
     );
 
     // Device 1 → Host
     let result: HostBuffer = buf_on_dst.to_host(None).await?;
     println!(
         "   Device {} → Host: {:?}",
-        dst_device.description().id(),
+        dst_device.description()?.id()?,
         result
     );
 
@@ -256,7 +256,7 @@ fn demonstrate_memory_stats(client: &Client) -> Result<()> {
     println!("5. Device Memory Stats");
     println!("   --------------------");
 
-    let devices = client.addressable_devices();
+    let devices = client.addressable_devices()?;
 
     for (i, device) in devices.iter().enumerate() {
         match device.memory_stats() {

@@ -129,11 +129,17 @@ pub struct Client {
 impl std::fmt::Debug for Client {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Client")
-            .field("platform_name", &self.platform_name())
-            .field("platform_version", &self.platform_version())
-            .field("process_index", &self.process_index())
-            .field("num_devices", &self.devices().len())
-            .field("num_addressable_devices", &self.addressable_devices().len())
+            .field("platform_name", &self.platform_name().unwrap_or_default())
+            .field(
+                "platform_version",
+                &self.platform_version().unwrap_or_default(),
+            )
+            .field("process_index", &self.process_index().unwrap_or(-1))
+            .field("num_devices", &self.devices().map(|d| d.len()).unwrap_or(0))
+            .field(
+                "num_addressable_devices",
+                &self.addressable_devices().map(|d| d.len()).unwrap_or(0),
+            )
             .finish()
     }
 }
@@ -168,83 +174,71 @@ impl Client {
         self.raw.ptr
     }
 
-    pub fn platform_name(&self) -> Cow<'_, str> {
+    pub fn platform_name(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_Client_PlatformName_Args::new();
         args.client = self.ptr();
-        args = self
-            .api()
-            .PJRT_Client_PlatformName(args)
-            .expect("PJRT_Client_PlatformName");
-        utils::str_from_raw(args.platform_name, args.platform_name_size)
+        args = self.api().PJRT_Client_PlatformName(args)?;
+        Ok(utils::str_from_raw(
+            args.platform_name,
+            args.platform_name_size,
+        ))
     }
 
-    pub fn platform_version(&self) -> Cow<'_, str> {
+    pub fn platform_version(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_Client_PlatformVersion_Args::new();
         args.client = self.ptr();
-        args = self
-            .api()
-            .PJRT_Client_PlatformVersion(args)
-            .expect("PJRT_Client_PlatformVersion");
-        utils::str_from_raw(args.platform_version, args.platform_version_size)
+        args = self.api().PJRT_Client_PlatformVersion(args)?;
+        Ok(utils::str_from_raw(
+            args.platform_version,
+            args.platform_version_size,
+        ))
     }
 
-    pub fn process_index(&self) -> i32 {
+    pub fn process_index(&self) -> Result<i32> {
         let mut args = PJRT_Client_ProcessIndex_Args::new();
         args.client = self.ptr();
-        args = self
-            .api()
-            .PJRT_Client_ProcessIndex(args)
-            .expect("PJRT_Client_ProcessIndex");
-        args.process_index
+        args = self.api().PJRT_Client_ProcessIndex(args)?;
+        Ok(args.process_index)
     }
 
-    pub fn devices(&self) -> Vec<Device> {
+    pub fn devices(&self) -> Result<Vec<Device>> {
         let mut args = PJRT_Client_Devices_Args::new();
         args.client = self.ptr();
-        args = self
-            .api()
-            .PJRT_Client_Devices(args)
-            .expect("PJRT_Client_Devices");
+        args = self.api().PJRT_Client_Devices(args)?;
         let raw_devices = unsafe { slice::from_raw_parts(args.devices, args.num_devices) };
-        raw_devices
+        Ok(raw_devices
             .iter()
             .cloned()
             .map(|d| Device::wrap(self, d))
-            .collect()
+            .collect())
     }
 
-    pub fn addressable_devices(&self) -> Vec<Device> {
+    pub fn addressable_devices(&self) -> Result<Vec<Device>> {
         let mut args = PJRT_Client_AddressableDevices_Args::new();
         args.client = self.ptr();
-        args = self
-            .api()
-            .PJRT_Client_AddressableDevices(args)
-            .expect("PJRT_Client_AddressableDevices");
+        args = self.api().PJRT_Client_AddressableDevices(args)?;
         let devices = unsafe {
             slice::from_raw_parts(args.addressable_devices, args.num_addressable_devices)
         };
-        devices
+        Ok(devices
             .iter()
             .cloned()
             .map(|d| Device::wrap(self, d))
-            .collect()
+            .collect())
     }
 
-    pub fn addressable_memories(&self) -> Vec<Memory> {
+    pub fn addressable_memories(&self) -> Result<Vec<Memory>> {
         let mut args = PJRT_Client_AddressableMemories_Args::new();
         args.client = self.ptr();
-        args = self
-            .api()
-            .PJRT_Client_AddressableMemories(args)
-            .expect("PJRT_Client_AddressableMemories");
+        args = self.api().PJRT_Client_AddressableMemories(args)?;
         let memories = unsafe {
             slice::from_raw_parts(args.addressable_memories, args.num_addressable_memories)
         };
-        memories
+        Ok(memories
             .iter()
             .cloned()
             .map(|d| Memory::wrap(self, d))
-            .collect()
+            .collect())
     }
 
     pub fn lookup_device(&self, global_device_id: GlobalDeviceId) -> Result<Device> {
@@ -296,14 +290,15 @@ impl Client {
         Ok(assignment)
     }
 
-    pub fn topology(&self) -> TopologyDescription {
+    pub fn topology(&self) -> Result<TopologyDescription> {
         let mut args = PJRT_Client_TopologyDescription_Args::new();
         args.client = self.ptr();
-        args = self
-            .api()
-            .PJRT_Client_TopologyDescription(args)
-            .expect("PJRT_Client_TopologyDescription");
-        TopologyDescription::wrap(self.api(), args.topology, Some(self))
+        args = self.api().PJRT_Client_TopologyDescription(args)?;
+        Ok(TopologyDescription::wrap(
+            self.api(),
+            args.topology,
+            Some(self),
+        ))
     }
 
     /// Creates buffers for asynchronous host-to-device transfers.

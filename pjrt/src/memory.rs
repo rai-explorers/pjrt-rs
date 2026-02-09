@@ -63,7 +63,7 @@ use pjrt_sys::{
     PJRT_Memory_ToString_Args,
 };
 
-use crate::{utils, Client, Device};
+use crate::{utils, Client, Device, Result};
 
 /// A memory space attached to a PJRT device.
 ///
@@ -90,85 +90,70 @@ impl Memory {
         &self.client
     }
 
-    pub fn id(&self) -> i32 {
+    pub fn id(&self) -> Result<i32> {
         let mut args = PJRT_Memory_Id_Args::new();
         args.memory = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Memory_Id(args)
-            .expect("PJRT_Memory_Id");
-        args.id
+        args = self.client.api().PJRT_Memory_Id(args)?;
+        Ok(args.id)
     }
 
-    pub fn kind(&self) -> Cow<'_, str> {
+    pub fn kind(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_Memory_Kind_Args::new();
         args.memory = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Memory_Kind(args)
-            .expect("PJRT_Memory_Kind");
-        utils::str_from_raw(args.kind, args.kind_size)
+        args = self.client.api().PJRT_Memory_Kind(args)?;
+        Ok(utils::str_from_raw(args.kind, args.kind_size))
     }
 
-    pub fn kind_id(&self) -> i32 {
+    pub fn kind_id(&self) -> Result<i32> {
         let mut args = PJRT_Memory_Kind_Id_Args::new();
         args.memory = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Memory_Kind_Id(args)
-            .expect("PJRT_Memory_Kind_Id");
-        args.kind_id
+        args = self.client.api().PJRT_Memory_Kind_Id(args)?;
+        Ok(args.kind_id)
     }
 
-    pub fn debug_string(&self) -> Cow<'_, str> {
+    pub fn debug_string(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_Memory_DebugString_Args::new();
         args.memory = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Memory_DebugString(args)
-            .expect("PJRT_Memory_DebugString");
-        utils::str_from_raw(args.debug_string, args.debug_string_size)
+        args = self.client.api().PJRT_Memory_DebugString(args)?;
+        Ok(utils::str_from_raw(
+            args.debug_string,
+            args.debug_string_size,
+        ))
     }
 
-    pub fn to_string(&self) -> Cow<'_, str> {
+    pub fn to_string(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_Memory_ToString_Args::new();
         args.memory = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Memory_ToString(args)
-            .expect("PJRT_Memory_ToString");
-        utils::str_from_raw(args.to_string, args.to_string_size)
+        args = self.client.api().PJRT_Memory_ToString(args)?;
+        Ok(utils::str_from_raw(args.to_string, args.to_string_size))
     }
 
-    pub fn addressable_by_devices(&self) -> Vec<Device> {
+    pub fn addressable_by_devices(&self) -> Result<Vec<Device>> {
         let mut args = PJRT_Memory_AddressableByDevices_Args::new();
         args.memory = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Memory_AddressableByDevices(args)
-            .expect("PJRT_Memory_AddressableByDevices");
+        args = self.client.api().PJRT_Memory_AddressableByDevices(args)?;
         let devices = unsafe { slice::from_raw_parts(args.devices, args.num_devices) };
-        devices
+        Ok(devices
             .iter()
             .map(|device| Device::wrap(&self.client, *device))
-            .collect()
+            .collect())
     }
 }
 
 impl Display for Memory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Memory({})", self.to_string())
+        match self.to_string() {
+            Ok(s) => write!(f, "Memory({})", s),
+            Err(e) => write!(f, "Memory(<error: {}>)", e),
+        }
     }
 }
 
 impl Debug for Memory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Memory({})", self.debug_string())
+        match self.debug_string() {
+            Ok(s) => write!(f, "Memory({})", s),
+            Err(e) => write!(f, "Memory(<error: {}>)", e),
+        }
     }
 }

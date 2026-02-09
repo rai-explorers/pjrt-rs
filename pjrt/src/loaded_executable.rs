@@ -72,11 +72,15 @@ impl Drop for LoadedExecutable {
 
 impl std::fmt::Debug for LoadedExecutable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let executable = self.executable();
-        f.debug_struct("LoadedExecutable")
-            .field("name", &executable.name())
-            .field("is_deleted", &self.is_deleted())
-            .field("num_addressable_devices", &self.addressable_devices().len())
+        let mut ds = f.debug_struct("LoadedExecutable");
+        if let Ok(executable) = self.executable() {
+            ds.field("name", &executable.name().unwrap_or_default());
+        }
+        ds.field("is_deleted", &self.is_deleted().unwrap_or(false))
+            .field(
+                "num_addressable_devices",
+                &self.addressable_devices().map(|d| d.len()).unwrap_or(0),
+            )
             .finish()
     }
 }
@@ -107,53 +111,45 @@ impl LoadedExecutable {
         &self.client
     }
 
-    pub fn executable(&self) -> Executable {
+    pub fn executable(&self) -> Result<Executable> {
         let mut args = PJRT_LoadedExecutable_GetExecutable_Args::new();
         args.loaded_executable = self.ptr;
         args = self
             .client
             .api()
-            .PJRT_LoadedExecutable_GetExecutable(args)
-            .expect("PJRT_LoadedExecutable_GetExecutable");
-        Executable::wrap(self.client.api(), args.executable)
+            .PJRT_LoadedExecutable_GetExecutable(args)?;
+        Ok(Executable::wrap(self.client.api(), args.executable))
     }
 
-    pub fn addressable_devices(&self) -> Vec<Device> {
+    pub fn addressable_devices(&self) -> Result<Vec<Device>> {
         let mut args = PJRT_LoadedExecutable_AddressableDevices_Args::new();
         args.executable = self.ptr;
         args = self
             .client
             .api()
-            .PJRT_LoadedExecutable_AddressableDevices(args)
-            .expect("PJRT_LoadedExecutable_AddressableDevices");
+            .PJRT_LoadedExecutable_AddressableDevices(args)?;
         let raw_devices = unsafe {
             slice::from_raw_parts(args.addressable_devices, args.num_addressable_devices)
         };
-        raw_devices
+        Ok(raw_devices
             .iter()
             .cloned()
             .map(|d| Device::wrap(&self.client, d))
-            .collect()
+            .collect())
     }
 
-    pub fn delete(self) {
+    pub fn delete(self) -> Result<()> {
         let mut args = PJRT_LoadedExecutable_Delete_Args::new();
         args.executable = self.ptr;
-        self.client
-            .api()
-            .PJRT_LoadedExecutable_Delete(args)
-            .expect("PJRT_LoadedExecutable_Delete");
+        self.client.api().PJRT_LoadedExecutable_Delete(args)?;
+        Ok(())
     }
 
-    pub fn is_deleted(&self) -> bool {
+    pub fn is_deleted(&self) -> Result<bool> {
         let mut args = PJRT_LoadedExecutable_IsDeleted_Args::new();
         args.executable = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_LoadedExecutable_IsDeleted(args)
-            .expect("PJRT_LoadedExecutable_IsDeleted");
-        args.is_deleted
+        args = self.client.api().PJRT_LoadedExecutable_IsDeleted(args)?;
+        Ok(args.is_deleted)
     }
 
     pub fn call_execute<'a, I>(
@@ -164,8 +160,8 @@ impl LoadedExecutable {
     where
         I: ExecutionInputs,
     {
-        let executable = self.executable();
-        let num_outputs = executable.num_outputs();
+        let executable = self.executable()?;
+        let num_outputs = executable.num_outputs()?;
         let input_buffers = inputs.buffer_ptrs();
         let mut args = PJRT_LoadedExecutable_Execute_Args::new();
         args.executable = self.ptr;

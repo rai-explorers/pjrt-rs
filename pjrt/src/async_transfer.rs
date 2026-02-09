@@ -242,40 +242,37 @@ impl AsyncHostToDeviceTransferManager {
     }
 
     /// Returns the device associated with this transfer manager.
-    pub fn device(&self) -> Device {
+    pub fn device(&self) -> Result<Device> {
         let mut args = PJRT_AsyncHostToDeviceTransferManager_Device_Args::new();
         args.transfer_manager = self.ptr;
         args = self
             .client
             .api()
-            .PJRT_AsyncHostToDeviceTransferManager_Device(args)
-            .expect("PJRT_AsyncHostToDeviceTransferManager_Device");
-        Device::wrap(&self.client, args.device_out)
+            .PJRT_AsyncHostToDeviceTransferManager_Device(args)?;
+        Ok(Device::wrap(&self.client, args.device_out))
     }
 
     /// Returns the number of buffers managed by this transfer manager.
-    pub fn buffer_count(&self) -> usize {
+    pub fn buffer_count(&self) -> Result<usize> {
         let mut args = PJRT_AsyncHostToDeviceTransferManager_BufferCount_Args::new();
         args.transfer_manager = self.ptr;
         args = self
             .client
             .api()
-            .PJRT_AsyncHostToDeviceTransferManager_BufferCount(args)
-            .expect("PJRT_AsyncHostToDeviceTransferManager_BufferCount");
-        args.buffer_count
+            .PJRT_AsyncHostToDeviceTransferManager_BufferCount(args)?;
+        Ok(args.buffer_count)
     }
 
     /// Returns the size (in bytes) of the buffer at the given index.
-    pub fn buffer_size(&self, buffer_index: i32) -> usize {
+    pub fn buffer_size(&self, buffer_index: i32) -> Result<usize> {
         let mut args = PJRT_AsyncHostToDeviceTransferManager_BufferSize_Args::new();
         args.transfer_manager = self.ptr;
         args.buffer_index = buffer_index;
         args = self
             .client
             .api()
-            .PJRT_AsyncHostToDeviceTransferManager_BufferSize(args)
-            .expect("PJRT_AsyncHostToDeviceTransferManager_BufferSize");
-        args.buffer_size
+            .PJRT_AsyncHostToDeviceTransferManager_BufferSize(args)?;
+        Ok(args.buffer_size)
     }
 
     /// Transfers data to the buffer at the given index.
@@ -572,7 +569,7 @@ impl AsyncHostToDeviceTransferManager {
     ///
     /// A vector of all buffers managed by this transfer manager.
     pub fn retrieve_all_buffers(&self) -> Result<Vec<Buffer>> {
-        let count = self.buffer_count();
+        let count = self.buffer_count()?;
         let mut buffers = Vec::with_capacity(count);
         for i in 0..count {
             buffers.push(self.retrieve_buffer(i as i32)?);
@@ -898,7 +895,7 @@ impl<'a, T: crate::Type> TypedAsyncTransfer<'a, T> {
         let memory = match self.memory {
             Some(m) => m,
             None => {
-                default_memory = self.device.default_memory();
+                default_memory = self.device.default_memory()?;
                 &default_memory
             }
         };
@@ -937,7 +934,7 @@ impl<'a, T: crate::Type> TypedAsyncTransfer<'a, T> {
         let memory = match self.memory {
             Some(m) => m,
             None => {
-                default_memory = self.device.default_memory();
+                default_memory = self.device.default_memory()?;
                 &default_memory
             }
         };
@@ -1024,7 +1021,7 @@ impl<'a> RawAsyncTransfer<'a> {
         let memory = match self.memory {
             Some(m) => m,
             None => {
-                default_memory = self.device.default_memory();
+                default_memory = self.device.default_memory()?;
                 &default_memory
             }
         };
@@ -1055,7 +1052,7 @@ impl<'a> RawAsyncTransfer<'a> {
         let memory = match self.memory {
             Some(m) => m,
             None => {
-                default_memory = self.device.default_memory();
+                default_memory = self.device.default_memory()?;
                 &default_memory
             }
         };

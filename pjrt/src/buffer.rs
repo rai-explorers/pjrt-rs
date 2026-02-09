@@ -107,11 +107,14 @@ impl Drop for Buffer {
 impl std::fmt::Debug for Buffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
-            .field("primitive_type", &self.primitive_type())
-            .field("dims", &self.dims())
-            .field("on_device_size_in_bytes", &self.on_device_size())
-            .field("is_on_cpu", &self.is_on_cpu())
-            .field("is_deleted", &self.is_deleted())
+            .field("primitive_type", &self.primitive_type().ok())
+            .field("dims", &self.dims().unwrap_or_default())
+            .field(
+                "on_device_size_in_bytes",
+                &self.on_device_size().unwrap_or(0),
+            )
+            .field("is_on_cpu", &self.is_on_cpu().unwrap_or(false))
+            .field("is_deleted", &self.is_deleted().unwrap_or(false))
             .finish()
     }
 }
@@ -130,130 +133,91 @@ impl Buffer {
         &self.client
     }
 
-    pub fn primitive_type(&self) -> PrimitiveType {
+    pub fn primitive_type(&self) -> Result<PrimitiveType> {
         let mut args = PJRT_Buffer_ElementType_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_ElementType(args)
-            .expect("PJRT_Buffer_ElementType");
-        PrimitiveType::try_from(args.type_).expect("PrimitiveType")
+        args = self.client.api().PJRT_Buffer_ElementType(args)?;
+        PrimitiveType::try_from(args.type_)
     }
 
-    pub fn dims(&self) -> Vec<i64> {
+    pub fn dims(&self) -> Result<Vec<i64>> {
         let mut args = PJRT_Buffer_Dimensions_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_Dimensions(args)
-            .expect("PJRT_Buffer_Dimensions");
+        args = self.client.api().PJRT_Buffer_Dimensions(args)?;
         if args.num_dims == 0 {
-            return vec![];
+            return Ok(vec![]);
         }
         let s = unsafe { std::slice::from_raw_parts(args.dims, args.num_dims) };
-        s.to_owned()
+        Ok(s.to_owned())
     }
 
-    pub fn unpadded_dims(&self) -> Vec<i64> {
+    pub fn unpadded_dims(&self) -> Result<Vec<i64>> {
         let mut args = PJRT_Buffer_UnpaddedDimensions_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_UnpaddedDimensions(args)
-            .expect("PJRT_Buffer_UnpaddedDimensions");
+        args = self.client.api().PJRT_Buffer_UnpaddedDimensions(args)?;
         let s = unsafe { std::slice::from_raw_parts(args.unpadded_dims, args.num_dims) };
-        s.to_owned()
+        Ok(s.to_owned())
     }
 
-    pub fn dynamic_dims_indices(&self) -> Vec<usize> {
+    pub fn dynamic_dims_indices(&self) -> Result<Vec<usize>> {
         let mut args = PJRT_Buffer_DynamicDimensionIndices_Args::new();
         args.buffer = self.ptr;
         args = self
             .client
             .api()
-            .PJRT_Buffer_DynamicDimensionIndices(args)
-            .expect("PJRT_Buffer_DynamicDimensionIndices");
+            .PJRT_Buffer_DynamicDimensionIndices(args)?;
         let s =
             unsafe { std::slice::from_raw_parts(args.dynamic_dim_indices, args.num_dynamic_dims) };
-        s.to_owned()
+        Ok(s.to_owned())
     }
 
-    pub fn layout(&self) -> MemoryLayout {
+    pub fn layout(&self) -> Result<MemoryLayout> {
         let mut args = PJRT_Buffer_GetMemoryLayout_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_GetMemoryLayout(args)
-            .expect("PJRT_Buffer_GetMemoryLayout");
-        MemoryLayout::try_from(&args.layout).expect("layout")
+        args = self.client.api().PJRT_Buffer_GetMemoryLayout(args)?;
+        MemoryLayout::try_from(&args.layout)
     }
 
-    pub fn on_device_size(&self) -> usize {
+    pub fn on_device_size(&self) -> Result<usize> {
         let mut args = PJRT_Buffer_OnDeviceSizeInBytes_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_OnDeviceSizeInBytes(args)
-            .expect("PJRT_Buffer_GetMemoryLayout");
-        args.on_device_size_in_bytes
+        args = self.client.api().PJRT_Buffer_OnDeviceSizeInBytes(args)?;
+        Ok(args.on_device_size_in_bytes)
     }
 
-    pub fn is_on_cpu(&self) -> bool {
+    pub fn is_on_cpu(&self) -> Result<bool> {
         let mut args = PJRT_Buffer_IsOnCpu_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_IsOnCpu(args)
-            .expect("PJRT_Buffer_IsOnCpu");
-        args.is_on_cpu
+        args = self.client.api().PJRT_Buffer_IsOnCpu(args)?;
+        Ok(args.is_on_cpu)
     }
 
-    pub fn device(&self) -> Device {
+    pub fn device(&self) -> Result<Device> {
         let mut args = PJRT_Buffer_Device_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_Device(args)
-            .expect("PJRT_Buffer_Device");
-        Device::wrap(&self.client, args.device)
+        args = self.client.api().PJRT_Buffer_Device(args)?;
+        Ok(Device::wrap(&self.client, args.device))
     }
 
-    pub fn memory(&self) -> Memory {
+    pub fn memory(&self) -> Result<Memory> {
         let mut args = PJRT_Buffer_Memory_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_Memory(args)
-            .expect("PJRT_Buffer_Memory");
-        Memory::wrap(&self.client, args.memory)
+        args = self.client.api().PJRT_Buffer_Memory(args)?;
+        Ok(Memory::wrap(&self.client, args.memory))
     }
 
-    pub fn delete(self) {
+    pub fn delete(self) -> Result<()> {
         let mut args = PJRT_Buffer_Delete_Args::new();
         args.buffer = self.ptr;
-        self.client
-            .api()
-            .PJRT_Buffer_Delete(args)
-            .expect("PJRT_Buffer_Delete");
+        self.client.api().PJRT_Buffer_Delete(args)?;
+        Ok(())
     }
 
-    pub fn is_deleted(&self) -> bool {
+    pub fn is_deleted(&self) -> Result<bool> {
         let mut args = PJRT_Buffer_IsDeleted_Args::new();
         args.buffer = self.ptr;
-        args = self
-            .client
-            .api()
-            .PJRT_Buffer_IsDeleted(args)
-            .expect("PJRT_Buffer_IsDeleted");
-        args.is_deleted
+        args = self.client.api().PJRT_Buffer_IsDeleted(args)?;
+        Ok(args.is_deleted)
     }
 
     pub(crate) fn ready_event(&self) -> Result<Event> {
@@ -337,9 +301,12 @@ impl Buffer {
         let (args, data) = self.call_copy_to_host(host_layout.as_ref())?;
         let event = Event::wrap(self.client.api(), args.event);
         event.await?;
-        let ty = self.primitive_type();
-        let dims = self.dims();
-        let layout = host_layout.unwrap_or_else(|| self.layout());
+        let ty = self.primitive_type()?;
+        let dims = self.dims()?;
+        let layout = match host_layout {
+            Some(l) => l,
+            None => self.layout()?,
+        };
         HostBuffer::from_bytes(data, ty, Some(dims), Some(layout))
     }
 
@@ -347,9 +314,12 @@ impl Buffer {
         let (args, data) = self.call_copy_to_host(host_layout.as_ref())?;
         let event = Event::wrap(self.client.api(), args.event);
         event.wait()?;
-        let ty = self.primitive_type();
-        let dims = self.dims();
-        let layout = host_layout.unwrap_or_else(|| self.layout());
+        let ty = self.primitive_type()?;
+        let dims = self.dims()?;
+        let layout = match host_layout {
+            Some(l) => l,
+            None => self.layout()?,
+        };
         HostBuffer::from_bytes(data, ty, Some(dims), Some(layout))
     }
 
@@ -966,7 +936,7 @@ mod tests {
 
         // The delete method consumes the buffer
         fn _check_delete_signature() {
-            let _: fn(Buffer) = Buffer::delete;
+            let _: fn(Buffer) -> Result<()> = Buffer::delete;
         }
     }
 

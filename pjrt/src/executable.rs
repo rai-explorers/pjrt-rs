@@ -79,11 +79,11 @@ impl Drop for Executable {
 impl std::fmt::Debug for Executable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Executable")
-            .field("name", &self.name())
-            .field("num_replicas", &self.num_replicas())
-            .field("num_partitions", &self.num_partitions())
-            .field("num_outputs", &self.num_outputs())
-            .field("code_size", &self.code_size())
+            .field("name", &self.name().unwrap_or_default())
+            .field("num_replicas", &self.num_replicas().unwrap_or(0))
+            .field("num_partitions", &self.num_partitions().unwrap_or(0))
+            .field("num_outputs", &self.num_outputs().unwrap_or(0))
+            .field("code_size", &self.code_size().unwrap_or(0))
             .finish()
     }
 }
@@ -116,77 +116,57 @@ impl Executable {
         &self.api
     }
 
-    pub fn name(&self) -> Cow<'_, str> {
+    pub fn name(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_Executable_Name_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_Name(args)
-            .expect("PJRT_Executable_Name");
-        utils::str_from_raw(args.executable_name, args.executable_name_size)
+        args = self.api.PJRT_Executable_Name(args)?;
+        Ok(utils::str_from_raw(
+            args.executable_name,
+            args.executable_name_size,
+        ))
     }
 
-    pub fn num_replicas(&self) -> usize {
+    pub fn num_replicas(&self) -> Result<usize> {
         let mut args = PJRT_Executable_NumReplicas_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_NumReplicas(args)
-            .expect("PJRT_Executable_NumReplicas");
-        args.num_replicas
+        args = self.api.PJRT_Executable_NumReplicas(args)?;
+        Ok(args.num_replicas)
     }
 
-    pub fn num_partitions(&self) -> usize {
+    pub fn num_partitions(&self) -> Result<usize> {
         let mut args = PJRT_Executable_NumPartitions_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_NumPartitions(args)
-            .expect("PJRT_Executable_NumPartitions");
-        args.num_partitions
+        args = self.api.PJRT_Executable_NumPartitions(args)?;
+        Ok(args.num_partitions)
     }
 
-    pub fn num_outputs(&self) -> usize {
+    pub fn num_outputs(&self) -> Result<usize> {
         let mut args = PJRT_Executable_NumOutputs_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_NumOutputs(args)
-            .expect("PJRT_Executable_NumOutputs");
-        args.num_outputs
+        args = self.api.PJRT_Executable_NumOutputs(args)?;
+        Ok(args.num_outputs)
     }
 
-    pub fn code_size(&self) -> i64 {
+    pub fn code_size(&self) -> Result<i64> {
         let mut args = PJRT_Executable_SizeOfGeneratedCodeInBytes_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_SizeOfGeneratedCodeInBytes(args)
-            .expect("PJRT_Executable_SizeOfGeneratedCodeInBytes");
-        args.size_in_bytes
+        args = self.api.PJRT_Executable_SizeOfGeneratedCodeInBytes(args)?;
+        Ok(args.size_in_bytes)
     }
 
-    pub fn output_primitive_types(&self) -> Vec<PrimitiveType> {
+    pub fn output_primitive_types(&self) -> Result<Vec<PrimitiveType>> {
         let mut args = PJRT_Executable_OutputElementTypes_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_OutputElementTypes(args)
-            .expect("PJRT_Executable_OutputElementTypes");
+        args = self.api.PJRT_Executable_OutputElementTypes(args)?;
         let s = unsafe { std::slice::from_raw_parts(args.output_types, args.num_output_types) };
-        s.iter()
-            .map(|s| PrimitiveType::try_from(*s).expect("PrimitiveType"))
-            .collect()
+        s.iter().map(|s| PrimitiveType::try_from(*s)).collect()
     }
 
     #[allow(clippy::needless_range_loop)]
-    pub fn output_dims(&self) -> Vec<Vec<i64>> {
+    pub fn output_dims(&self) -> Result<Vec<Vec<i64>>> {
         let mut args = PJRT_Executable_OutputDimensions_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_OutputDimensions(args)
-            .expect("PJRT_Executable_OutputDimensions");
+        args = self.api.PJRT_Executable_OutputDimensions(args)?;
         let output_dim_size =
             unsafe { std::slice::from_raw_parts(args.dim_sizes, args.num_outputs) };
         let mut out = Vec::with_capacity(args.num_outputs);
@@ -195,29 +175,23 @@ impl Executable {
             let dims = s.to_owned();
             out.push(dims);
         }
-        out
+        Ok(out)
     }
 
-    pub fn fingerprint(&self) -> Cow<'_, str> {
+    pub fn fingerprint(&self) -> Result<Cow<'_, str>> {
         let mut args = PJRT_Executable_Fingerprint_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_Fingerprint(args)
-            .expect("PJRT_Executable_Fingerprint");
-        utils::str_from_raw(
+        args = self.api.PJRT_Executable_Fingerprint(args)?;
+        Ok(utils::str_from_raw(
             args.executable_fingerprint,
             args.executable_fingerprint_size,
-        )
+        ))
     }
 
     pub fn cost_analysis(&self) -> Result<NamedValueMap> {
         let mut args = PJRT_Executable_GetCostAnalysis_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_GetCostAnalysis(args)
-            .expect("PJRT_Executable_GetCostAnalysis");
+        args = self.api.PJRT_Executable_GetCostAnalysis(args)?;
         utils::to_named_value_map(args.properties, args.num_properties)
     }
 
@@ -242,13 +216,10 @@ impl Executable {
     }
 
     #[allow(clippy::needless_range_loop)]
-    pub fn output_memory_kinds(&self) -> Vec<Cow<'_, str>> {
+    pub fn output_memory_kinds(&self) -> Result<Vec<Cow<'_, str>>> {
         let mut args = PJRT_Executable_OutputMemoryKinds_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_OutputMemoryKinds(args)
-            .expect("PJRT_Executable_OutputMemoryKinds");
+        args = self.api.PJRT_Executable_OutputMemoryKinds(args)?;
         let memory_kind_sizes =
             unsafe { std::slice::from_raw_parts(args.memory_kind_sizes, args.num_outputs) };
         let mut out = Vec::with_capacity(args.num_outputs);
@@ -257,34 +228,29 @@ impl Executable {
             let kind = utils::str_from_raw(ptr, memory_kind_sizes[i]);
             out.push(kind);
         }
-        out
+        Ok(out)
     }
 
-    pub fn serialize(&self) -> SerializedExecutable {
+    pub fn serialize(&self) -> Result<SerializedExecutable> {
         let mut args = PJRT_Executable_Serialize_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_Serialize(args)
-            .expect("PJRT_Executable_Serialize");
-        SerializedExecutable {
+        args = self.api.PJRT_Executable_Serialize(args)?;
+        let deleter = args
+            .serialized_executable_deleter
+            .ok_or_else(|| crate::Error::InvalidArgument("null executable deleter".into()))?;
+        Ok(SerializedExecutable {
             ptr: args.serialized_executable,
-            deleter: args
-                .serialized_executable_deleter
-                .expect("executable_deleter"),
+            deleter,
             data_ptr: args.serialized_bytes as *const u8,
             data_len: args.serialized_bytes_size,
-        }
+        })
     }
 
-    pub fn compiled_memory_stats(&self) -> CompiledMemoryStats {
+    pub fn compiled_memory_stats(&self) -> Result<CompiledMemoryStats> {
         let mut args = PJRT_Executable_GetCompiledMemoryStats_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_GetCompiledMemoryStats(args)
-            .expect("PJRT_Executable_GetCompiledMemoryStats");
-        CompiledMemoryStats::from(args)
+        args = self.api.PJRT_Executable_GetCompiledMemoryStats(args)?;
+        Ok(CompiledMemoryStats::from(args))
     }
 
     /// Returns the serialized compile options that were used to create this executable.
@@ -292,21 +258,19 @@ impl Executable {
     /// The returned bytes represent a serialized `CompileOptionsProto` that can be
     /// deserialized using the XLA protobuf definitions. This is useful for debugging
     /// and for understanding the compilation configuration.
-    pub fn compile_options(&self) -> SerializedCompileOptions {
+    pub fn compile_options(&self) -> Result<SerializedCompileOptions> {
         let mut args = PJRT_Executable_GetCompileOptions_Args::new();
         args.executable = self.ptr;
-        args = self
-            .api
-            .PJRT_Executable_GetCompileOptions(args)
-            .expect("PJRT_Executable_GetCompileOptions");
-        SerializedCompileOptions {
+        args = self.api.PJRT_Executable_GetCompileOptions(args)?;
+        let deleter = args
+            .serialized_compile_options_deleter
+            .ok_or_else(|| crate::Error::InvalidArgument("null compile_options deleter".into()))?;
+        Ok(SerializedCompileOptions {
             ptr: args.serialized_compile_options,
-            deleter: args
-                .serialized_compile_options_deleter
-                .expect("compile_options_deleter"),
+            deleter,
             data_ptr: args.serialized_bytes as *const u8,
             data_len: args.serialized_bytes_size,
-        }
+        })
     }
 }
 

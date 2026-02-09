@@ -57,33 +57,24 @@ impl CopyToDeviceStream {
         Ok(())
     }
 
-    pub fn total_bytes(&self) -> i64 {
+    pub fn total_bytes(&self) -> Result<i64> {
         let mut args = PJRT_CopyToDeviceStream_TotalBytes_Args::new();
         args.stream = self.ptr;
-        args = self
-            .api
-            .PJRT_CopyToDeviceStream_TotalBytes(args)
-            .expect("PJRT_CopyToDeviceStream_TotalBytes");
-        args.total_bytes
+        args = self.api.PJRT_CopyToDeviceStream_TotalBytes(args)?;
+        Ok(args.total_bytes)
     }
 
-    pub fn granule_size(&self) -> i64 {
+    pub fn granule_size(&self) -> Result<i64> {
         let mut args = PJRT_CopyToDeviceStream_GranuleSize_Args::new();
         args.stream = self.ptr;
-        args = self
-            .api
-            .PJRT_CopyToDeviceStream_GranuleSize(args)
-            .expect("PJRT_CopyToDeviceStream_GranuleSize");
-        args.granule_size_in_bytes
+        args = self.api.PJRT_CopyToDeviceStream_GranuleSize(args)?;
+        Ok(args.granule_size_in_bytes)
     }
 
-    pub fn current_bytes(&self) -> i64 {
+    pub fn current_bytes(&self) -> Result<i64> {
         let mut args = PJRT_CopyToDeviceStream_CurrentBytes_Args::new();
         args.stream = self.ptr;
-        args = self
-            .api
-            .PJRT_CopyToDeviceStream_CurrentBytes(args)
-            .expect("PJRT_CopyToDeviceStream_CurrentBytes");
-        args.current_bytes
+        args = self.api.PJRT_CopyToDeviceStream_CurrentBytes(args)?;
+        Ok(args.current_bytes)
     }
 }

@@ -262,7 +262,7 @@ mod execute_options_tests {
 
     #[test]
     fn test_call_location_creation() {
-        let location = CallLocation::new("my_function", "test.py", 42);
+        let location = CallLocation::new("my_function", "test.py", 42).unwrap();
         assert_eq!(location.function_name(), Some("my_function"));
         assert_eq!(location.file_name(), Some("test.py"));
         assert_eq!(location.line_number(), Some(42));
@@ -270,14 +270,14 @@ mod execute_options_tests {
 
     #[test]
     fn test_call_location_debug() {
-        let location = CallLocation::new("func", "file.rs", 100);
+        let location = CallLocation::new("func", "file.rs", 100).unwrap();
         let debug_str = format!("{:?}", location);
         assert!(debug_str.contains("CallLocation"));
     }
 
     #[test]
     fn test_execute_options_with_call_location() {
-        let location = CallLocation::new("train", "model.py", 150);
+        let location = CallLocation::new("train", "model.py", 150).unwrap();
         let options = ExecuteOptions::new().call_location(location);
         let loc = options.get_call_location().unwrap();
         assert_eq!(loc.function_name(), Some("train"));
@@ -288,7 +288,7 @@ mod execute_options_tests {
         let options = ExecuteOptions::new()
             .launch_id(5)
             .non_donatable_input_indices(vec![1, 3])
-            .call_location(CallLocation::new("f", "x.py", 1));
+            .call_location(CallLocation::new("f", "x.py", 1).unwrap());
 
         assert_eq!(options.get_launch_id(), 5);
         assert_eq!(options.get_non_donatable_input_indices(), &[1, 3]);

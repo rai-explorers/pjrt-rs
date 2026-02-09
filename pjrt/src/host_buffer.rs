@@ -933,7 +933,7 @@ impl HostBufferCopyToDest for Client {
 
     fn set_args(&self, args: &mut PJRT_Client_BufferFromHostBuffer_Args) -> Result<()> {
         args.device = self
-            .addressable_devices()
+            .addressable_devices()?
             .first()
             .ok_or(Error::NoAddressableDevice)?
             .ptr;
