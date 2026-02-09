@@ -169,18 +169,15 @@ impl LoadedExecutable {
         args.num_args = input_buffers[0].len();
         // allocate argument lists — a flat array of pointers, one per device,
         // each pointing to that device's argument buffer array.
-        let argument_lists: Vec<*const *mut PJRT_Buffer> = input_buffers
-            .iter()
-            .map(|d| d.as_ptr())
-            .collect();
+        let argument_lists: Vec<*const *mut PJRT_Buffer> =
+            input_buffers.iter().map(|d| d.as_ptr()).collect();
         args.argument_lists = argument_lists.as_ptr();
         // allocate output buffers and complete_events and let pjrt runtime to fill it
         // Each device needs its own output array — the runtime writes output buffer
         // pointers into these arrays, so they must not be shared across devices.
-        let mut output_inners: Vec<Vec<MaybeUninit<*mut PJRT_Buffer>>> =
-            (0..args.num_devices)
-                .map(|_| vec![MaybeUninit::<*mut PJRT_Buffer>::uninit(); num_outputs])
-                .collect();
+        let mut output_inners: Vec<Vec<MaybeUninit<*mut PJRT_Buffer>>> = (0..args.num_devices)
+            .map(|_| vec![MaybeUninit::<*mut PJRT_Buffer>::uninit(); num_outputs])
+            .collect();
         let output_lists: Vec<*mut *mut PJRT_Buffer> = output_inners
             .iter_mut()
             .map(|inner| inner.as_mut_ptr() as *mut *mut PJRT_Buffer)
