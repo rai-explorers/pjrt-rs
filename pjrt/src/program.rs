@@ -60,6 +60,8 @@
 //! assert_eq!(format, ProgramFormat::MLIR);
 //! ```
 
+use std::os::raw::c_char;
+
 use std::fs;
 use std::path::Path;
 
@@ -132,10 +134,10 @@ impl Program {
             code: code.into(),
             prog: PJRT_Program::new(),
         };
-        program.prog.code = program.code.as_ptr() as *mut i8;
+        program.prog.code = program.code.as_ptr() as *mut c_char;
         program.prog.code_size = program.code.len();
         let format = program.format.as_bytes();
-        program.prog.format = format.as_ptr() as *const i8;
+        program.prog.format = format.as_ptr() as *const c_char;
         program.prog.format_size = format.len();
         program
     }

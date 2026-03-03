@@ -173,6 +173,8 @@
 //! }
 //! ```
 
+use std::os::raw::c_char;
+
 use std::ffi::c_void;
 use std::marker::PhantomData;
 
@@ -364,7 +366,7 @@ impl AsyncHostToDeviceTransferManager {
         args.transfer_manager = self.ptr;
         args.buffer_index = buffer_index;
         args.error_code = error_code as pjrt_sys::PJRT_Error_Code;
-        args.error_message = message.as_ptr() as *const i8;
+        args.error_message = message.as_ptr() as *const c_char;
         args.error_message_size = message.len();
         self.client
             .api()

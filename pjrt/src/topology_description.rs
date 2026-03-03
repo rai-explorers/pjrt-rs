@@ -1,3 +1,5 @@
+use std::os::raw::c_char;
+
 use std::borrow::Cow;
 use std::slice;
 
@@ -136,7 +138,7 @@ impl TopologyDescription {
     /// or after serialization for caching purposes.
     pub fn deserialize(api: &Api, bytes: &[u8]) -> Result<Self> {
         let mut args = PJRT_TopologyDescription_Deserialize_Args::new();
-        args.serialized_topology = bytes.as_ptr() as *const i8;
+        args.serialized_topology = bytes.as_ptr() as *const c_char;
         args.serialized_topology_size = bytes.len();
         let args = api.PJRT_TopologyDescription_Deserialize(args)?;
         Ok(Self::wrap(api, args.topology, None))

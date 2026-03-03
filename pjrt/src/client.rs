@@ -57,6 +57,8 @@
 //! println!("Compiled: {:?}", executable);
 //! ```
 
+use std::os::raw::c_char;
+
 use std::borrow::Cow;
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -264,7 +266,7 @@ impl Client {
     pub fn load_executable(&self, bytes: &[u8]) -> Result<LoadedExecutable> {
         let mut args = PJRT_Executable_DeserializeAndLoad_Args::new();
         args.client = self.ptr();
-        args.serialized_executable = bytes.as_ptr() as *const i8;
+        args.serialized_executable = bytes.as_ptr() as *const c_char;
         args.serialized_executable_size = bytes.len();
         args = self.api().PJRT_Executable_DeserializeAndLoad(args)?;
         Ok(LoadedExecutable::wrap(self, args.loaded_executable))
@@ -378,7 +380,7 @@ impl Client {
         let mut args = PJRT_Client_CreateErrorBuffer_Args::new();
         args.client = self.ptr();
         args.error_code = error_code as PJRT_Error_Code;
-        args.error_message = error_message.as_ptr() as *const i8;
+        args.error_message = error_message.as_ptr() as *const c_char;
         args.error_message_size = error_message.len();
         args.shape_dims = dims.as_ptr();
         args.shape_num_dims = dims.len();
@@ -434,7 +436,7 @@ impl Client {
                 raw.state = info.state as pjrt_sys::PJRT_ProcessState;
                 raw.error_code = info.error_code.unwrap_or(0);
                 if let Some(ref msg) = info.error_message {
-                    raw.error_message = msg.as_ptr() as *const i8;
+                    raw.error_message = msg.as_ptr() as *const c_char;
                     raw.error_message_size = msg.len();
                 }
                 raw
@@ -526,7 +528,7 @@ impl CompileToLoadedExecutable<Program> for Client {
         let mut args = PJRT_Client_Compile_Args::new();
         args.client = self.ptr();
         args.program = &program.prog as *const PJRT_Program;
-        args.compile_options = options_encoded.as_ptr() as *const i8;
+        args.compile_options = options_encoded.as_ptr() as *const c_char;
         args.compile_options_size = options_encoded.len();
         args = self.api().PJRT_Client_Compile(args)?;
         Ok(LoadedExecutable::wrap(self, args.executable))
@@ -624,7 +626,7 @@ impl FulfillAliasBufferCallback {
             args.status_code = code as PJRT_Error_Code;
         }
         if let Some(msg) = error_message {
-            args.error_message = msg.as_ptr() as *const i8;
+            args.error_message = msg.as_ptr() as *const c_char;
             args.error_message_size = msg.len();
         }
         args.fulfill_alias_buffer_cb = self.ptr;

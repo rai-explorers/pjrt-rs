@@ -13,6 +13,8 @@
 //! The module provides both synchronous and asynchronous execution patterns,
 //! supporting various input types including single buffers, arrays, and vectors.
 
+use std::os::raw::c_char;
+
 use std::collections::HashSet;
 use std::ffi::{c_void, CString};
 use std::marker::PhantomData;
@@ -271,7 +273,7 @@ impl CallLocation {
     }
 
     /// Returns the raw location string as a C string pointer.
-    pub(crate) fn as_ptr(&self) -> *const i8 {
+    pub(crate) fn as_ptr(&self) -> *const c_char {
         self.location_string.as_ptr()
     }
 

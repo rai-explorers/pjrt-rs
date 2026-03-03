@@ -22,6 +22,8 @@
 //! let output = compiler.run_phases(&input_programs, &["phase1", "phase2"], &options, &topology)?;
 //! ```
 
+use std::os::raw::c_char;
+
 use std::rc::Rc;
 
 use pjrt_sys::{
@@ -230,9 +232,9 @@ impl PhaseCompiler {
         topology: &TopologyDescription,
     ) -> Result<PhaseCompileOutput> {
         // Convert input programs to C-compatible format
-        let input_programs_ptrs: Vec<*const i8> = input_programs
+        let input_programs_ptrs: Vec<*const c_char> = input_programs
             .iter()
-            .map(|p| p.as_ptr() as *const i8)
+            .map(|p| p.as_ptr() as *const c_char)
             .collect();
         let input_programs_sizes: Vec<usize> = input_programs.iter().map(|p| p.len()).collect();
 
@@ -244,7 +246,7 @@ impl PhaseCompiler {
                     .map_err(|_| Error::InvalidArgument("phase name contains null byte".into()))
             })
             .collect::<crate::Result<Vec<_>>>()?;
-        let phase_names_ptrs: Vec<*const i8> =
+        let phase_names_ptrs: Vec<*const c_char> =
             phase_names_cstrings.iter().map(|s| s.as_ptr()).collect();
         let phase_names_sizes: Vec<usize> = phases_to_run.iter().map(|s| s.len()).collect();
 
@@ -258,7 +260,7 @@ impl PhaseCompiler {
             input_programs: if input_programs_ptrs.is_empty() {
                 std::ptr::null_mut()
             } else {
-                input_programs_ptrs.as_ptr() as *mut *const i8
+                input_programs_ptrs.as_ptr() as *mut *const c_char
             },
             input_programs_sizes: if input_programs_sizes.is_empty() {
                 std::ptr::null()
@@ -269,7 +271,7 @@ impl PhaseCompiler {
             phases_to_run: if phase_names_ptrs.is_empty() {
                 std::ptr::null_mut()
             } else {
-                phase_names_ptrs.as_ptr() as *mut *const i8
+                phase_names_ptrs.as_ptr() as *mut *const c_char
             },
             phases_to_run_sizes: if phase_names_sizes.is_empty() {
                 std::ptr::null()
@@ -277,7 +279,7 @@ impl PhaseCompiler {
                 phase_names_sizes.as_ptr()
             },
             num_phases_to_run: phases_to_run.len(),
-            compile_options: serialized_options.as_ptr() as *const i8,
+            compile_options: serialized_options.as_ptr() as *const c_char,
             compile_options_size: serialized_options.len(),
             topology: topology.ptr,
             output_programs: std::ptr::null_mut(),

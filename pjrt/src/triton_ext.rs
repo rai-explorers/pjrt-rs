@@ -25,6 +25,8 @@
 //! println!("Shared memory: {} bytes", result.smem_bytes);
 //! ```
 
+use std::os::raw::c_char;
+
 use std::rc::Rc;
 
 use pjrt_sys::{PJRT_Triton, PJRT_Triton_Compile_Args};
@@ -113,9 +115,9 @@ impl TritonExtension {
     ) -> Result<TritonCompileResult> {
         let mut args = unsafe { std::mem::zeroed::<PJRT_Triton_Compile_Args>() };
         args.struct_size = std::mem::size_of::<PJRT_Triton_Compile_Args>();
-        args.module = module.as_ptr() as *const i8;
+        args.module = module.as_ptr() as *const c_char;
         args.module_size = module.len();
-        args.arch_name = arch_name.as_ptr() as *const i8;
+        args.arch_name = arch_name.as_ptr() as *const c_char;
         args.arch_name_size = arch_name.len();
         args.num_warps = num_warps;
         args.num_ctas = num_ctas;
