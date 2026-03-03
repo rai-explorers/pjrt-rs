@@ -31,6 +31,8 @@
 //!
 //! This extension is only available in TPU PJRT plugins.
 
+use std::os::raw::c_char;
+
 use std::borrow::Cow;
 use std::rc::Rc;
 
@@ -811,7 +813,7 @@ impl TpuTopologyExtension {
         let mut args: PJRT_TpuTopology_GetRoutingStrategy_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_TpuTopology_GetRoutingStrategy_Args>();
         args.topology = topology.ptr;
-        args.routing_strategy = buf.as_mut_ptr() as *mut i8;
+        args.routing_strategy = buf.as_mut_ptr() as *mut c_char;
         args.routing_strategy_len = max_len;
 
         let ext_fn = self
@@ -838,9 +840,9 @@ impl TpuTopologyExtension {
         let mut slice_config: PJRT_TpuTopology_SliceConfig = unsafe { std::mem::zeroed() };
         let mut args: PJRT_TpuTopology_GetSliceConfig_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_TpuTopology_GetSliceConfig_Args>();
-        args.platform_type_name = platform_type_name.as_ptr() as *const i8;
+        args.platform_type_name = platform_type_name.as_ptr() as *const c_char;
         args.platform_type_name_len = platform_type_name.len();
-        args.slice_name = slice_name.as_ptr() as *const i8;
+        args.slice_name = slice_name.as_ptr() as *const c_char;
         args.slice_name_len = slice_name.len();
         args.slice_config = &mut slice_config;
 
@@ -868,7 +870,7 @@ impl TpuTopologyExtension {
             vec![unsafe { std::mem::zeroed() }; max_configs];
         let mut args: PJRT_TpuTopology_GetSliceConfigs_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_TpuTopology_GetSliceConfigs_Args>();
-        args.platform_type_name = platform_type_name.as_ptr() as *const i8;
+        args.platform_type_name = platform_type_name.as_ptr() as *const c_char;
         args.platform_type_name_len = platform_type_name.len();
         args.slice_configs = buf.as_mut_ptr();
         args.max_slice_configs = max_configs;
@@ -895,7 +897,7 @@ impl TpuTopologyExtension {
         let mut args: PJRT_TpuTopology_GetDefaultPlatformConfig_Args =
             unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_TpuTopology_GetDefaultPlatformConfig_Args>();
-        args.platform_type_name = platform_type_name.as_ptr() as *const i8;
+        args.platform_type_name = platform_type_name.as_ptr() as *const c_char;
         args.platform_type_name_len = platform_type_name.len();
 
         let ext_fn = self

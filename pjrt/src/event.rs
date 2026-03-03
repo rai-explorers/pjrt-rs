@@ -11,6 +11,8 @@
 //! The `Event` struct implements Rust's `Future` trait, allowing it to be used with
 //! async/await syntax for convenient asynchronous programming.
 
+use std::os::raw::c_char;
+
 use std::ffi::c_void;
 use std::future::Future;
 use std::pin::Pin;
@@ -186,7 +188,7 @@ impl Event {
         args.event = self.ptr;
         args.error_code = error_code as PJRT_Error_Code;
         if let Some(msg) = error_message {
-            args.error_message = msg.as_ptr() as *const i8;
+            args.error_message = msg.as_ptr() as *const c_char;
             args.error_message_size = msg.len();
         }
         self.api.PJRT_Event_Set(args).map(|_| ())

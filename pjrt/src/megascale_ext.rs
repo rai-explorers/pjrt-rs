@@ -33,6 +33,8 @@
 //! This extension is primarily available in PJRT plugins designed for
 //! large-scale distributed training, such as TPU pods.
 
+use std::os::raw::c_char;
+
 use std::rc::Rc;
 
 use pjrt_sys::{
@@ -491,9 +493,9 @@ impl MegascaleExtension {
         args.num_slices = num_slices;
         args.local_slice_id = local_slice_id;
         args.local_host_id = local_host_id;
-        args.endpoint_addresses = endpoint_addresses.as_ptr() as *const i8;
+        args.endpoint_addresses = endpoint_addresses.as_ptr() as *const c_char;
         args.endpoint_addresses_size = endpoint_addresses.len() as i32;
-        args.dcn_topology = dcn_topology.as_ptr() as *const i8;
+        args.dcn_topology = dcn_topology.as_ptr() as *const c_char;
         args.dcn_topology_size = dcn_topology.len() as i32;
         args.client_context = client_context.ptr;
 

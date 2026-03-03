@@ -60,6 +60,8 @@
 //! let copied_buffer = device_buffer.copy_to_device(other_device)?;
 //! ```
 
+use std::os::raw::c_char;
+
 use std::ffi::c_void;
 use std::future::Future;
 use std::pin::Pin;
@@ -462,7 +464,7 @@ impl CopyRawToHostFuture {
             args.error_code = code as pjrt_sys::PJRT_Error_Code;
         }
         if let Some(msg) = error_message {
-            args.error_message = msg.as_ptr() as *const i8;
+            args.error_message = msg.as_ptr() as *const c_char;
             args.error_message_size = msg.len();
         }
         args.dst = dst.as_mut_ptr() as *mut _;
@@ -534,7 +536,7 @@ impl DonateWithControlDependency {
             args.error_code = code as pjrt_sys::PJRT_Error_Code;
         }
         if let Some(msg) = error_message {
-            args.error_message = msg.as_ptr() as *const i8;
+            args.error_message = msg.as_ptr() as *const c_char;
             args.error_message_size = msg.len();
         }
 

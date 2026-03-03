@@ -15,6 +15,8 @@
 //! - `NamedValueMap`: A collection of named values backed by a HashMap
 //! - `Value`: An enum representing different value types (i64, f32, bool, string, i64 list)
 
+use std::os::raw::c_char;
+
 use std::collections::HashMap;
 use std::slice;
 
@@ -104,7 +106,7 @@ pub enum Value {
 impl<'a> From<&'a NamedValue> for PJRT_NamedValue {
     fn from(v: &'a NamedValue) -> Self {
         let mut out = PJRT_NamedValue::new();
-        out.name = v.name.as_ptr() as *const i8;
+        out.name = v.name.as_ptr() as *const c_char;
         out.name_size = v.name.len();
         match &v.value {
             Value::I64(i) => {
@@ -121,7 +123,7 @@ impl<'a> From<&'a NamedValue> for PJRT_NamedValue {
             }
             Value::String(s) => {
                 out.type_ = PJRT_NamedValue_Type_PJRT_NamedValue_kString;
-                out.__bindgen_anon_1.string_value = s.as_ptr() as *const i8;
+                out.__bindgen_anon_1.string_value = s.as_ptr() as *const c_char;
                 out.value_size = s.len();
             }
             Value::I64List(l) => {

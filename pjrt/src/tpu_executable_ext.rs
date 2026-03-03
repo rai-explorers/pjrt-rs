@@ -27,6 +27,8 @@
 //!
 //! This extension is only available in TPU PJRT plugins.
 
+use std::os::raw::c_char;
+
 use std::rc::Rc;
 
 use pjrt_sys::{
@@ -183,7 +185,7 @@ impl TpuExecutableExtension {
     ) -> Result<OwnedTargetArguments> {
         let mut args: PJRT_TpuExecutable_GetTargetArguments_Args = unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_TpuExecutable_GetTargetArguments_Args>();
-        args.serialized_executable = serialized_executable.as_ptr() as *const i8;
+        args.serialized_executable = serialized_executable.as_ptr() as *const c_char;
         args.serialized_executable_size = serialized_executable.len();
 
         let ext_fn = self
@@ -232,7 +234,7 @@ impl TpuExecutableExtension {
         let mut args: PJRT_TpuExecutable_GetCoreProgramAbiVersion_Args =
             unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_TpuExecutable_GetCoreProgramAbiVersion_Args>();
-        args.serialized_executable = serialized_executable.as_ptr() as *const i8;
+        args.serialized_executable = serialized_executable.as_ptr() as *const c_char;
         args.serialized_executable_size = serialized_executable.len();
 
         let ext_fn = self
@@ -278,7 +280,7 @@ impl TpuExecutableExtension {
         let mut args: PJRT_TpuExecutable_GetHloModuleWithConfig_Args =
             unsafe { std::mem::zeroed() };
         args.struct_size = std::mem::size_of::<PJRT_TpuExecutable_GetHloModuleWithConfig_Args>();
-        args.serialized_executable = serialized_executable.as_ptr() as *const i8;
+        args.serialized_executable = serialized_executable.as_ptr() as *const c_char;
         args.serialized_executable_size = serialized_executable.len();
 
         let ext_fn = self

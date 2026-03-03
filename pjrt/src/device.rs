@@ -55,6 +55,8 @@
 //! }
 //! ```
 
+use std::os::raw::c_char;
+
 use std::slice;
 
 use pjrt_sys::{
@@ -197,7 +199,7 @@ impl Device {
         let mut args = PJRT_Device_PoisonExecution_Args::new();
         args.device = self.ptr;
         args.error_code = error_code as pjrt_sys::PJRT_Error_Code;
-        args.error_message = error_message.as_ptr() as *const i8;
+        args.error_message = error_message.as_ptr() as *const c_char;
         args.error_message_size = error_message.len();
         self.client
             .api()
